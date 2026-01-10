@@ -1,0 +1,2142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Maths in Baby Steps</title>
+    <!-- Netlify Identity Widget -->
+    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            min-height: 100dvh; /* Use dynamic viewport height for mobile */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Changed from center to flex-start for better mobile behavior */
+            padding: 20px;
+            /* Prevent layout shift when keyboard appears on mobile */
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+            body {
+                align-items: flex-start;
+                padding: 10px;
+                min-height: -webkit-fill-available; /* Better mobile support */
+            }
+            
+            .container {
+                margin-top: 0;
+                padding: 20px 15px;
+            }
+            
+            .question-container {
+                margin-left: -15px;
+                margin-right: -15px;
+                padding-left: 15px;
+                padding-right: 15px;
+                /* Allow horizontal scroll for multi-digit table if needed */
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+        }
+
+        /* Extra small mobile devices */
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+            
+            .container {
+                padding: 15px 10px;
+                border-radius: 15px;
+            }
+            
+            .question-container {
+                margin-left: -10px;
+                margin-right: -10px;
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            margin: auto;
+            /* Prevent container from shifting when keyboard appears */
+            position: relative;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .setup-section {
+            margin-bottom: 30px;
+        }
+
+        .setup-section label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 600;
+        }
+
+        .setup-section select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .question-container {
+            margin-top: 30px;
+            /* Keep question area stable on mobile when keyboard appears */
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+
+        .question-line {
+            font-size: 32px;
+            margin: 15px 0;
+            text-align: right;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            font-weight: 600;
+            color: #333;
+            /* Prevent question from moving when keyboard appears */
+            scroll-margin-top: 10px;
+        }
+
+        .question-line.multidigit {
+            font-family: 'Courier New', monospace;
+            letter-spacing: 8px;
+        }
+
+        .answer-input {
+            font-size: 32px;
+            text-align: right;
+            border: 3px solid #667eea;
+            border-radius: 8px;
+            padding: 10px 15px;
+            width: 100%;
+            margin: 15px 0;
+            font-weight: 600;
+            /* Prevent input from causing scroll jump on mobile */
+            scroll-margin-top: 20px;
+        }
+
+        .answer-input:focus {
+            outline: none;
+            border-color: #764ba2;
+            /* Prevent auto-scroll on mobile when keyboard appears */
+            scroll-behavior: auto;
+        }
+
+        /* Remove spinner arrows from number input */
+        .answer-input::-webkit-outer-spin-button,
+        .answer-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .answer-input[type=number] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        .answer-display {
+            font-size: 32px;
+            text-align: right;
+            border: 3px solid #667eea;
+            border-radius: 8px;
+            padding: 10px 15px;
+            width: 100%;
+            margin: 15px 0;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 8px;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            background: white;
+        }
+
+        .answer-display:focus-within {
+            border-color: #764ba2;
+        }
+
+        .answer-display .digit {
+            display: inline-block;
+            min-width: 24px;
+            text-align: center;
+        }
+
+        .answer-display .placeholder {
+            color: #ccc;
+        }
+
+        .answer-display .entered {
+            color: #333;
+        }
+
+        .hidden-input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .multidigit-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 32px;
+            font-weight: 600;
+        }
+
+        .multidigit-table td {
+            border: 2px solid #667eea;
+            padding: 15px;
+            text-align: center;
+            min-width: 60px;
+            height: 60px;
+            background: white;
+        }
+
+        .multidigit-table td.operation-cell {
+            background: #f8f9fa;
+            border-color: #764ba2;
+            font-size: 36px;
+        }
+
+        .multidigit-table td.input-cell {
+            background: #fff;
+            border-color: #667eea;
+            cursor: text;
+            /* Ensure input cells are focusable on mobile */
+            -webkit-tap-highlight-color: rgba(118, 75, 162, 0.3);
+            touch-action: manipulation;
+        }
+
+        .multidigit-table td.input-cell.placeholder {
+            color: #ccc;
+        }
+
+        .multidigit-table td.input-cell.entered {
+            color: #333;
+        }
+
+        .multidigit-table td.input-cell:focus {
+            outline: 3px solid #764ba2;
+            outline-offset: -3px;
+            /* Ensure focus is visible on mobile */
+            -webkit-tap-highlight-color: rgba(118, 75, 162, 0.5);
+        }
+
+        /* Mobile-specific styles for multi-digit table */
+        @media (max-width: 768px) {
+            .multidigit-table {
+                font-size: 20px;
+                margin: 10px 0;
+                /* Ensure table fits within viewport */
+                width: 100%;
+                table-layout: auto;
+            }
+
+            .multidigit-table td {
+                padding: 8px 4px;
+                min-width: 0;
+                width: auto;
+                height: 45px;
+                border-width: 1.5px;
+            }
+
+            .multidigit-table td.operation-cell {
+                font-size: 24px;
+                padding: 8px 6px;
+            }
+
+            /* Ensure table doesn't exceed viewport width */
+            .multidigit-table {
+                max-width: 100%;
+                box-sizing: border-box;
+            }
+        }
+
+        /* Extra small mobile devices */
+        @media (max-width: 480px) {
+            .multidigit-table {
+                font-size: 18px;
+            }
+
+            .multidigit-table td {
+                padding: 6px 3px;
+                height: 40px;
+                font-size: 18px;
+            }
+
+            .multidigit-table td.operation-cell {
+                font-size: 20px;
+                padding: 6px 4px;
+            }
+            
+            /* Adjust question-container margins for smaller screens */
+            .question-container {
+                margin-left: -10px;
+                margin-right: -10px;
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+        }
+
+        .correct-answer {
+            font-size: 24px;
+            color: #dc3545;
+            text-align: right;
+            margin-top: 10px;
+            min-height: 40px;
+        }
+
+        .timer {
+            text-align: center;
+            font-size: 20px;
+            color: #667eea;
+            margin: 15px 0;
+            font-weight: 600;
+        }
+
+        .timer.warning {
+            color: #dc3545;
+        }
+
+        .summary-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .summary-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .summary-stats {
+            margin-bottom: 20px;
+        }
+
+        .summary-stats p {
+            margin: 8px 0;
+            font-size: 16px;
+            color: #555;
+        }
+
+        .pass-fail {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .pass {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .fail {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .question-details {
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .question-item {
+            padding: 10px;
+            margin: 8px 0;
+            background: white;
+            border-radius: 6px;
+            border-left: 4px solid #667eea;
+        }
+
+        .question-item.wrong {
+            border-left-color: #dc3545;
+        }
+
+        .question-item.correct {
+            border-left-color: #28a745;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        /* Authentication UI Styles */
+        .auth-section {
+            text-align: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .auth-status {
+            margin-bottom: 10px;
+        }
+
+        .auth-status.logged-in {
+            color: #28a745;
+        }
+
+        .auth-status.logged-out {
+            color: #dc3545;
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .auth-buttons button {
+            padding: 8px 20px;
+            font-size: 14px;
+        }
+
+        .auth-buttons .btn-secondary {
+            background: #6c757d;
+        }
+
+        .auth-buttons .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        #authModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .auth-modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            position: relative;
+        }
+
+        .auth-modal-content h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .auth-form input {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .auth-form input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .auth-error {
+            color: #dc3545;
+            font-size: 14px;
+            margin-top: 10px;
+            min-height: 20px;
+        }
+
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Learning Maths</h1>
+            <p>in Baby Steps</p>
+        </div>
+
+        <!-- Authentication Section -->
+        <div id="authSection" class="auth-section">
+            <div id="authStatus" class="auth-status logged-out">Not logged in</div>
+            <div id="userEmail" style="margin-bottom: 10px; font-size: 14px; color: #666;"></div>
+            <div class="auth-buttons">
+                <button class="btn" onclick="showLoginModal()" id="loginBtn">Log In</button>
+                <button class="btn" onclick="showSignupModal()" id="signupBtn">Sign Up</button>
+                <button class="btn btn-secondary hidden" onclick="handleLogout()" id="logoutBtn">Log Out</button>
+            </div>
+            <div style="margin-top: 15px; font-size: 12px; color: #666;">
+                <p>Sign up to save your progress across all devices!</p>
+            </div>
+        </div>
+
+        <div id="setupSection" class="setup-section">
+            <label for="operation">Operation:</label>
+            <select id="operation">
+                <option value="addition">Addition</option>
+                <option value="subtraction">Subtraction</option>
+                <option value="multiplication">Multiplication</option>
+                <option value="division">Division</option>
+            </select>
+
+            <label for="variant">Variant:</label>
+            <select id="variant"></select>
+
+            <button class="btn" onclick="startSession()">Start Session</button>
+        </div>
+
+        <div id="questionSection" class="question-container hidden">
+            <div class="timer" id="timer">Time: 0.0s</div>
+            <div class="question-line" id="line1"></div>
+            <div class="question-line" id="line2"></div>
+            <div class="question-line" id="answerLine">
+                <input type="number" id="answerInput" class="answer-input" placeholder="?" autocomplete="off">
+                <div id="answerDisplay" class="answer-display hidden" tabindex="0">
+                    <input type="text" id="hiddenInput" class="hidden-input" autocomplete="off">
+                </div>
+                <table id="multidigitTable" class="multidigit-table hidden"></table>
+            </div>
+            <div class="correct-answer" id="line4"></div>
+        </div>
+
+        <div id="summarySection" class="summary-section hidden">
+            <h2>Session Summary</h2>
+            <div class="summary-stats" id="summaryStats"></div>
+            <div class="pass-fail" id="passFail"></div>
+            <div class="question-details" id="questionDetails"></div>
+            <button class="btn" onclick="resetSession()" style="margin-top: 20px;">Start New Session</button>
+        </div>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h3>Session Termination</h3>
+            <p>You have completed 50 questions. Would you like to continue or end the session?</p>
+            <div class="modal-buttons">
+                <button class="btn" onclick="continueSession()">Continue</button>
+                <button class="btn" onclick="endSession()" style="background: #dc3545;">End Session</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Authentication Modal -->
+    <div id="authModal" class="modal">
+        <div class="auth-modal-content">
+            <span style="position: absolute; top: 10px; right: 15px; cursor: pointer; font-size: 24px; color: #999;" onclick="closeAuthModal()">&times;</span>
+            <h3 id="authModalTitle">Log In</h3>
+            <form id="authForm" class="auth-form" onsubmit="handleAuth(event)">
+                <input type="email" id="authEmail" placeholder="Email" required>
+                <input type="password" id="authPassword" placeholder="Password" required>
+                <button type="submit" class="btn" id="authSubmitBtn">Submit</button>
+            </form>
+            <div id="authError" class="auth-error"></div>
+            <div id="authToggle" style="margin-top: 15px; font-size: 14px;">
+                <span id="authToggleText">Don't have an account? </span>
+                <a href="#" onclick="toggleAuthMode(event)" style="color: #667eea; text-decoration: none;">Sign Up</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================================
+        // MULTI-DIGIT VARIANTS SECTION
+        // ============================================================================
+        // All multi-digit variants are defined here. They share common features:
+        // - Right-to-left cursor movement
+        // - No time limit
+        // - Multi-digit number formatting with spacing
+        // - Special input handling
+        //
+        // To add a new multi-digit variant:
+        // 1. Add it to the appropriate operation section below
+        // 2. Include: first/second ranges, name, and any special flags (noCarry, etc.)
+        // 3. The variant will automatically get: noTimeLimit: true, rightToLeft: true
+        // ============================================================================
+        
+        const multiDigitVariants = {
+            addition: {
+                '1M1': {
+                    first: [10000, 99999],
+                    second: [10000, 99999],
+                    name: '1M1: Adding Multi-digit Numbers without Carry',
+                    noCarry: true,
+                    maxQuestions: 10
+                },
+                '1M2': {
+                    first: [10000, 99999],
+                    second: [10000, 99999],
+                    name: '1M2: Adding Multi-digit Numbers with Carry',
+                    hasCarry: true,
+                    maxQuestions: 10
+                }
+                // Add more multi-digit addition variants here:
+                // '1M3': { ... },
+            },
+            subtraction: {
+                // Add multi-digit subtraction variants here:
+                // '2M1': { ... },
+            },
+            multiplication: {
+                // Add multi-digit multiplication variants here:
+                // '3M1': { ... },
+            },
+            division: {
+                // Add multi-digit division variants here:
+                // '4M1': { ... },
+            }
+        };
+
+        // Apply multi-digit flags to all multi-digit variants
+        for (const operation in multiDigitVariants) {
+            for (const variantKey in multiDigitVariants[operation]) {
+                const variant = multiDigitVariants[operation][variantKey];
+                variant.noTimeLimit = true;
+                variant.rightToLeft = true;
+            }
+        }
+
+        // ============================================================================
+        // STANDARD VARIANTS
+        // ============================================================================
+        const variants = {
+            addition: {
+                '1A0': { first: [0, 9], second: [0, 0], name: '1A0: Adding 0' },
+                '1A1': { first: [0, 9], second: [1, 1], name: '1A1: Adding 1' },
+                '1A2': { first: [0, 9], second: [2, 2], name: '1A2: Adding 2' },
+                '1A3': { first: [0, 9], second: [3, 3], name: '1A3: Adding 3' },
+                '1A': { first: [0, 9], second: [0, 3], name: '1A: Adding 0, 1, 2, 3' },
+                '1B': { first: [0, 3], second: [0, 9], name: '1B: Adding Bigger Number to Smaller Number' },
+                '1C': { first: [0, 9], second: 'same', name: '1C: Both Numbers Same' },
+                '1D': { first: [6, 9], second: [6, 9], name: '1D: Adding Large Numbers (6-9)', excludeSame: true },
+                '1': { first: [0, 9], second: [0, 9], name: '1: Adding Single-digit Numbers (0-9)' }
+            },
+            subtraction: {
+                '2A': { second: [0, 4], result: [0, 4], name: '2A: Subtracting (0-4), Result (0-4)' },
+                '2B': { second: [0, 4], result: [5, 9], name: '2B: Subtracting (0-4), Result (5-9)' },
+                '2C': { second: [5, 9], result: [0, 4], name: '2C: Subtracting (5-9), Result (0-4)' },
+                '2D': { second: [5, 9], result: [5, 9], name: '2D: Subtracting (5-9), Result (5-9)' },
+                '2': { second: [0, 9], result: [0, 9], name: '2: Subtracting Single-digit Numbers (0-9)' }
+            },
+            multiplication: {
+                '3A0': { first: [0, 0], second: [0, 9], name: '3A0: Multiplying 0 by any Number' },
+                '3A1': { first: [1, 1], second: [0, 9], name: '3A1: Multiplying 1 by any Number' },
+                '3A2S': { first: [2, 2], second: [0, 9], name: '3A2S: Table of 2', sequential: true },
+                '3A2': { first: [2, 2], second: [0, 9], name: '3A2: Table of 2 Random' },
+                '3A3S': { first: [3, 3], second: [0, 9], name: '3A3S: Table of 3', sequential: true },
+                '3A3': { first: [3, 3], second: [0, 9], name: '3A3: Table of 3 Random' },
+                '3A': { first: [0, 3], second: [0, 9], name: '3A: Multiplying 0, 1, 2, 3 by any Number' },
+                '3B4S': { first: [4, 4], second: [0, 9], name: '3B4S: Table of 4', sequential: true },
+                '3B4': { first: [4, 4], second: [0, 9], name: '3B4: Table of 4 Random' },
+                '3B5S': { first: [5, 5], second: [0, 9], name: '3B5S: Table of 5', sequential: true },
+                '3B5': { first: [5, 5], second: [0, 9], name: '3B5: Table of 5 Random' },
+                '3B6S': { first: [6, 6], second: [0, 9], name: '3B6S: Table of 6', sequential: true },
+                '3B6': { first: [6, 6], second: [0, 9], name: '3B6: Table of 6 Random' },
+                '3B': { first: [4, 6], second: [0, 9], name: '3B: Multiplying 4, 5, 6 by any Number' },
+                '3C7S': { first: [7, 7], second: [0, 9], name: '3C7S: Table of 7', sequential: true },
+                '3C7': { first: [7, 7], second: [0, 9], name: '3C7: Table of 7 Random' },
+                '3C8S': { first: [8, 8], second: [0, 9], name: '3C8S: Table of 8', sequential: true },
+                '3C8': { first: [8, 8], second: [0, 9], name: '3C8: Table of 8 Random' },
+                '3C9S': { first: [9, 9], second: [0, 9], name: '3C9S: Table of 9', sequential: true },
+                '3C9': { first: [9, 9], second: [0, 9], name: '3C9: Table of 9 Random' },
+                '3C': { first: [7, 9], second: [0, 9], name: '3C: Multiplying 7, 8, 9 by any Number' },
+                '3': { first: [0, 9], second: [0, 9], name: '3: Multiplying Single-digit Numbers' }
+            },
+            division: {
+                '4A1': { second: [1, 1], result: [0, 9], name: '4A1: Dividing by 1' },
+                '4A2': { second: [2, 2], result: [0, 9], name: '4A2: Dividing by 2' },
+                '4A3': { second: [3, 3], result: [0, 9], name: '4A3: Dividing by 3' },
+                '4A': { second: [1, 3], result: [0, 9], name: '4A: Dividing by 1, 2, 3' },
+                '4B4': { second: [4, 4], result: [0, 9], name: '4B4: Dividing by 4' },
+                '4B5': { second: [5, 5], result: [0, 9], name: '4B5: Dividing by 5' },
+                '4B6': { second: [6, 6], result: [0, 9], name: '4B6: Dividing by 6' },
+                '4B': { second: [4, 6], result: [0, 9], name: '4B: Dividing by 4, 5, 6' },
+                '4C7': { second: [7, 7], result: [0, 9], name: '4C7: Dividing by 7' },
+                '4C8': { second: [8, 8], result: [0, 9], name: '4C8: Dividing by 8' },
+                '4C9': { second: [9, 9], result: [0, 9], name: '4C9: Dividing by 9' },
+                '4C': { second: [7, 9], result: [0, 9], name: '4C: Dividing by 7, 8, 9' },
+                '4': { second: [1, 9], result: [0, 9], name: '4: Dividing Single-digit Numbers (1-9)' }
+            }
+        };
+
+        // Merge multi-digit variants into main variants object
+        for (const operation in multiDigitVariants) {
+            if (variants[operation]) {
+                Object.assign(variants[operation], multiDigitVariants[operation]);
+            }
+        }
+
+        let currentSession = {
+            operation: '',
+            variant: '',
+            questions: [],
+            askedQuestions: new Set(),
+            questionIndex: 0,
+            correctCount: 0,
+            wrongCount: 0,
+            totalTime: 0,
+            results: []
+        };
+
+        let timerInterval = null;
+        let timeElapsed = 0;
+        let questionStartTime = 0;
+        let answerTimeout = null;
+
+        // Update variants when operation changes
+        function updateVariants() {
+            try {
+                const operation = document.getElementById('operation').value;
+                const variantSelect = document.getElementById('variant');
+                
+                if (!variantSelect) {
+                    console.error('Variant select element not found');
+                    return;
+                }
+                
+                if (!operation) {
+                    console.error('No operation selected');
+                    return;
+                }
+                
+                variantSelect.innerHTML = '';
+
+                console.log('Updating variants for operation:', operation);
+                console.log('Variants object:', variants);
+                
+                const opsVariants = variants[operation];
+                if (!opsVariants) {
+                    console.error('No variants found for operation:', operation, 'Available operations:', Object.keys(variants));
+                    return;
+                }
+                
+                console.log('Found variants for', operation, ':', Object.keys(opsVariants));
+                
+                for (const [key, value] of Object.entries(opsVariants)) {
+                    const option = document.createElement('option');
+                    option.value = key;
+                    option.textContent = value.name;
+                    variantSelect.appendChild(option);
+                }
+                
+                console.log('Added', variantSelect.options.length, 'variants to dropdown');
+            } catch (error) {
+                console.error('Error in updateVariants:', error);
+            }
+        }
+
+        // Initialize variants dropdown - ensure this runs after all definitions
+        (function() {
+            function init() {
+                try {
+                    const operationSelect = document.getElementById('operation');
+                    const variantSelect = document.getElementById('variant');
+                    
+                    if (!operationSelect || !variantSelect) {
+                        console.error('Required elements not found');
+                        return false;
+                    }
+                    
+                    // Verify variants object exists
+                    if (typeof variants === 'undefined') {
+                        console.error('Variants object not defined');
+                        return false;
+                    }
+                    
+                    console.log('Initializing variants dropdown...');
+                    console.log('Available operations:', Object.keys(variants));
+                    
+                    // Add change listener
+                    operationSelect.addEventListener('change', updateVariants);
+                    
+                    // Initial population
+                    updateVariants();
+                    return true;
+                } catch (error) {
+                    console.error('Error initializing variants:', error);
+                    return false;
+                }
+            }
+            
+            // Try multiple times to ensure DOM is ready
+            if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                if (!init()) {
+                    setTimeout(init, 100);
+                }
+            } else {
+                window.addEventListener('load', init);
+                document.addEventListener('DOMContentLoaded', init);
+            }
+        })();
+
+        function startSession() {
+            const operation = document.getElementById('operation').value;
+            const variant = document.getElementById('variant').value;
+
+            currentSession = {
+                operation: operation,
+                variant: variant,
+                questions: [],
+                askedQuestions: new Set(),
+                questionIndex: 0,
+                correctCount: 0,
+                wrongCount: 0,
+                totalTime: 0,
+                results: []
+            };
+
+            generateAllQuestions(operation, variant);
+            document.getElementById('setupSection').classList.add('hidden');
+            document.getElementById('questionSection').classList.remove('hidden');
+            document.getElementById('summarySection').classList.add('hidden');
+            
+            askNextQuestion();
+        }
+
+        function hasNoCarry(first, second) {
+            // Convert numbers to strings to check digit by digit
+            const firstStr = first.toString();
+            const secondStr = second.toString();
+            const maxLength = Math.max(firstStr.length, secondStr.length);
+            
+            // Pad shorter number with leading zeros
+            const firstPadded = firstStr.padStart(maxLength, '0');
+            const secondPadded = secondStr.padStart(maxLength, '0');
+            
+            // Check each digit position from right to left
+            for (let i = maxLength - 1; i >= 0; i--) {
+                const digit1 = parseInt(firstPadded[i]);
+                const digit2 = parseInt(secondPadded[i]);
+                if (digit1 + digit2 >= 10) {
+                    return false; // Has carry
+                }
+            }
+            return true; // No carry
+        }
+
+        function hasCarry(first, second) {
+            // Convert numbers to strings to check digit by digit
+            const firstStr = first.toString();
+            const secondStr = second.toString();
+            const maxLength = Math.max(firstStr.length, secondStr.length);
+            
+            // Pad shorter number with leading zeros
+            const firstPadded = firstStr.padStart(maxLength, '0');
+            const secondPadded = secondStr.padStart(maxLength, '0');
+            
+            // Check each digit position from right to left
+            for (let i = maxLength - 1; i >= 0; i--) {
+                const digit1 = parseInt(firstPadded[i]);
+                const digit2 = parseInt(secondPadded[i]);
+                if (digit1 + digit2 >= 10) {
+                    return true; // Has carry
+                }
+            }
+            return false; // No carry
+        }
+
+        function generateAllQuestions(operation, variant) {
+            const variantConfig = variants[operation][variant];
+            const allQuestions = [];
+
+            if (operation === 'addition') {
+                const firstRange = variantConfig.first;
+                const secondRange = variantConfig.second;
+
+                if (variantConfig.noCarry) {
+                    // Special handling for multi-digit addition without carry
+                    // More efficient: generate first number, then construct second number digit by digit
+                    const maxQuestions = variantConfig.maxQuestions || 10;
+                    const usedQuestions = new Set();
+                    let attempts = 0;
+                    const maxAttempts = 10000; // Safety limit
+                    
+                    while (allQuestions.length < maxQuestions && attempts < maxAttempts) {
+                        attempts++;
+                        // Generate first number randomly
+                        const first = Math.floor(Math.random() * (firstRange[1] - firstRange[0] + 1)) + firstRange[0];
+                        const firstStr = first.toString();
+                        const firstDigits = firstStr.split('').map(d => parseInt(d));
+                        
+                        // Construct second number digit by digit (right to left)
+                        // For each position, determine valid digits that won't cause carry
+                        const secondDigits = [];
+                        const numDigits = firstStr.length;
+                        
+                        for (let i = numDigits - 1; i >= 0; i--) {
+                            const firstDigit = firstDigits[i];
+                            // Valid digits for this position: 0 to (9 - firstDigit) to avoid carry
+                            const maxValidDigit = 9 - firstDigit;
+                            const validDigits = [];
+                            
+                            // Build list of valid digits (0 to maxValidDigit)
+                            for (let d = 0; d <= maxValidDigit; d++) {
+                                validDigits.push(d);
+                            }
+                            
+                            // Randomly select one valid digit
+                            if (validDigits.length > 0) {
+                                const randomIndex = Math.floor(Math.random() * validDigits.length);
+                                secondDigits.unshift(validDigits[randomIndex]);
+                            } else {
+                                // Should not happen, but if it does, skip this attempt
+                                break;
+                            }
+                        }
+                        
+                        // Convert second number array to actual number
+                        const second = parseInt(secondDigits.join(''));
+                        
+                        // Check if second number is within range (should always be true for same-length numbers)
+                        if (second >= secondRange[0] && second <= secondRange[1]) {
+                            const questionKey = `${first}_${second}_${first + second}`;
+                            
+                            // Check if we already have this question
+                            if (!usedQuestions.has(questionKey)) {
+                                usedQuestions.add(questionKey);
+                                allQuestions.push({ first: first, second: second, answer: first + second });
+                            }
+                        }
+                    }
+                } else if (variantConfig.hasCarry) {
+                    // Special handling for multi-digit addition with carry
+                    const maxQuestions = variantConfig.maxQuestions || 10;
+                    let attempts = 0;
+                    const maxAttempts = 100000; // Prevent infinite loop
+                    
+                    while (allQuestions.length < maxQuestions && attempts < maxAttempts) {
+                        attempts++;
+                        const first = Math.floor(Math.random() * (firstRange[1] - firstRange[0] + 1)) + firstRange[0];
+                        const second = Math.floor(Math.random() * (secondRange[1] - secondRange[0] + 1)) + secondRange[0];
+                        
+                        if (hasCarry(first, second)) {
+                            const questionKey = `${first}_${second}_${first + second}`;
+                            // Check if we already have this question
+                            if (!allQuestions.some(q => q.first === first && q.second === second)) {
+                                allQuestions.push({ first: first, second: second, answer: first + second });
+                            }
+                        }
+                    }
+                } else if (secondRange === 'same') {
+                    for (let i = firstRange[0]; i <= firstRange[1]; i++) {
+                        allQuestions.push({ first: i, second: i, answer: i + i });
+                    }
+                } else {
+                    for (let i = firstRange[0]; i <= firstRange[1]; i++) {
+                        for (let j = secondRange[0]; j <= secondRange[1]; j++) {
+                            if (variantConfig.excludeSame && i === j) continue;
+                            allQuestions.push({ first: i, second: j, answer: i + j });
+                        }
+                    }
+                }
+            } else if (operation === 'subtraction') {
+                const secondRange = variantConfig.second;
+                const resultRange = variantConfig.result;
+
+                for (let second = secondRange[0]; second <= secondRange[1]; second++) {
+                    for (let result = resultRange[0]; result <= resultRange[1]; result++) {
+                        const first = second + result;
+                        // No limit on first number for subtraction
+                        allQuestions.push({ first: first, second: second, answer: result });
+                    }
+                }
+            } else if (operation === 'multiplication') {
+                const firstRange = variantConfig.first;
+                const secondRange = variantConfig.second;
+
+                if (variantConfig.sequential) {
+                    // Sequential variants: generate questions in order (0-9 for second number)
+                    const first = firstRange[0]; // For sequential, first number is fixed
+                    for (let j = secondRange[0]; j <= secondRange[1]; j++) {
+                        allQuestions.push({ first: first, second: j, answer: first * j });
+                    }
+                } else {
+                    // Random variants: generate all combinations
+                    for (let i = firstRange[0]; i <= firstRange[1]; i++) {
+                        for (let j = secondRange[0]; j <= secondRange[1]; j++) {
+                            allQuestions.push({ first: i, second: j, answer: i * j });
+                        }
+                    }
+                }
+            } else if (operation === 'division') {
+                const secondRange = variantConfig.second;
+                const resultRange = variantConfig.result;
+
+                for (let second = secondRange[0]; second <= secondRange[1]; second++) {
+                    for (let result = resultRange[0]; result <= resultRange[1]; result++) {
+                        const first = second * result;
+                        // No limit on first number for division
+                        allQuestions.push({ first: first, second: second, answer: result });
+                    }
+                }
+            }
+
+            // Shuffle questions (except sequential variants which are already in order)
+            if (!variantConfig.sequential) {
+                for (let i = allQuestions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [allQuestions[i], allQuestions[j]] = [allQuestions[j], allQuestions[i]];
+                }
+            }
+
+            currentSession.questions = allQuestions;
+        }
+
+        function askNextQuestion() {
+            // Check if we've asked 50 questions and need to prompt
+            if (currentSession.questionIndex === 50 && currentSession.questions.length > 50) {
+                showTerminationModal();
+                return;
+            }
+
+            // Check if all questions have been asked
+            if (currentSession.questionIndex >= currentSession.questions.length) {
+                endSession();
+                return;
+            }
+
+            const question = currentSession.questions[currentSession.questionIndex];
+            const questionKey = `${question.first}_${question.second}_${question.answer}`;
+
+            // Skip if already asked (shouldn't happen, but safety check)
+            if (currentSession.askedQuestions.has(questionKey)) {
+                currentSession.questionIndex++;
+                askNextQuestion();
+                return;
+            }
+
+            currentSession.askedQuestions.add(questionKey);
+            displayQuestion(question);
+            startTimer();
+        }
+
+        function displayQuestion(question) {
+            const operation = currentSession.operation;
+            const variantConfig = variants[operation][currentSession.variant];
+            let opSymbol = '+';
+            if (operation === 'subtraction') opSymbol = '-';
+            else if (operation === 'multiplication') opSymbol = '×';
+            else if (operation === 'division') opSymbol = '÷';
+
+            const line1 = document.getElementById('line1');
+            const line2 = document.getElementById('line2');
+            
+            // Check if this is multi-digit variant (uses table layout)
+            const isMultiDigit = variantConfig.rightToLeft;
+            
+            if (isMultiDigit) {
+                // Hide regular lines, table will be shown
+                line1.classList.add('hidden');
+                line2.classList.add('hidden');
+            } else {
+                // Show regular lines
+                line1.classList.remove('hidden');
+                line2.classList.remove('hidden');
+                line1.textContent = question.first;
+                line2.textContent = `${opSymbol} ${question.second}`;
+                line1.classList.remove('multidigit');
+                line2.classList.remove('multidigit');
+            }
+            
+            // Clear line4, but for multi-digit variants we'll use table row 4 instead
+            if (!variantConfig.rightToLeft) {
+                document.getElementById('line4').textContent = '';
+            }
+            
+            // Scroll question area to top on mobile to keep it visible when keyboard appears
+            // Use requestAnimationFrame to ensure DOM is updated first, then scroll smoothly
+            requestAnimationFrame(() => {
+                // Only scroll on mobile devices
+                if (window.innerWidth <= 768) {
+                    const questionContainer = document.querySelector('.question-container');
+                    if (questionContainer) {
+                        // Scroll container to top so sticky question stays visible
+                        questionContainer.scrollIntoView({ behavior: 'auto', block: 'start', inline: 'nearest' });
+                    }
+                }
+            });
+            
+            // Determine required digits for answer
+            const requiredDigits = question.answer.toString().length;
+            
+            // Check if right-to-left input is needed (multi-digit variants)
+            if (variantConfig.rightToLeft) {
+                setupRightToLeftInput(question, requiredDigits);
+            } else {
+                setupNormalInput(question, requiredDigits);
+            }
+
+            timeElapsed = 0;
+            questionStartTime = Date.now();
+        }
+
+        function setupNormalInput(question, requiredDigits) {
+            const answerDisplay = document.getElementById('answerDisplay');
+            const input = document.getElementById('answerInput');
+            const multidigitTable = document.getElementById('multidigitTable');
+            
+            answerDisplay.classList.add('hidden');
+            multidigitTable.classList.add('hidden');
+            input.classList.remove('hidden');
+            input.value = '';
+            input.disabled = false;
+            
+            // Remove previous event listeners by cloning
+            const newInput = input.cloneNode(true);
+            input.parentNode.replaceChild(newInput, input);
+            
+            newInput.addEventListener('input', function() {
+                const userAnswer = this.value;
+                if (userAnswer.length >= requiredDigits) {
+                    const parsed = parseInt(userAnswer);
+                    checkAnswer(question, isNaN(parsed) ? null : parsed);
+                }
+            });
+
+            // Focus on the new input after it's added to DOM
+            // Prevent aggressive auto-scroll on mobile when keyboard appears
+            setTimeout(() => {
+                newInput.focus();
+                // Don't select text on mobile as it can cause issues
+                if (window.innerWidth > 768) {
+                    newInput.select();
+                }
+            }, 50);
+            
+            // Minimize scroll jump when keyboard appears on mobile
+            newInput.addEventListener('focus', function() {
+                // Let sticky positioning handle keeping question visible
+                // Only make minimal scroll adjustment if input is completely hidden
+                setTimeout(() => {
+                    const rect = this.getBoundingClientRect();
+                    const viewportHeight = window.innerHeight;
+                    // If input is mostly below viewport (keyboard visible), make minimal scroll
+                    // Use 'nearest' to prevent excessive jumping
+                    if (rect.bottom > viewportHeight * 0.9) {
+                        this.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
+                    }
+                }, 150); // Delay to allow keyboard animation
+            });
+        }
+
+        function setupRightToLeftInput(question, requiredDigits) {
+            const answerDisplay = document.getElementById('answerDisplay');
+            const input = document.getElementById('answerInput');
+            const multidigitTable = document.getElementById('multidigitTable');
+            
+            input.classList.add('hidden');
+            answerDisplay.classList.add('hidden');
+            multidigitTable.classList.remove('hidden');
+            
+            // Clear previous table content
+            multidigitTable.innerHTML = '';
+            
+            // Convert numbers to digit arrays
+            const firstNumStr = question.first.toString();
+            const secondNumStr = question.second.toString();
+            const firstDigits = firstNumStr.split('');
+            const secondDigits = secondNumStr.split('');
+            const operation = currentSession.operation === 'addition' ? '+' : 
+                            currentSession.operation === 'subtraction' ? '-' :
+                            currentSession.operation === 'multiplication' ? '×' : '÷';
+            
+            const numCols = 6;
+            
+            // Right-align by padding left with empty strings
+            const padFirst = new Array(numCols - firstDigits.length).fill('');
+            const padSecond = new Array(numCols - secondDigits.length).fill('');
+            const firstRowDigits = [...padFirst, ...firstDigits];
+            const secondRowDigits = [...padSecond, ...secondDigits];
+            
+            // Create 4 rows
+            const rows = [];
+            const answerCells = [];
+            
+            // Row 1: First number (right-aligned)
+            const row1 = document.createElement('tr');
+            for (let i = 0; i < numCols; i++) {
+                const cell = document.createElement('td');
+                cell.textContent = firstRowDigits[i] || '';
+                row1.appendChild(cell);
+            }
+            rows.push(row1);
+            
+            // Row 2: Operation + Second number
+            // Find rightmost non-empty position for operation
+            let opPosition = numCols - secondDigits.length - 1;
+            if (opPosition < 0) opPosition = 0;
+            
+            const row2 = document.createElement('tr');
+            for (let i = 0; i < numCols; i++) {
+                const cell = document.createElement('td');
+                if (i === opPosition) {
+                    cell.textContent = operation;
+                    cell.className = 'operation-cell';
+                } else {
+                    // Adjust index for second number digits
+                    const digitIndex = i - opPosition - 1;
+                    if (digitIndex >= 0 && digitIndex < secondDigits.length) {
+                        cell.textContent = secondDigits[digitIndex];
+                    } else {
+                        cell.textContent = '';
+                    }
+                }
+                row2.appendChild(cell);
+            }
+            rows.push(row2);
+            
+            // Row 3: Answer input cells (right-aligned, rightmost cell is last in array)
+            const row3 = document.createElement('tr');
+            const enteredDigits = [];
+            // Store cells from left to right, but input goes right to left
+            for (let i = 0; i < numCols; i++) {
+                const cell = document.createElement('td');
+                cell.className = 'input-cell';
+                cell.textContent = ''; // No placeholder prompt
+                // Make cell focusable - use both tabindex and contenteditable for better mobile support
+                cell.setAttribute('tabindex', '0');
+                cell.setAttribute('contenteditable', 'false'); // We'll handle input via keydown, not contenteditable
+                cell.setAttribute('role', 'textbox'); // For better accessibility
+                cell.setAttribute('aria-label', `Answer digit ${i + 1}`);
+                cell.dataset.position = i; // Position from left (0 = leftmost, 5 = rightmost)
+                // Prevent default contenteditable behavior
+                cell.style.userSelect = 'none';
+                cell.style.webkitUserSelect = 'none';
+                answerCells.push(cell);
+                row3.appendChild(cell);
+            }
+            rows.push(row3);
+            
+            // Row 4: Correct answer display (initially empty, shown when answer is checked)
+            const row4 = document.createElement('tr');
+            const answerDisplayCells = [];
+            for (let i = 0; i < numCols; i++) {
+                const cell = document.createElement('td');
+                cell.textContent = '';
+                cell.style.borderTop = '3px solid #764ba2';
+                cell.style.color = '#dc3545'; // Red color for correct answer
+                answerDisplayCells.push(cell);
+                row4.appendChild(cell);
+            }
+            rows.push(row4);
+            
+            // Add rows to table
+            rows.forEach(row => multidigitTable.appendChild(row));
+            
+            // Store data for handlers
+            multidigitTable._question = question;
+            multidigitTable._answerCells = answerCells;
+            multidigitTable._answerDisplayCells = answerDisplayCells;
+            multidigitTable._requiredDigits = requiredDigits;
+            multidigitTable._enteredDigits = [];
+            multidigitTable._currentPosition = numCols - 1; // Start from rightmost
+            
+            // Handle keypress for right-to-left entry
+            const handleKeyPress = (e) => {
+                const target = e.target;
+                if (!target.classList.contains('input-cell')) return;
+                
+                // Prevent any input that's not a digit or control key
+                if (e.key >= '0' && e.key <= '9') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const enteredCount = multidigitTable._enteredDigits.length;
+                    if (enteredCount < requiredDigits && enteredCount < numCols) {
+                        // Add digit from right to left (rightmost position is numCols - 1)
+                        const position = numCols - 1 - enteredCount;
+                        const cell = answerCells[position];
+                        cell.textContent = e.key;
+                        cell.className = 'input-cell entered';
+                        multidigitTable._enteredDigits.push(e.key);
+                        multidigitTable._currentPosition = position;
+                        
+                        // Check if all digits entered
+                        if (multidigitTable._enteredDigits.length === requiredDigits) {
+                            // Reverse the array since digits were entered right-to-left
+                            const reversedDigits = [...multidigitTable._enteredDigits].reverse();
+                            const userAnswer = parseInt(reversedDigits.join(''));
+                            setTimeout(() => {
+                                checkAnswer(question, userAnswer);
+                            }, 100);
+                        } else if (position > 0) {
+                            // Move focus to next cell (left)
+                            setTimeout(() => {
+                                answerCells[position - 1].focus();
+                            }, 10);
+                        }
+                    }
+                } else if (e.key === 'Backspace' || e.key === 'Delete') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const enteredCount = multidigitTable._enteredDigits.length;
+                    if (enteredCount > 0) {
+                        // Remove digit from right to left
+                        const position = numCols - enteredCount;
+                        const cell = answerCells[position];
+                        cell.textContent = '';
+                        cell.className = 'input-cell';
+                        multidigitTable._enteredDigits.pop();
+                        // Move focus to the cell we just cleared
+                        setTimeout(() => {
+                            cell.focus();
+                        }, 10);
+                    }
+                } else if (e.key === 'ArrowLeft' && multidigitTable._currentPosition > 0) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    multidigitTable._currentPosition--;
+                    answerCells[multidigitTable._currentPosition].focus();
+                } else if (e.key === 'ArrowRight' && multidigitTable._currentPosition < numCols - 1) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    multidigitTable._currentPosition++;
+                    answerCells[multidigitTable._currentPosition].focus();
+                } else if (e.key.length === 1) {
+                    // Block any other single character input
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            };
+            
+            // Handle touch/click events for mobile
+            const handleClick = function() {
+                const position = parseInt(this.dataset.position);
+                multidigitTable._currentPosition = position;
+                // Use requestAnimationFrame for better focus timing
+                requestAnimationFrame(() => {
+                    this.focus();
+                    // On mobile, ensure keyboard appears
+                    if (window.innerWidth <= 768) {
+                        // Force focus again after a short delay to ensure keyboard appears
+                        setTimeout(() => {
+                            this.focus();
+                        }, 100);
+                    }
+                });
+            };
+            
+            // Handle focus event to ensure proper scrolling
+            const handleFocus = function() {
+                // Use 'nearest' to prevent excessive scrolling, let sticky positioning keep question visible
+                setTimeout(() => {
+                    const rect = this.getBoundingClientRect();
+                    const viewportHeight = window.innerHeight;
+                    // Only scroll if cell is mostly hidden by keyboard
+                    if (rect.bottom > viewportHeight * 0.85) {
+                        this.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
+                    }
+                }, 200); // Delay to allow keyboard animation
+            };
+            
+            // Add event listeners to all answer cells BEFORE focusing
+            answerCells.forEach(cell => {
+                cell.addEventListener('keydown', handleKeyPress);
+                cell.addEventListener('click', handleClick);
+                cell.addEventListener('touchstart', handleClick, { passive: true });
+                cell.addEventListener('focus', handleFocus);
+                // Prevent default behaviors that might interfere
+                cell.addEventListener('paste', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+                cell.addEventListener('input', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+            
+            // Focus on rightmost cell after DOM update and all event listeners are attached
+            // Use multiple attempts to ensure focus works on mobile
+            const focusRightmostCell = () => {
+                const rightmostCell = answerCells[numCols - 1];
+                if (rightmostCell) {
+                    // First attempt
+                    rightmostCell.focus();
+                    // Second attempt after a delay for mobile devices
+                    setTimeout(() => {
+                        rightmostCell.focus();
+                        // Third attempt if on mobile (for stubborn devices)
+                        if (window.innerWidth <= 768) {
+                            setTimeout(() => {
+                                rightmostCell.focus();
+                                // Scroll the cell into view to ensure it's visible
+                                rightmostCell.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
+                            }, 300);
+                        }
+                    }, 150);
+                }
+            };
+            
+            // Wait for DOM to fully render before focusing
+            requestAnimationFrame(() => {
+                setTimeout(focusRightmostCell, 100);
+            });
+        }
+
+        function startTimer() {
+            if (timerInterval) clearInterval(timerInterval);
+            
+            const operation = currentSession.operation;
+            const variantConfig = variants[operation][currentSession.variant];
+            const timerEl = document.getElementById('timer');
+            
+            // Check if there's no time limit for this variant (hide timer but still track time)
+            if (variantConfig.noTimeLimit) {
+                timerEl.style.display = 'none';
+                // Still track time even though timer is hidden
+                timeElapsed = 0;
+                questionStartTime = Date.now();
+                timerInterval = setInterval(() => {
+                    timeElapsed += 0.1;
+                }, 100);
+                return;
+            }
+            
+            timerEl.style.display = 'block';
+            timerEl.textContent = 'Time: 0.0s';
+            timerEl.classList.remove('warning');
+            
+            timerInterval = setInterval(() => {
+                timeElapsed += 0.1;
+                const roundedTime = Math.round(timeElapsed * 10) / 10;
+                timerEl.textContent = `Time: ${roundedTime}s`;
+                
+                if (roundedTime >= 4) {
+                    timerEl.classList.add('warning');
+                }
+                
+                if (roundedTime >= 6) {
+                    clearInterval(timerInterval);
+                    // Timeout - show correct answer
+                    const question = currentSession.questions[currentSession.questionIndex];
+                    checkAnswer(question, null);
+                }
+            }, 100);
+        }
+
+        function speakQuestionAndAnswer(question, correctAnswer) {
+            return new Promise((resolve) => {
+                if ('speechSynthesis' in window) {
+                    const operation = currentSession.operation;
+                    let opWord = 'plus';
+                    if (operation === 'subtraction') opWord = 'minus';
+                    else if (operation === 'multiplication') opWord = 'times';
+                    else if (operation === 'division') opWord = 'divided by';
+
+                    const text = `${question.first} ${opWord} ${question.second} equals ${correctAnswer}`;
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1;
+                    
+                    utterance.onend = () => {
+                        resolve();
+                    };
+                    
+                    utterance.onerror = () => {
+                        resolve(); // Resolve even on error to continue
+                    };
+                    
+                    speechSynthesis.speak(utterance);
+                } else {
+                    resolve(); // If speech not supported, resolve immediately
+                }
+            });
+        }
+
+        function checkAnswer(question, userAnswer) {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+
+            const timeTaken = Math.round(timeElapsed * 10) / 10;
+            const correctAnswer = question.answer;
+            const isCorrect = userAnswer !== null && userAnswer === correctAnswer;
+
+            currentSession.totalTime += timeTaken;
+
+            if (isCorrect) {
+                currentSession.correctCount++;
+            } else {
+                currentSession.wrongCount++;
+                // For multi-digit variants, show answer in table row 4, otherwise in line4
+                const multidigitTable = document.getElementById('multidigitTable');
+                if (multidigitTable && !multidigitTable.classList.contains('hidden')) {
+                    // Show correct answer in row 4 of table (right-aligned)
+                    const answerDisplayCells = multidigitTable._answerDisplayCells || [];
+                    const answerStr = correctAnswer.toString();
+                    const answerDigits = answerStr.split('');
+                    const numCols = 6;
+                    // Right-align the answer
+                    const padCount = numCols - answerDigits.length;
+                    for (let i = 0; i < numCols; i++) {
+                        const cell = answerDisplayCells[i];
+                        if (i < padCount) {
+                            cell.textContent = '';
+                        } else {
+                            cell.textContent = answerDigits[i - padCount];
+                        }
+                    }
+                } else {
+                    // Standard variant: show in line4 text element
+                    document.getElementById('line4').textContent = `Correct Answer: ${correctAnswer}`;
+                }
+            }
+
+            // Record result
+            const operation = currentSession.operation;
+            let opSymbol = '+';
+            if (operation === 'subtraction') opSymbol = '-';
+            else if (operation === 'multiplication') opSymbol = '×';
+            else if (operation === 'division') opSymbol = '÷';
+
+            currentSession.results.push({
+                question: `${question.first} ${opSymbol} ${question.second}`,
+                userAnswer: userAnswer !== null ? userAnswer : 'No Answer',
+                correctAnswer: correctAnswer,
+                time: timeTaken,
+                isCorrect: isCorrect
+            });
+
+            // Disable input (both normal, right-to-left display, and table)
+            const input = document.getElementById('answerInput');
+            const answerDisplay = document.getElementById('answerDisplay');
+            const multidigitTable = document.getElementById('multidigitTable');
+            if (input && !input.classList.contains('hidden')) {
+                input.disabled = true;
+            }
+            if (answerDisplay && !answerDisplay.classList.contains('hidden')) {
+                answerDisplay.setAttribute('tabindex', '-1');
+                answerDisplay.style.pointerEvents = 'none';
+            }
+            if (multidigitTable && !multidigitTable.classList.contains('hidden')) {
+                const answerCells = multidigitTable._answerCells || [];
+                answerCells.forEach(cell => {
+                    cell.setAttribute('tabindex', '-1');
+                    cell.style.pointerEvents = 'none';
+                });
+            }
+
+            // If wrong or no answer, speak and wait for speech to complete (skip for multi-digit variants)
+            const variantConfig = variants[operation][currentSession.variant];
+            if (!isCorrect && variantConfig.rightToLeft) {
+                // Multi-digit variant: answer already shown in row 4, wait 6 seconds, then move to next question
+                setTimeout(() => {
+                    currentSession.questionIndex++;
+                    askNextQuestion();
+                }, 6000);
+            } else if (!isCorrect) {
+                // Standard variant: speak and wait for speech to complete
+                speakQuestionAndAnswer(question, correctAnswer).then(() => {
+                    setTimeout(() => {
+                        currentSession.questionIndex++;
+                        askNextQuestion();
+                    }, 500);
+                });
+            } else {
+                // If correct, wait a moment then move to next question
+                setTimeout(() => {
+                    currentSession.questionIndex++;
+                    askNextQuestion();
+                }, 1500);
+            }
+        }
+
+        function showTerminationModal() {
+            document.getElementById('modal').style.display = 'flex';
+        }
+
+        function continueSession() {
+            document.getElementById('modal').style.display = 'none';
+            askNextQuestion();
+        }
+
+        function endSession() {
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+
+            document.getElementById('questionSection').classList.add('hidden');
+            document.getElementById('summarySection').classList.remove('hidden');
+            showSummary();
+        }
+
+        function showSummary() {
+            const session = currentSession;
+            const totalQuestions = session.correctCount + session.wrongCount;
+            const wrongPercentage = totalQuestions > 0 ? (session.wrongCount / totalQuestions) * 100 : 0;
+            const avgTime = session.correctCount > 0 ? Math.round((session.totalTime / session.correctCount) * 10) / 10 : 0;
+
+            const variantName = variants[session.operation][session.variant].name;
+            const operationName = session.operation.charAt(0).toUpperCase() + session.operation.slice(1);
+
+            const statsHTML = `
+                <p><strong>Operation:</strong> ${operationName}</p>
+                <p><strong>Variant:</strong> ${variantName}</p>
+                <p><strong>Total Questions:</strong> ${totalQuestions}</p>
+                <p><strong>Correct Answers:</strong> ${session.correctCount}</p>
+                <p><strong>Wrong Answers:</strong> ${session.wrongCount}</p>
+                <p><strong>Average Time per Correct Sum:</strong> ${avgTime} seconds</p>
+            `;
+
+            document.getElementById('summaryStats').innerHTML = statsHTML;
+
+            // Check if this is a multi-digit variant
+            const variantConfig = variants[session.operation][session.variant];
+            const isMultiDigit = variantConfig.rightToLeft;
+            
+            // Pass criteria: 
+            // - Multi-digit variants: 100% correct (no time limit)
+            // - Standard variants: wrong ≤ 10% AND average time ≤ 6 seconds
+            let passed;
+            if (isMultiDigit) {
+                passed = session.wrongCount === 0; // 100% correct, no time limit
+            } else {
+                passed = wrongPercentage <= 10 && avgTime <= 6;
+            }
+            
+            const passFailEl = document.getElementById('passFail');
+            passFailEl.textContent = passed ? 'PASS' : 'FAIL';
+            passFailEl.className = 'pass-fail ' + (passed ? 'pass' : 'fail');
+
+            // Show question details
+            let detailsHTML = '<h3 style="margin-top: 20px; margin-bottom: 10px;">Question Details:</h3>';
+            session.results.forEach((result, index) => {
+                const itemClass = result.isCorrect ? 'correct' : 'wrong';
+                detailsHTML += `
+                    <div class="question-item ${itemClass}">
+                        <strong>${result.question} = ${result.userAnswer}</strong>
+                        ${!result.isCorrect ? `<br>Correct Answer: ${result.correctAnswer}` : ''}
+                        <br><small>Time: ${result.time}s | ${result.isCorrect ? 'Correct' : 'Wrong'}</small>
+                    </div>
+                `;
+            });
+
+            document.getElementById('questionDetails').innerHTML = detailsHTML;
+        }
+
+        function resetSession() {
+            document.getElementById('summarySection').classList.add('hidden');
+            document.getElementById('setupSection').classList.remove('hidden');
+            document.getElementById('answerInput').disabled = false;
+            if (timerInterval) {
+                clearInterval(timerInterval);
+            }
+        }
+
+        // ============================================================================
+        // NETLIFY IDENTITY & AUTHENTICATION
+        // ============================================================================
+        let netlifyIdentity = null;
+        let currentUser = null;
+        let isLoginMode = true;
+
+        // Initialize Netlify Identity
+        function initNetlifyIdentity() {
+            if (window.netlifyIdentity) {
+                netlifyIdentity = window.netlifyIdentity;
+                netlifyIdentity.on('init', (user) => {
+                    currentUser = user;
+                    updateAuthUI();
+                });
+                
+                netlifyIdentity.on('login', (user) => {
+                    currentUser = user;
+                    updateAuthUI();
+                    closeAuthModal();
+                    console.log('User logged in:', user);
+                });
+                
+                netlifyIdentity.on('logout', () => {
+                    currentUser = null;
+                    updateAuthUI();
+                    console.log('User logged out');
+                });
+                
+                netlifyIdentity.on('error', (err) => {
+                    console.error('Netlify Identity error:', err);
+                    showAuthError('Authentication error. Please try again.');
+                });
+
+                // Initialize
+                netlifyIdentity.init();
+            } else {
+                console.warn('Netlify Identity widget not loaded');
+            }
+        }
+
+        // Update authentication UI based on current user state
+        function updateAuthUI() {
+            const authStatus = document.getElementById('authStatus');
+            const userEmail = document.getElementById('userEmail');
+            const loginBtn = document.getElementById('loginBtn');
+            const signupBtn = document.getElementById('signupBtn');
+            const logoutBtn = document.getElementById('logoutBtn');
+
+            if (currentUser) {
+                authStatus.textContent = 'Logged in';
+                authStatus.className = 'auth-status logged-in';
+                userEmail.textContent = currentUser.email || '';
+                loginBtn.classList.add('hidden');
+                signupBtn.classList.add('hidden');
+                logoutBtn.classList.remove('hidden');
+            } else {
+                authStatus.textContent = 'Not logged in';
+                authStatus.className = 'auth-status logged-out';
+                userEmail.textContent = '';
+                loginBtn.classList.remove('hidden');
+                signupBtn.classList.remove('hidden');
+                logoutBtn.classList.add('hidden');
+            }
+        }
+
+        // Show login modal - use Netlify Identity's built-in modal
+        function showLoginModal() {
+            if (netlifyIdentity) {
+                netlifyIdentity.open('login');
+            } else {
+                // Fallback to custom modal
+                isLoginMode = true;
+                document.getElementById('authModalTitle').textContent = 'Log In';
+                document.getElementById('authSubmitBtn').textContent = 'Log In';
+                document.getElementById('authToggleText').textContent = "Don't have an account? ";
+                document.getElementById('authToggle').querySelector('a').textContent = 'Sign Up';
+                document.getElementById('authError').textContent = '';
+                document.getElementById('authEmail').value = '';
+                document.getElementById('authPassword').value = '';
+                document.getElementById('authModal').style.display = 'flex';
+            }
+        }
+
+        // Show signup modal - use Netlify Identity's built-in modal
+        function showSignupModal() {
+            if (netlifyIdentity) {
+                netlifyIdentity.open('signup');
+            } else {
+                // Fallback to custom modal
+                isLoginMode = false;
+                document.getElementById('authModalTitle').textContent = 'Sign Up';
+                document.getElementById('authSubmitBtn').textContent = 'Sign Up';
+                document.getElementById('authToggleText').textContent = 'Already have an account? ';
+                document.getElementById('authToggle').querySelector('a').textContent = 'Log In';
+                document.getElementById('authError').textContent = '';
+                document.getElementById('authEmail').value = '';
+                document.getElementById('authPassword').value = '';
+                document.getElementById('authModal').style.display = 'flex';
+            }
+        }
+
+        // Close auth modal
+        function closeAuthModal() {
+            document.getElementById('authModal').style.display = 'none';
+            document.getElementById('authError').textContent = '';
+        }
+
+        // Toggle between login and signup
+        function toggleAuthMode(event) {
+            event.preventDefault();
+            if (isLoginMode) {
+                showSignupModal();
+            } else {
+                showLoginModal();
+            }
+        }
+
+        // Handle authentication (login or signup)
+        async function handleAuth(event) {
+            event.preventDefault();
+            const email = document.getElementById('authEmail').value;
+            const password = document.getElementById('authPassword').value;
+            const errorEl = document.getElementById('authError');
+            const submitBtn = document.getElementById('authSubmitBtn');
+            const form = document.getElementById('authForm');
+
+            errorEl.textContent = '';
+            form.classList.add('loading');
+            submitBtn.disabled = true;
+
+            if (!netlifyIdentity) {
+                showAuthError('Authentication service not available. Please refresh the page.');
+                form.classList.remove('loading');
+                submitBtn.disabled = false;
+                return;
+            }
+
+            try {
+                if (isLoginMode) {
+                    // Use Netlify Identity's token endpoint for login
+                    const response = await fetch('/.netlify/identity/token', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            grant_type: 'password',
+                            username: email,
+                            password: password
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        // Store token and update user
+                        await netlifyIdentity.refresh(true);
+                        // The login event will be triggered automatically
+                    } else {
+                        const error = await response.json();
+                        throw new Error(error.error_description || 'Login failed');
+                    }
+                } else {
+                    // Use Netlify Identity's signup endpoint
+                    const response = await fetch('/.netlify/identity/signup', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            password: password
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        errorEl.textContent = 'Signup successful! Please check your email to confirm your account.';
+                        errorEl.style.color = '#28a745';
+                        setTimeout(() => {
+                            closeAuthModal();
+                        }, 3000);
+                    } else {
+                        const error = await response.json();
+                        throw new Error(error.error_description || 'Signup failed');
+                    }
+                }
+            } catch (err) {
+                console.error('Authentication error:', err);
+                showAuthError(err.message || (isLoginMode ? 'Login failed. Please check your credentials.' : 'Signup failed. Please try again.'));
+                form.classList.remove('loading');
+                submitBtn.disabled = false;
+            }
+        }
+
+        // Show authentication error
+        function showAuthError(message) {
+            const errorEl = document.getElementById('authError');
+            errorEl.textContent = message;
+            errorEl.style.color = '#dc3545';
+        }
+
+        // Handle logout
+        function handleLogout() {
+            if (netlifyIdentity && currentUser) {
+                netlifyIdentity.logout();
+            }
+        }
+
+        // ============================================================================
+        // NETLIFY FUNCTIONS - Score Saving & Retrieval
+        // ============================================================================
+        // Get JWT token for authenticated requests
+        async function getAuthToken() {
+            if (!currentUser || !netlifyIdentity) {
+                return null;
+            }
+            try {
+                const token = await netlifyIdentity.currentUser()?.jwt();
+                return token;
+            } catch (error) {
+                console.error('Error getting auth token:', error);
+                return null;
+            }
+        }
+
+        // Save session score to server
+        async function saveScore() {
+            if (!currentUser) {
+                console.log('User not logged in. Score not saved.');
+                return false;
+            }
+
+            try {
+                const token = await getAuthToken();
+                if (!token) {
+                    console.error('Failed to get authentication token');
+                    return false;
+                }
+
+                const sessionData = {
+                    operation: currentSession.operation,
+                    variant: currentSession.variant,
+                    correctCount: currentSession.correctCount,
+                    wrongCount: currentSession.wrongCount,
+                    totalTime: currentSession.totalTime,
+                    totalQuestions: currentSession.correctCount + currentSession.wrongCount,
+                    results: currentSession.results,
+                    completedAt: new Date().toISOString()
+                };
+
+                const response = await fetch('/.netlify/functions/save-score', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        sessionData: sessionData,
+                        variant: currentSession.variant,
+                        operation: currentSession.operation
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    console.log('Score saved successfully:', result);
+                    return true;
+                } else {
+                    console.error('Failed to save score:', result);
+                    return false;
+                }
+            } catch (error) {
+                console.error('Error saving score:', error);
+                return false;
+            }
+        }
+
+        // Retrieve user scores
+        async function getUserScores(operation = null, variant = null) {
+            if (!currentUser) {
+                console.log('User not logged in. Cannot retrieve scores.');
+                return null;
+            }
+
+            try {
+                const token = await getAuthToken();
+                if (!token) {
+                    console.error('Failed to get authentication token');
+                    return null;
+                }
+
+                let url = '/.netlify/functions/get-scores';
+                const params = new URLSearchParams();
+                if (operation) params.append('operation', operation);
+                if (variant) params.append('variant', variant);
+                if (params.toString()) url += '?' + params.toString();
+
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    return result.scores || [];
+                } else {
+                    console.error('Failed to retrieve scores:', result);
+                    return null;
+                }
+            } catch (error) {
+                console.error('Error retrieving scores:', error);
+                return null;
+            }
+        }
+
+        // Get user progress
+        async function getUserProgress() {
+            if (!currentUser) {
+                return null;
+            }
+
+            try {
+                const token = await getAuthToken();
+                if (!token) {
+                    return null;
+                }
+
+                const response = await fetch('/.netlify/functions/get-user-progress', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    return result.progress || null;
+                } else {
+                    console.error('Failed to retrieve progress:', result);
+                    return null;
+                }
+            } catch (error) {
+                console.error('Error retrieving progress:', error);
+                return null;
+            }
+        }
+
+        // Update endSession to save scores
+        const originalEndSession = endSession;
+        function endSession() {
+            originalEndSession();
+            // Save score if user is logged in
+            if (currentUser) {
+                saveScore().then(success => {
+                    if (success) {
+                        console.log('Session data saved to server');
+                    }
+                });
+            }
+        }
+
+        // Initialize everything when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            // Wait for Netlify Identity to load
+            if (window.netlifyIdentity) {
+                initNetlifyIdentity();
+            } else {
+                // Retry if not loaded yet
+                setTimeout(() => {
+                    if (window.netlifyIdentity) {
+                        initNetlifyIdentity();
+                    } else {
+                        console.warn('Netlify Identity widget failed to load');
+                    }
+                }, 1000);
+            }
+        });
+
+        // Close auth modal when clicking outside
+        document.getElementById('authModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'authModal') {
+                closeAuthModal();
+            }
+        });
+    </script>
+</body>
+</html>
+
