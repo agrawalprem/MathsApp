@@ -8,8 +8,9 @@ A progressive math learning application built with HTML, CSS, and JavaScript, de
 - Progressive difficulty variants for each operation
 - Multi-digit number support with right-to-left input
 - Real-time scoring and session tracking
-- User authentication via Netlify Identity
-- Score saving across devices (ready for Supabase integration)
+- User authentication via Supabase Authentication
+- Score saving across devices with Supabase database
+- Secure data access with Row Level Security (RLS)
 - Mobile-responsive design
 
 ## Setup Instructions
@@ -31,95 +32,62 @@ A progressive math learning application built with HTML, CSS, and JavaScript, de
    - Connect to your GitHub repository
    - Netlify will automatically detect the `netlify.toml` configuration
 
-3. **Enable Netlify Identity:**
-   - In your Netlify site dashboard, go to **Identity** → **Enable Identity**
-   - Enable **Git Gateway** for user authentication
-   - Go to **Identity** → **Settings and usage** → **Registration preferences**
-   - Set registration to **Open** (or configure as needed)
-   - Optionally, set up email confirmation if desired
+3. **Set Up Supabase:**
+   - Follow the detailed instructions in `SUPABASE_SETUP.md`
+   - Create a Supabase project at [supabase.com](https://supabase.com)
+   - Run the SQL schema from `supabase-schema.sql`
+   - Get your API credentials and add them to `index.html`
 
 4. **Configure Site Settings:**
    - Site URL should be automatically configured
    - The app will be available at `https://your-site-name.netlify.app`
 
-### 2. Testing Locally (Optional)
+### 2. Testing Locally
 
-To test Netlify Functions locally:
+1. **Open the app:**
+   - Simply open `index.html` in a browser, or
+   - Use a local server:
+     ```bash
+     # Using Python 3
+     python -m http.server 8000
+     
+     # Using Node.js http-server
+     npx http-server
+     ```
 
-1. **Install Netlify CLI:**
-   ```bash
-   npm install -g netlify-cli
-   ```
-
-2. **Run local development server:**
-   ```bash
-   netlify dev
-   ```
-
-   This will:
-   - Start a local server (usually on `http://localhost:8888`)
-   - Enable Netlify Functions to run locally
-   - Proxy Netlify Identity requests
+2. **Configure Supabase credentials:**
+   - Before testing, make sure you've added your Supabase URL and Anon Key to `index.html`
+   - See `SUPABASE_SETUP.md` for detailed instructions
 
 ### 3. Current Functionality
 
 **Authentication:**
-- Users can sign up and log in using Netlify Identity
+- Users can sign up and log in using Supabase Authentication
 - Authentication state is maintained across page refreshes
 - User sessions work across devices
+- Email confirmation can be enabled/disabled in Supabase dashboard
 
 **Data Persistence:**
-- Currently using placeholder functions that return success responses
-- Functions are structured and ready for Supabase integration
-- Score saving is called automatically when sessions end (if user is logged in)
+- Scores are automatically saved to Supabase database after each session
+- Data is accessed directly from the client using Supabase JS library
+- Row Level Security (RLS) ensures users can only access their own data
+- All operations are secure and protected
 
-### 4. Next Steps: Adding Supabase (When Ready)
+### 4. Supabase Setup (Required)
 
-When you're ready to add real database functionality:
+**Follow the detailed guide:** See `SUPABASE_SETUP.md` for complete step-by-step instructions.
 
-1. **Create a Supabase project:**
-   - Go to [Supabase](https://supabase.com)
-   - Create a new project
-   - Note your project URL and anon key
+**Quick summary:**
+1. Create a Supabase project at [supabase.com](https://supabase.com)
+2. Run the SQL schema from `supabase-schema.sql` in the SQL Editor
+3. Get your API credentials (URL and Anon Key)
+4. Add credentials to `index.html` (replace `YOUR_SUPABASE_URL` and `YOUR_SUPABASE_ANON_KEY`)
+5. Test authentication and score saving
 
-2. **Create the database table:**
-   ```sql
-   CREATE TABLE user_scores (
-     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
-     user_id TEXT NOT NULL,
-     operation TEXT NOT NULL,
-     variant TEXT NOT NULL,
-     session_data JSONB NOT NULL,
-     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-   );
-
-   CREATE INDEX idx_user_scores_user_id ON user_scores(user_id);
-   CREATE INDEX idx_user_scores_operation ON user_scores(operation);
-   ```
-
-3. **Install Supabase in Netlify Functions:**
-   - Create `netlify/functions/package.json`:
-   ```json
-   {
-     "dependencies": {
-       "@supabase/supabase-js": "^2.0.0"
-     }
-   }
-   ```
-
-4. **Add Environment Variables in Netlify:**
-   - Go to Site settings → Environment variables
-   - Add:
-     - `SUPABASE_URL`: Your Supabase project URL
-     - `SUPABASE_ANON_KEY`: Your Supabase anon key
-
-5. **Update Functions:**
-   - Uncomment the Supabase code in:
-     - `netlify/functions/save-score.js`
-     - `netlify/functions/get-scores.js`
-     - `netlify/functions/get-user-progress.js`
-   - Remove the placeholder return statements
+**Files to reference:**
+- `SUPABASE_SETUP.md` - Complete setup guide
+- `supabase-schema.sql` - Database schema to run
+- `index.html` - Add your credentials here (line ~1753)
 
 ### 5. File Structure
 
@@ -162,24 +130,28 @@ When you're ready to add real database functionality:
 
 ### Authentication Issues
 
-- **Identity not working:** Ensure Identity is enabled in Netlify dashboard
-- **Git Gateway not working:** Enable Git Gateway in Identity settings
-- **Email confirmation:** Check Identity → Settings → Email templates
+- **"Supabase credentials not configured":** Make sure you've replaced `YOUR_SUPABASE_URL` and `YOUR_SUPABASE_ANON_KEY` in `index.html`
+- **Login/Signup not working:** Check browser console (F12) for detailed error messages
+- **Email confirmation:** Check Supabase dashboard → Authentication → Settings to configure email settings
 
-### Functions Not Working
+### Database Issues
 
-- **Functions return 401:** Check that Identity is properly configured
-- **CORS errors:** Functions include CORS headers, but check browser console
-- **Local testing:** Use `netlify dev` for local function testing
+- **"Failed to save score":** 
+  - Verify the `user_scores` table exists in Supabase
+  - Check that RLS policies are created (run `supabase-schema.sql`)
+  - Ensure user is logged in
+- **Data not appearing:** Check Supabase dashboard → Table Editor → user_scores
+- **Permission errors:** Verify Row Level Security policies are enabled and correct
 
 ## Future Enhancements
 
-- [ ] Add Supabase database integration
-- [ ] User progress dashboard
-- [ ] Leaderboards
-- [ ] Achievement badges
+- [ ] User progress dashboard showing statistics
+- [ ] Leaderboards for friendly competition
+- [ ] Achievement badges and milestones
 - [ ] Practice recommendations based on performance
-- [ ] Export progress reports
+- [ ] Export progress reports (PDF/CSV)
+- [ ] Progress charts and graphs
+- [ ] Multiple user profiles (parent/child accounts)
 
 ## License
 

@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Learning Maths in Baby Steps</title>
-    <!-- Netlify Identity Widget -->
-    <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -1747,43 +1747,53 @@
         }
 
         // ============================================================================
-        // NETLIFY IDENTITY & AUTHENTICATION
+        // SUPABASE AUTHENTICATION & DATABASE
         // ============================================================================
-        let netlifyIdentity = null;
+        // Supabase configuration - Replace these with your Supabase project credentials
+        // Get these from: https://app.supabase.com → Your Project → Settings → API
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL'; // e.g., https://xxxxxxxxxxxxx.supabase.co
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // e.g., eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        
+        // Initialize Supabase client
+        let supabase = null;
         let currentUser = null;
         let isLoginMode = true;
 
-        // Initialize Netlify Identity
-        function initNetlifyIdentity() {
-            if (window.netlifyIdentity) {
-                netlifyIdentity = window.netlifyIdentity;
-                netlifyIdentity.on('init', (user) => {
-                    currentUser = user;
-                    updateAuthUI();
+        // Initialize Supabase
+        function initSupabase() {
+            if (SUPABASE_URL === 'YOUR_SUPABASE_URL' || SUPABASE_ANON_KEY === 'YOUR_SUPABASE_ANON_KEY') {
+                console.warn('Supabase credentials not configured. Please add your Supabase URL and Anon Key.');
+                return;
+            }
+            
+            try {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                // Check for existing session
+                supabase.auth.getSession().then(({ data: { session } }) => {
+                    if (session) {
+                        currentUser = session.user;
+                        updateAuthUI();
+                    }
                 });
                 
-                netlifyIdentity.on('login', (user) => {
-                    currentUser = user;
-                    updateAuthUI();
-                    closeAuthModal();
-                    console.log('User logged in:', user);
+                // Listen for auth changes
+                supabase.auth.onAuthStateChange((event, session) => {
+                    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+                        currentUser = session?.user || null;
+                        updateAuthUI();
+                        if (event === 'SIGNED_IN') {
+                            closeAuthModal();
+                            console.log('User logged in:', currentUser);
+                        }
+                    } else if (event === 'SIGNED_OUT') {
+                        currentUser = null;
+                        updateAuthUI();
+                        console.log('User logged out');
+                    }
                 });
-                
-                netlifyIdentity.on('logout', () => {
-                    currentUser = null;
-                    updateAuthUI();
-                    console.log('User logged out');
-                });
-                
-                netlifyIdentity.on('error', (err) => {
-                    console.error('Netlify Identity error:', err);
-                    showAuthError('Authentication error. Please try again.');
-                });
-
-                // Initialize
-                netlifyIdentity.init();
-            } else {
-                console.warn('Netlify Identity widget not loaded');
+            } catch (error) {
+                console.error('Error initializing Supabase:', error);
             }
         }
 
@@ -1795,7 +1805,7 @@
             const signupBtn = document.getElementById('signupBtn');
             const logoutBtn = document.getElementById('logoutBtn');
 
-            if (currentUser) {
+            if (currentUser && supabase) {
                 authStatus.textContent = 'Logged in';
                 authStatus.className = 'auth-status logged-in';
                 userEmail.textContent = currentUser.email || '';
@@ -1812,40 +1822,30 @@
             }
         }
 
-        // Show login modal - use Netlify Identity's built-in modal
+        // Show login modal
         function showLoginModal() {
-            if (netlifyIdentity) {
-                netlifyIdentity.open('login');
-            } else {
-                // Fallback to custom modal
-                isLoginMode = true;
-                document.getElementById('authModalTitle').textContent = 'Log In';
-                document.getElementById('authSubmitBtn').textContent = 'Log In';
-                document.getElementById('authToggleText').textContent = "Don't have an account? ";
-                document.getElementById('authToggle').querySelector('a').textContent = 'Sign Up';
-                document.getElementById('authError').textContent = '';
-                document.getElementById('authEmail').value = '';
-                document.getElementById('authPassword').value = '';
-                document.getElementById('authModal').style.display = 'flex';
-            }
+            isLoginMode = true;
+            document.getElementById('authModalTitle').textContent = 'Log In';
+            document.getElementById('authSubmitBtn').textContent = 'Log In';
+            document.getElementById('authToggleText').textContent = "Don't have an account? ";
+            document.getElementById('authToggle').querySelector('a').textContent = 'Sign Up';
+            document.getElementById('authError').textContent = '';
+            document.getElementById('authEmail').value = '';
+            document.getElementById('authPassword').value = '';
+            document.getElementById('authModal').style.display = 'flex';
         }
 
-        // Show signup modal - use Netlify Identity's built-in modal
+        // Show signup modal
         function showSignupModal() {
-            if (netlifyIdentity) {
-                netlifyIdentity.open('signup');
-            } else {
-                // Fallback to custom modal
-                isLoginMode = false;
-                document.getElementById('authModalTitle').textContent = 'Sign Up';
-                document.getElementById('authSubmitBtn').textContent = 'Sign Up';
-                document.getElementById('authToggleText').textContent = 'Already have an account? ';
-                document.getElementById('authToggle').querySelector('a').textContent = 'Log In';
-                document.getElementById('authError').textContent = '';
-                document.getElementById('authEmail').value = '';
-                document.getElementById('authPassword').value = '';
-                document.getElementById('authModal').style.display = 'flex';
-            }
+            isLoginMode = false;
+            document.getElementById('authModalTitle').textContent = 'Sign Up';
+            document.getElementById('authSubmitBtn').textContent = 'Sign Up';
+            document.getElementById('authToggleText').textContent = 'Already have an account? ';
+            document.getElementById('authToggle').querySelector('a').textContent = 'Log In';
+            document.getElementById('authError').textContent = '';
+            document.getElementById('authEmail').value = '';
+            document.getElementById('authPassword').value = '';
+            document.getElementById('authModal').style.display = 'flex';
         }
 
         // Close auth modal
@@ -1877,8 +1877,8 @@
             form.classList.add('loading');
             submitBtn.disabled = true;
 
-            if (!netlifyIdentity) {
-                showAuthError('Authentication service not available. Please refresh the page.');
+            if (!supabase) {
+                showAuthError('Authentication service not available. Please configure Supabase credentials.');
                 form.classList.remove('loading');
                 submitBtn.disabled = false;
                 return;
@@ -1886,51 +1886,36 @@
 
             try {
                 if (isLoginMode) {
-                    // Use Netlify Identity's token endpoint for login
-                    const response = await fetch('/.netlify/identity/token', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            grant_type: 'password',
-                            username: email,
-                            password: password
-                        })
+                    // Login with Supabase
+                    const { data, error } = await supabase.auth.signInWithPassword({
+                        email: email,
+                        password: password
                     });
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        // Store token and update user
-                        await netlifyIdentity.refresh(true);
-                        // The login event will be triggered automatically
-                    } else {
-                        const error = await response.json();
-                        throw new Error(error.error_description || 'Login failed');
-                    }
+                    if (error) throw error;
+                    // Auth state change listener will handle UI update
                 } else {
-                    // Use Netlify Identity's signup endpoint
-                    const response = await fetch('/.netlify/identity/signup', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            email: email,
-                            password: password
-                        })
+                    // Sign up with Supabase
+                    const { data, error } = await supabase.auth.signUp({
+                        email: email,
+                        password: password,
+                        options: {
+                            emailRedirectTo: window.location.origin
+                        }
                     });
 
-                    if (response.ok) {
-                        const data = await response.json();
+                    if (error) throw error;
+                    
+                    // Check if email confirmation is required
+                    if (data.user && !data.session) {
                         errorEl.textContent = 'Signup successful! Please check your email to confirm your account.';
                         errorEl.style.color = '#28a745';
                         setTimeout(() => {
                             closeAuthModal();
                         }, 3000);
                     } else {
-                        const error = await response.json();
-                        throw new Error(error.error_description || 'Signup failed');
+                        // Auto-logged in (if email confirmation is disabled)
+                        closeAuthModal();
                     }
                 }
             } catch (err) {
@@ -1949,150 +1934,117 @@
         }
 
         // Handle logout
-        function handleLogout() {
-            if (netlifyIdentity && currentUser) {
-                netlifyIdentity.logout();
+        async function handleLogout() {
+            if (supabase && currentUser) {
+                const { error } = await supabase.auth.signOut();
+                if (error) {
+                    console.error('Logout error:', error);
+                }
             }
         }
 
         // ============================================================================
-        // NETLIFY FUNCTIONS - Score Saving & Retrieval
+        // SUPABASE DATABASE - Score Saving & Retrieval
         // ============================================================================
-        // Get JWT token for authenticated requests
-        async function getAuthToken() {
-            if (!currentUser || !netlifyIdentity) {
-                return null;
-            }
-            try {
-                const token = await netlifyIdentity.currentUser()?.jwt();
-                return token;
-            } catch (error) {
-                console.error('Error getting auth token:', error);
-                return null;
-            }
-        }
-
-        // Save session score to server
+        // Save session score to Supabase
         async function saveScore() {
-            if (!currentUser) {
-                console.log('User not logged in. Score not saved.');
+            if (!currentUser || !supabase) {
+                console.log('User not logged in or Supabase not initialized. Score not saved.');
                 return false;
             }
 
             try {
-                const token = await getAuthToken();
-                if (!token) {
-                    console.error('Failed to get authentication token');
-                    return false;
-                }
-
                 const sessionData = {
+                    user_id: currentUser.id,
                     operation: currentSession.operation,
                     variant: currentSession.variant,
-                    correctCount: currentSession.correctCount,
-                    wrongCount: currentSession.wrongCount,
-                    totalTime: currentSession.totalTime,
-                    totalQuestions: currentSession.correctCount + currentSession.wrongCount,
-                    results: currentSession.results,
-                    completedAt: new Date().toISOString()
+                    correct_count: currentSession.correctCount,
+                    wrong_count: currentSession.wrongCount,
+                    total_time: currentSession.totalTime,
+                    total_questions: currentSession.correctCount + currentSession.wrongCount,
+                    session_data: currentSession.results,
+                    completed_at: new Date().toISOString()
                 };
 
-                const response = await fetch('/.netlify/functions/save-score', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        sessionData: sessionData,
-                        variant: currentSession.variant,
-                        operation: currentSession.operation
-                    })
-                });
+                const { data, error } = await supabase
+                    .from('user_scores')
+                    .insert([sessionData])
+                    .select();
 
-                const result = await response.json();
-                
-                if (response.ok && result.success) {
-                    console.log('Score saved successfully:', result);
-                    return true;
-                } else {
-                    console.error('Failed to save score:', result);
-                    return false;
-                }
+                if (error) throw error;
+
+                console.log('Score saved successfully:', data);
+                return true;
             } catch (error) {
                 console.error('Error saving score:', error);
                 return false;
             }
         }
 
-        // Retrieve user scores
+        // Retrieve user scores from Supabase
         async function getUserScores(operation = null, variant = null) {
-            if (!currentUser) {
-                console.log('User not logged in. Cannot retrieve scores.');
+            if (!currentUser || !supabase) {
+                console.log('User not logged in or Supabase not initialized. Cannot retrieve scores.');
                 return null;
             }
 
             try {
-                const token = await getAuthToken();
-                if (!token) {
-                    console.error('Failed to get authentication token');
-                    return null;
-                }
+                let query = supabase
+                    .from('user_scores')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('completed_at', { ascending: false });
 
-                let url = '/.netlify/functions/get-scores';
-                const params = new URLSearchParams();
-                if (operation) params.append('operation', operation);
-                if (variant) params.append('variant', variant);
-                if (params.toString()) url += '?' + params.toString();
+                if (operation) query = query.eq('operation', operation);
+                if (variant) query = query.eq('variant', variant);
 
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
+                const { data, error } = await query;
 
-                const result = await response.json();
-                
-                if (response.ok && result.success) {
-                    return result.scores || [];
-                } else {
-                    console.error('Failed to retrieve scores:', result);
-                    return null;
-                }
+                if (error) throw error;
+                return data || [];
             } catch (error) {
                 console.error('Error retrieving scores:', error);
                 return null;
             }
         }
 
-        // Get user progress
+        // Get user progress from Supabase
         async function getUserProgress() {
-            if (!currentUser) {
+            if (!currentUser || !supabase) {
                 return null;
             }
 
             try {
-                const token = await getAuthToken();
-                if (!token) {
-                    return null;
-                }
+                const { data: scores, error } = await supabase
+                    .from('user_scores')
+                    .select('*')
+                    .eq('user_id', currentUser.id);
 
-                const response = await fetch('/.netlify/functions/get-user-progress', {
-                    method: 'GET',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
+                if (error) throw error;
+
+                // Calculate progress statistics
+                const totalSessions = scores?.length || 0;
+                let totalQuestions = 0;
+                let correctAnswers = 0;
+                let wrongAnswers = 0;
+                const variantsCompleted = new Set();
+
+                scores?.forEach(score => {
+                    totalQuestions += score.total_questions || 0;
+                    correctAnswers += score.correct_count || 0;
+                    wrongAnswers += score.wrong_count || 0;
+                    if (score.operation && score.variant) {
+                        variantsCompleted.add(`${score.operation}_${score.variant}`);
                     }
                 });
 
-                const result = await response.json();
-                
-                if (response.ok && result.success) {
-                    return result.progress || null;
-                } else {
-                    console.error('Failed to retrieve progress:', result);
-                    return null;
-                }
+                return {
+                    totalSessions,
+                    totalQuestions,
+                    correctAnswers,
+                    wrongAnswers,
+                    variantsCompleted: Array.from(variantsCompleted)
+                };
             } catch (error) {
                 console.error('Error retrieving progress:', error);
                 return null;
@@ -2115,16 +2067,16 @@
 
         // Initialize everything when page loads
         window.addEventListener('DOMContentLoaded', () => {
-            // Wait for Netlify Identity to load
-            if (window.netlifyIdentity) {
-                initNetlifyIdentity();
+            // Wait for Supabase to load
+            if (window.supabase) {
+                initSupabase();
             } else {
                 // Retry if not loaded yet
                 setTimeout(() => {
-                    if (window.netlifyIdentity) {
-                        initNetlifyIdentity();
+                    if (window.supabase) {
+                        initSupabase();
                     } else {
-                        console.warn('Netlify Identity widget failed to load');
+                        console.warn('Supabase library failed to load. Please check the script tag.');
                     }
                 }, 1000);
             }
