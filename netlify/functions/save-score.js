@@ -47,7 +47,8 @@ exports.handler = async (event, context) => {
     // TODO: Replace this with Supabase call
     // Example Supabase code (commented for now):
     /*
-    const { createClient } = require('@supabase/supabase-js');
+    const { createClient } = require('@
+    supabase/supabase-js');
     const supabase = createClient(
       process.env.SUPABASE_URL,
       process.env.SUPABASE_ANON_KEY
