@@ -2002,6 +2002,9 @@
                     // Auth state change listener will handle UI update
                 } else {
                     // Sign up with Supabase
+                    console.log('📧 Attempting signup with email:', email);
+                    console.log('📧 Redirect URL:', SITE_URL);
+                    
                     const { data, error } = await supabase.auth.signUp({
                         email: email,
                         password: password,
@@ -2010,18 +2013,42 @@
                         }
                     });
 
-                    if (error) throw error;
+                    if (error) {
+                        console.error('❌ Signup error:', error);
+                        throw error;
+                    }
+                    
+                    console.log('📧 Signup response:', {
+                        user: data.user ? 'User created' : 'No user',
+                        session: data.session ? 'Session created (auto-confirmed)' : 'No session (email confirmation required)',
+                        userConfirmed: data.user?.email_confirmed_at ? 'Already confirmed' : 'Needs confirmation'
+                    });
                     
                     // Check if email confirmation is required
                     if (data.user && !data.session) {
-                        errorEl.textContent = 'Signup successful! Please check your email to confirm your account.';
+                        // Email confirmation is enabled and required
+                        console.log('✅ Email confirmation required - check your inbox');
+                        errorEl.textContent = 'Signup successful! Please check your email (and spam folder) to confirm your account.';
                         errorEl.style.color = '#28a745';
                         setTimeout(() => {
                             closeAuthModal();
-                        }, 3000);
+                        }, 5000);
+                    } else if (data.user && data.session) {
+                        // Auto-logged in (email confirmation is disabled)
+                        console.log('✅ Auto-confirmed - email confirmation is disabled in Supabase');
+                        errorEl.textContent = 'Signup successful! You are now logged in.';
+                        errorEl.style.color = '#28a745';
+                        setTimeout(() => {
+                            closeAuthModal();
+                        }, 2000);
                     } else {
-                        // Auto-logged in (if email confirmation is disabled)
-                        closeAuthModal();
+                        // Unexpected state
+                        console.warn('⚠️ Unexpected signup state:', data);
+                        errorEl.textContent = 'Signup completed, but unexpected state. Please try logging in.';
+                        errorEl.style.color = '#ffc107';
+                        setTimeout(() => {
+                            closeAuthModal();
+                        }, 3000);
                     }
                 }
             } catch (err) {
