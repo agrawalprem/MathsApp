@@ -1773,8 +1773,19 @@
             
             if (type === 'signup' && accessToken) {
                 // User clicked email confirmation link
-                console.log('Email confirmation detected');
-                // The auth state change listener will handle the login
+                console.log('✅ Email confirmation detected - Supabase will process this automatically');
+                // Supabase will automatically process the session from URL hash
+                // when detectSessionInUrl: true is set and getSession() is called
+            }
+        }
+        
+        // Clean up URL hash after email confirmation
+        function cleanupEmailConfirmationUrl() {
+            if (window.location.hash.includes('access_token') || window.location.hash.includes('type=signup')) {
+                // Clean up the URL hash after processing
+                setTimeout(() => {
+                    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+                }, 1000);
             }
         }
         
@@ -1845,6 +1856,8 @@
                         if (event === 'SIGNED_IN') {
                             closeAuthModal();
                             console.log('✅ User logged in:', currentUser.email);
+                            // Clean up URL hash after successful sign-in (e.g., from email confirmation)
+                            cleanupEmailConfirmationUrl();
                         }
                     } else if (event === 'SIGNED_OUT') {
                         currentUser = null;
