@@ -112,6 +112,143 @@
             margin-bottom: 15px;
         }
 
+        /* Dashboard Styles */
+        .dashboard-section {
+            margin-bottom: 30px;
+        }
+
+        /* Inline Login Styles */
+        .login-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .login-form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .login-form input {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .login-form input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .login-error {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 8px;
+            min-height: 16px;
+        }
+
+        .user-display {
+            color: #28a745;
+            font-size: 14px;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        .operations-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .operation-card {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 15px 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .operation-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            background: #f8f9ff;
+        }
+
+        .operation-card.selected {
+            background: #e7f3ff;
+            border-color: #2196F3;
+        }
+
+        .operation-symbol {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .operation-name {
+            font-size: 14px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .variants-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .variant-card {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .variant-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+            border-color: #667eea;
+        }
+
+        .variant-card.passed {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .variant-card.passed:hover {
+            background: #c3e6cb;
+        }
+
+        .variant-name {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .variant-status {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .variant-card.passed .variant-status {
+            color: #155724;
+            font-weight: 600;
+        }
+
         .btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -579,37 +716,49 @@
             <p>in Baby Steps</p>
         </div>
 
-        <!-- Authentication Section -->
-        <div id="authSection" class="auth-section">
-            <div id="authStatus" class="auth-status logged-out">Not logged in</div>
-            <div id="userEmail" style="margin-bottom: 10px; font-size: 14px; color: #666;"></div>
-            <div class="auth-buttons">
-                <button class="btn" onclick="showLoginModal()" id="loginBtn">Log In</button>
-                <button class="btn" onclick="showSignupModal()" id="signupBtn">Sign Up</button>
-                <button class="btn btn-secondary hidden" onclick="handleLogout()" id="logoutBtn">Log Out</button>
-            </div>
-            <div style="margin-top: 15px; font-size: 12px; color: #666;">
-                <p>Sign up to save your progress across all devices!</p>
-            </div>
+        <!-- Inline Login (always visible) -->
+        <div id="loginSection" class="login-section">
+            <form class="login-form" onsubmit="return handleInlineLogin(event);">
+                <input type="text" id="inlineStudentId" placeholder="Student ID (8 characters)" maxlength="8" pattern=".{8}" style="flex: 1; max-width: 200px;" required>
+                <input type="password" id="inlinePassword" placeholder="Password" style="flex: 1; max-width: 200px;" required>
+                <button type="submit" class="btn" id="inlineLoginBtn" style="flex: 0 0 auto;">Log In</button>
+                <button type="button" class="btn btn-secondary hidden" onclick="handleLogout()" id="inlineLogoutBtn" style="flex: 0 0 auto;">Log Out</button>
+            </form>
+            <div id="loginError" class="login-error"></div>
+            <div id="userDisplay" class="user-display hidden"></div>
         </div>
 
-        <div id="setupSection" class="setup-section">
-            <label for="operation">Operation:</label>
-            <select id="operation">
-                <option value="addition">Addition</option>
-                <option value="subtraction">Subtraction</option>
-                <option value="multiplication">Multiplication</option>
-                <option value="division">Division</option>
-            </select>
+        <!-- Dashboard (shown when logged in) -->
+        <div id="dashboardSection" class="dashboard-section hidden">
+            <h2 style="text-align: center; margin-bottom: 20px; color: #333;">Choose an Operation</h2>
+            
+            <!-- Operation Symbols -->
+            <div class="operations-grid">
+                <div class="operation-card" onclick="selectOperation('addition')">
+                    <div class="operation-symbol">+</div>
+                    <div class="operation-name">Addition</div>
+                </div>
+                <div class="operation-card" onclick="selectOperation('subtraction')">
+                    <div class="operation-symbol">−</div>
+                    <div class="operation-name">Subtraction</div>
+                </div>
+                <div class="operation-card" onclick="selectOperation('multiplication')">
+                    <div class="operation-symbol">×</div>
+                    <div class="operation-name">Multiplication</div>
+                </div>
+                <div class="operation-card" onclick="selectOperation('division')">
+                    <div class="operation-symbol">÷</div>
+                    <div class="operation-name">Division</div>
+                </div>
+            </div>
 
-            <label for="variant">Variant:</label>
-            <select id="variant"></select>
-
-            <button class="btn" onclick="startSession()">Start Session</button>
+            <!-- Variants shown below selected operation -->
+            <div id="variantsContainer" class="variants-container"></div>
         </div>
+
 
         <div id="questionSection" class="question-container hidden">
-            <div class="timer" id="timer">Time: 0.0s</div>
+            <div class="timer hidden" id="timer">Time: 0.0s</div>
             <div class="question-line" id="line1"></div>
             <div class="question-line" id="line2"></div>
             <div class="question-line" id="answerLine">
@@ -644,12 +793,35 @@
 
     <!-- Authentication Modal -->
     <div id="authModal" class="modal">
-        <div class="auth-modal-content">
+        <div class="auth-modal-content" style="max-width: 500px; max-height: 90vh; overflow-y: auto;">
             <span style="position: absolute; top: 10px; right: 15px; cursor: pointer; font-size: 24px; color: #999;" onclick="closeAuthModal()">&times;</span>
             <h3 id="authModalTitle">Log In</h3>
             <form id="authForm" class="auth-form" onsubmit="handleAuth(event)">
-                <input type="email" id="authEmail" placeholder="Email" required>
-                <input type="password" id="authPassword" placeholder="Password" required>
+                <!-- Login fields (shown when isLoginMode = true) -->
+                <div id="loginFields">
+                    <input type="text" id="authStudentId" placeholder="Student ID (8 characters)" maxlength="8" pattern=".{8}" title="Student ID must be exactly 8 characters" required>
+                    <input type="password" id="authPassword" placeholder="Password" required>
+                </div>
+                
+                <!-- Signup fields (shown when isLoginMode = false) -->
+                <div id="signupFields" style="display: none;">
+                    <input type="text" id="signupStudentId" placeholder="Student ID (8 characters)" maxlength="8" pattern=".{8}" title="Student ID must be exactly 8 characters" required>
+                    <input type="text" id="signupFirstName" placeholder="First Name" required>
+                    <input type="text" id="signupLastName" placeholder="Last Name">
+                    <select id="signupGender" required>
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <input type="number" id="signupSchoolId" placeholder="School ID" min="1" required>
+                    <input type="number" id="signupClass" placeholder="Class" min="1" max="12" required>
+                    <input type="text" id="signupSection" placeholder="Section (e.g., A, B)" required>
+                    <input type="number" id="signupRollNumber" placeholder="Roll Number" min="1" required>
+                    <input type="password" id="signupPassword" placeholder="Password" minlength="6" required>
+                    <input type="password" id="signupPasswordConfirm" placeholder="Confirm Password" minlength="6" required>
+                </div>
+                
                 <button type="submit" class="btn" id="authSubmitBtn">Submit</button>
             </form>
             <div id="authError" class="auth-error"></div>
@@ -805,95 +977,15 @@
         let questionStartTime = 0;
         let answerTimeout = null;
 
-        // Update variants when operation changes
-        function updateVariants() {
-            try {
-                const operation = document.getElementById('operation').value;
-                const variantSelect = document.getElementById('variant');
-                
-                if (!variantSelect) {
-                    console.error('Variant select element not found');
-                    return;
-                }
-                
-                if (!operation) {
-                    console.error('No operation selected');
-                    return;
-                }
-                
-                variantSelect.innerHTML = '';
+        function startSession(operation, variant) {
+            // Use provided operation and variant, or fall back to currentSession if already set
+            if (!operation) operation = currentSession?.operation;
+            if (!variant) variant = currentSession?.variant;
 
-                console.log('Updating variants for operation:', operation);
-                console.log('Variants object:', variants);
-                
-                const opsVariants = variants[operation];
-                if (!opsVariants) {
-                    console.error('No variants found for operation:', operation, 'Available operations:', Object.keys(variants));
-                    return;
-                }
-                
-                console.log('Found variants for', operation, ':', Object.keys(opsVariants));
-                
-                for (const [key, value] of Object.entries(opsVariants)) {
-                    const option = document.createElement('option');
-                    option.value = key;
-                    option.textContent = value.name;
-                    variantSelect.appendChild(option);
-                }
-                
-                console.log('Added', variantSelect.options.length, 'variants to dropdown');
-            } catch (error) {
-                console.error('Error in updateVariants:', error);
+            if (!operation || !variant) {
+                console.error('Operation and variant are required to start a session');
+                return;
             }
-        }
-
-        // Initialize variants dropdown - ensure this runs after all definitions
-        (function() {
-            function init() {
-                try {
-                    const operationSelect = document.getElementById('operation');
-                    const variantSelect = document.getElementById('variant');
-                    
-                    if (!operationSelect || !variantSelect) {
-                        console.error('Required elements not found');
-                        return false;
-                    }
-                    
-                    // Verify variants object exists
-                    if (typeof variants === 'undefined') {
-                        console.error('Variants object not defined');
-                        return false;
-                    }
-                    
-                    console.log('Initializing variants dropdown...');
-                    console.log('Available operations:', Object.keys(variants));
-                    
-                    // Add change listener
-                    operationSelect.addEventListener('change', updateVariants);
-                    
-                    // Initial population
-                    updateVariants();
-                    return true;
-                } catch (error) {
-                    console.error('Error initializing variants:', error);
-                    return false;
-                }
-            }
-            
-            // Try multiple times to ensure DOM is ready
-            if (document.readyState === 'complete' || document.readyState === 'interactive') {
-                if (!init()) {
-                    setTimeout(init, 100);
-                }
-            } else {
-                window.addEventListener('load', init);
-                document.addEventListener('DOMContentLoaded', init);
-            }
-        })();
-
-        function startSession() {
-            const operation = document.getElementById('operation').value;
-            const variant = document.getElementById('variant').value;
 
             currentSession = {
                 operation: operation,
@@ -908,7 +1000,6 @@
             };
 
             generateAllQuestions(operation, variant);
-            document.getElementById('setupSection').classList.add('hidden');
             document.getElementById('questionSection').classList.remove('hidden');
             document.getElementById('summarySection').classList.add('hidden');
             
@@ -1113,6 +1204,7 @@
 
             // Check if all questions have been asked
             if (currentSession.questionIndex >= currentSession.questions.length) {
+                console.log('✅ All questions completed. Question index:', currentSession.questionIndex, 'Total questions:', currentSession.questions.length);
                 endSession();
                 return;
             }
@@ -1502,9 +1594,12 @@
             const variantConfig = variants[operation][currentSession.variant];
             const timerEl = document.getElementById('timer');
             
-            // Check if there's no time limit for this variant (hide timer but still track time)
+            // Timer is always hidden, but we still track time
+            timerEl.style.display = 'none';
+            timerEl.classList.add('hidden');
+            
+            // Check if there's no time limit for this variant
             if (variantConfig.noTimeLimit) {
-                timerEl.style.display = 'none';
                 // Still track time even though timer is hidden
                 timeElapsed = 0;
                 questionStartTime = Date.now();
@@ -1514,19 +1609,17 @@
                 return;
             }
             
-            timerEl.style.display = 'block';
+            // For variants with time limits, track time but don't display timer
+            timeElapsed = 0;
+            questionStartTime = Date.now();
             timerEl.textContent = 'Time: 0.0s';
             timerEl.classList.remove('warning');
             
             timerInterval = setInterval(() => {
                 timeElapsed += 0.1;
                 const roundedTime = Math.round(timeElapsed * 10) / 10;
-                timerEl.textContent = `Time: ${roundedTime}s`;
                 
-                if (roundedTime >= 4) {
-                    timerEl.classList.add('warning');
-                }
-                
+                // Check time limit without displaying timer
                 if (roundedTime >= 6) {
                     clearInterval(timerInterval);
                     // Timeout - show correct answer
@@ -1674,30 +1767,54 @@
         }
 
         function endSession() {
+            console.log('🛑 endSession() called');
             if (timerInterval) {
                 clearInterval(timerInterval);
             }
 
-            document.getElementById('questionSection').classList.add('hidden');
-            document.getElementById('summarySection').classList.remove('hidden');
+            const questionSection = document.getElementById('questionSection');
+            const summarySection = document.getElementById('summarySection');
+            
+            if (questionSection) {
+                questionSection.classList.add('hidden');
+                console.log('✅ Question section hidden');
+            } else {
+                console.error('❌ questionSection element not found');
+            }
+            
+            if (summarySection) {
+                summarySection.classList.remove('hidden');
+                console.log('✅ Summary section shown');
+            } else {
+                console.error('❌ summarySection element not found');
+            }
+            
             showSummary();
         }
 
         function showSummary() {
+            console.log('📊 showSummary() called');
             const session = currentSession;
             const totalQuestions = session.correctCount + session.wrongCount;
+            console.log('📊 Session stats:', {
+                correct: session.correctCount,
+                wrong: session.wrongCount,
+                total: totalQuestions,
+                results: session.results.length
+            });
             const wrongPercentage = totalQuestions > 0 ? (session.wrongCount / totalQuestions) * 100 : 0;
+            const totalTime = Math.round(session.totalTime * 10) / 10;
             const avgTime = session.correctCount > 0 ? Math.round((session.totalTime / session.correctCount) * 10) / 10 : 0;
 
             const variantName = variants[session.operation][session.variant].name;
             const operationName = session.operation.charAt(0).toUpperCase() + session.operation.slice(1);
-
             const statsHTML = `
                 <p><strong>Operation:</strong> ${operationName}</p>
                 <p><strong>Variant:</strong> ${variantName}</p>
                 <p><strong>Total Questions:</strong> ${totalQuestions}</p>
                 <p><strong>Correct Answers:</strong> ${session.correctCount}</p>
                 <p><strong>Wrong Answers:</strong> ${session.wrongCount}</p>
+                <p><strong>Total Time:</strong> ${totalTime} seconds</p>
                 <p><strong>Average Time per Correct Sum:</strong> ${avgTime} seconds</p>
             `;
 
@@ -1720,6 +1837,9 @@
             const passFailEl = document.getElementById('passFail');
             passFailEl.textContent = passed ? 'PASS' : 'FAIL';
             passFailEl.className = 'pass-fail ' + (passed ? 'pass' : 'fail');
+            
+            // Store pass/fail result in session for saving to database
+            currentSession.passed = passed;
 
             // Show question details
             let detailsHTML = '<h3 style="margin-top: 20px; margin-bottom: 10px;">Question Details:</h3>';
@@ -1739,7 +1859,16 @@
 
         function resetSession() {
             document.getElementById('summarySection').classList.add('hidden');
-            document.getElementById('setupSection').classList.remove('hidden');
+            // Show dashboard if logged in
+            if (currentUser) {
+                document.getElementById('dashboardSection').classList.remove('hidden');
+                // Refresh dashboard to update passed variants
+                if (selectedOperation) {
+                    loadVariantsForOperation(selectedOperation);
+                }
+            } else {
+                document.getElementById('dashboardSection').classList.add('hidden');
+            }
             document.getElementById('answerInput').disabled = false;
             if (timerInterval) {
                 clearInterval(timerInterval);
@@ -1762,7 +1891,13 @@
         // Initialize Supabase client
         let supabase = null;
         let currentUser = null;
+        let currentUserProfile = null; // Stores user profile with student_id and other fields
         let isLoginMode = true;
+        
+        // Generate internal email from student_id
+        function generateInternalEmail(studentId) {
+            return `${studentId}@premmaths.local`;
+        }
 
         // Handle email confirmation callback
         function handleEmailConfirmation() {
@@ -1839,32 +1974,86 @@
                     
                     if (session) {
                         currentUser = session.user;
-                        updateAuthUI();
-                        console.log('✅ Existing session found for user:', currentUser.email);
+                        console.log('🔄 Page loaded: Found existing session from previous login');
+                        console.log('   User ID:', currentUser.id);
+                        console.log('   Email:', currentUser.email);
+                        console.log('   (Session was stored in browser - you were already logged in)');
+                        // Fetch user profile to get student_id
+                        fetchUserProfile().then(async profile => {
+                            currentUserProfile = profile;
+                            await updateAuthUI();
+                            // Ensure dashboard is visible
+                            const dashboardSection = document.getElementById('dashboardSection');
+                            if (dashboardSection && currentUser) {
+                                dashboardSection.classList.remove('hidden');
+                            }
+                            // Clear variants when loading existing session
+                            document.getElementById('variantsContainer').innerHTML = '';
+                            selectedOperation = null;
+                            document.querySelectorAll('.operation-card').forEach(card => {
+                                card.classList.remove('selected');
+                            });
+                            console.log('✅ Existing session restored for user:', profile?.student_id || currentUser.email);
+                        });
                     } else {
-                        console.log('ℹ️ No existing session found');
+                        console.log('ℹ️ No existing session found - user needs to log in');
                     }
                 });
                 
                 // Listen for auth changes
-                supabase.auth.onAuthStateChange((event, session) => {
+                supabase.auth.onAuthStateChange(async (event, session) => {
                     console.log('Auth state changed:', event);
                     
                     if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
                         currentUser = session?.user || null;
-                        updateAuthUI();
+                        
+                        // Distinguish between auto-restored session and manual login
                         if (event === 'SIGNED_IN') {
-                            closeAuthModal();
-                            console.log('✅ User logged in:', currentUser.email);
-                            // Clean up URL hash after successful sign-in (e.g., from email confirmation)
-                            cleanupEmailConfirmationUrl();
+                            // Check if this is an initial session restore (page load) or a new login
+                            const isInitialLoad = !currentUserProfile && document.getElementById('inlineLoginBtn')?.textContent === 'Log In';
+                            if (isInitialLoad) {
+                                console.log('🔄 SIGNED_IN: Auto-restored session from previous login (stored in browser)');
+                            } else {
+                                console.log('🔐 SIGNED_IN: User just logged in manually');
+                            }
+                        } else {
+                            console.log('🔄 TOKEN_REFRESHED: Session token refreshed automatically');
+                        }
+                        console.log('🔐 Auth state: SIGNED_IN, currentUser:', currentUser ? 'exists' : 'null');
+                        
+                        // Update UI when signed in
+                        if (event === 'SIGNED_IN') {
+                            console.log('🔐 SIGNED_IN event - updating UI (user is now logged in)');
+                            // Only update UI if we have a currentUser
+                            if (!currentUser) {
+                                console.warn('⚠️ SIGNED_IN event but no currentUser - skipping UI update');
+                                return;
+                            }
+                            try {
+                                await updateAuthUI();
+                                // Force dashboard to show after a small delay to ensure DOM is ready
+                                setTimeout(() => {
+                                    const dashboardSection = document.getElementById('dashboardSection');
+                                    if (dashboardSection && currentUser) {
+                                        dashboardSection.classList.remove('hidden');
+                                        console.log('✅ Dashboard forced to show');
+                                    }
+                                }, 100);
+                                cleanupEmailConfirmationUrl();
+                            } catch (err) {
+                                console.error('❌ Error updating UI after SIGNED_IN:', err);
+                            }
                         }
                     } else if (event === 'SIGNED_OUT') {
                         currentUser = null;
+                        currentUserProfile = null;
                         updateAuthUI();
                         console.log('✅ User logged out');
                     } else if (event === 'USER_UPDATED') {
                         currentUser = session?.user || null;
+                        if (currentUser) {
+                            currentUserProfile = await fetchUserProfile();
+                        }
                         updateAuthUI();
                     }
                 });
@@ -1903,29 +2092,410 @@
             }
         }
 
+        // Fetch user profile from user_profiles table
+        async function fetchUserProfile() {
+            // Prevent multiple simultaneous fetches
+            if (isFetchingProfile) {
+                console.log('⚠️ fetchUserProfile: Already fetching, skipping duplicate call');
+                return currentUserProfile; // Return existing or null
+            }
+            
+            if (!currentUser || !supabase) {
+                console.log('⚠️ fetchUserProfile: No currentUser or supabase - user not logged in yet');
+                return null;
+            }
+            
+            // Check if we already have the profile
+            if (currentUserProfile) {
+                console.log('ℹ️ fetchUserProfile: Profile already cached');
+                return currentUserProfile;
+            }
+            
+            isFetchingProfile = true;
+            console.log('📥 fetchUserProfile: Starting query for user_id:', currentUser.id);
+            
+            try {
+                // Add timeout to prevent hanging
+                const queryPromise = supabase
+                    .from('user_profiles')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .single();
+                
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Profile fetch timeout after 5 seconds')), 5000)
+                );
+                
+                const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+                
+                isFetchingProfile = false;
+                
+                if (error) {
+                    console.error('❌ Error fetching user profile:', error);
+                    // If profile doesn't exist, that's okay - user might not have completed signup
+                    if (error.code === 'PGRST116') {
+                        console.log('ℹ️ User profile not found in database (user may need to complete signup)');
+                    }
+                    return null;
+                }
+                
+                console.log('✅ fetchUserProfile: Success, got profile:', data?.student_id || 'no student_id');
+                return data;
+            } catch (error) {
+                isFetchingProfile = false;
+                console.error('❌ Error fetching user profile (catch):', error);
+                return null;
+            }
+        }
+
+        // Dashboard state
+        let selectedOperation = null;
+        let passedVariants = new Set(); // Store passed variant keys (operation_variant)
+        let isFetchingProfile = false; // Prevent multiple simultaneous profile fetches
+        
+        // Learning sequence for each operation (order students should learn)
+        const learningSequence = {
+            addition: ['1A0', '1A1', '1A2', '1A3', '1A', '1B', '1C', '1D', '1', '1M1', '1M2'],
+            subtraction: ['2A', '2B', '2C', '2D', '2'],
+            multiplication: ['3A0', '3A1', '3A2S', '3A2', '3A3S', '3A3', '3A', '3B4S', '3B4', '3B5S', '3B5', '3B6S', '3B6', '3B', '3C7S', '3C7', '3C8S', '3C8', '3C9S', '3C9', '3C', '3'],
+            division: ['4A1', '4A2', '4A3', '4A', '4B4', '4B5', '4B6', '4B', '4C7', '4C8', '4C9', '4C', '4']
+        };
+
+        // Fetch passed variants from user_scores
+        async function fetchPassedVariants() {
+            if (!currentUser || !supabase) {
+                passedVariants.clear();
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('user_scores')
+                    .select('operation, variant')
+                    .eq('user_id', currentUser.id)
+                    .eq('passed', true);
+
+                if (error) {
+                    console.error('Error fetching passed variants:', error);
+                    return;
+                }
+
+                // Store as "operation_variant" keys
+                passedVariants.clear();
+                if (data) {
+                    data.forEach(score => {
+                        const key = `${score.operation}_${score.variant}`;
+                        passedVariants.add(key);
+                        console.log('✅ Added passed variant:', key, 'from score:', score);
+                    });
+                }
+                console.log('✅ Passed variants loaded:', Array.from(passedVariants));
+                console.log('📊 Total passed variants:', passedVariants.size);
+            } catch (error) {
+                console.error('Error fetching passed variants:', error);
+            }
+        }
+
+        // Handle inline login
+        async function handleInlineLogin(event) {
+            if (event) {
+                event.preventDefault();
+            }
+            
+            const studentId = document.getElementById('inlineStudentId').value.trim();
+            const password = document.getElementById('inlinePassword').value;
+            const errorEl = document.getElementById('loginError');
+            const loginBtn = document.getElementById('inlineLoginBtn');
+            
+            errorEl.textContent = '';
+            loginBtn.disabled = true;
+            loginBtn.textContent = 'Logging in...';
+            
+            if (!supabase) {
+                errorEl.textContent = 'Authentication service not available.';
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Log In';
+                return false;
+            }
+            
+            if (studentId.length !== 8) {
+                errorEl.textContent = 'Student ID must be exactly 8 characters';
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Log In';
+                return false;
+            }
+            
+            try {
+                const internalEmail = generateInternalEmail(studentId);
+                console.log('🔐 Attempting login with student_id:', studentId, '→ email:', internalEmail);
+                
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: internalEmail,
+                    password: password
+                });
+                
+                if (error) throw error;
+                
+                // Update currentUser immediately
+                const { data: { user } } = await supabase.auth.getUser();
+                currentUser = user;
+                console.log('✅ Login successful, currentUser set');
+                
+                // Fetch user profile after successful login (don't wait if it fails)
+                try {
+                    currentUserProfile = await fetchUserProfile();
+                    console.log('✅ User profile fetched');
+                } catch (err) {
+                    console.warn('⚠️ Could not fetch user profile, continuing anyway:', err);
+                }
+                
+                // Update UI - this will show the dashboard
+                try {
+                    await updateAuthUI();
+                    console.log('✅ updateAuthUI completed');
+                } catch (err) {
+                    console.error('❌ Error in updateAuthUI:', err);
+                    // Force dashboard to show even if updateAuthUI fails
+                    const dashboardSection = document.getElementById('dashboardSection');
+                    if (dashboardSection) {
+                        dashboardSection.classList.remove('hidden');
+                        dashboardSection.style.display = 'block';
+                        console.log('✅ Dashboard forced to show after updateAuthUI error');
+                    }
+                }
+                
+                // Force dashboard to show immediately as backup
+                const dashboardSection = document.getElementById('dashboardSection');
+                if (dashboardSection) {
+                    dashboardSection.classList.remove('hidden');
+                    dashboardSection.style.display = 'block';
+                    console.log('✅ Dashboard shown immediately after login');
+                } else {
+                    console.error('❌ dashboardSection not found in DOM!');
+                }
+                
+                return false;
+            } catch (err) {
+                console.error('Login error:', err);
+                errorEl.textContent = err.message || 'Login failed. Please check your credentials.';
+                loginBtn.disabled = false;
+                loginBtn.textContent = 'Log In';
+                return false;
+            }
+        }
+
         // Update authentication UI based on current user state
-        function updateAuthUI() {
-            const authStatus = document.getElementById('authStatus');
-            const userEmail = document.getElementById('userEmail');
-            const loginBtn = document.getElementById('loginBtn');
-            const signupBtn = document.getElementById('signupBtn');
-            const logoutBtn = document.getElementById('logoutBtn');
+        async function updateAuthUI() {
+            console.log('🔄 updateAuthUI called, currentUser:', currentUser ? 'exists' : 'null');
+            const inlineLoginBtn = document.getElementById('inlineLoginBtn');
+            const inlineLogoutBtn = document.getElementById('inlineLogoutBtn');
+            const inlineStudentId = document.getElementById('inlineStudentId');
+            const inlinePassword = document.getElementById('inlinePassword');
+            const userDisplay = document.getElementById('userDisplay');
+            const loginError = document.getElementById('loginError');
+            const dashboardSection = document.getElementById('dashboardSection');
 
             if (currentUser && supabase) {
-                authStatus.textContent = 'Logged in';
-                authStatus.className = 'auth-status logged-in';
-                userEmail.textContent = currentUser.email || '';
-                loginBtn.classList.add('hidden');
-                signupBtn.classList.add('hidden');
-                logoutBtn.classList.remove('hidden');
+                // Show dashboard FIRST, then fetch data in background
+                console.log('🎯 Showing dashboard immediately...');
+                if (dashboardSection) {
+                    dashboardSection.classList.remove('hidden');
+                    dashboardSection.style.display = 'block';
+                    console.log('✅ Dashboard shown immediately');
+                }
+                
+                // Then fetch user data (non-blocking)
+                try {
+                    // Fetch user profile to get student_id (only if not already cached)
+                    if (!currentUserProfile && currentUser) {
+                        console.log('📥 Fetching user profile in updateAuthUI...');
+                        currentUserProfile = await fetchUserProfile();
+                        console.log('✅ User profile fetched:', currentUserProfile?.student_id || 'no student_id');
+                    } else if (!currentUser) {
+                        console.log('⚠️ updateAuthUI: No currentUser, skipping profile fetch');
+                    }
+                    
+                    // Fetch passed variants
+                    console.log('📥 Fetching passed variants...');
+                    await fetchPassedVariants();
+                    console.log('✅ Passed variants fetched');
+                } catch (err) {
+                    console.error('❌ Error fetching user data:', err);
+                    // Continue anyway - dashboard is already shown
+                }
+                
+                // Update inline login UI - reset button state first
+                if (inlineLoginBtn) {
+                    inlineLoginBtn.classList.add('hidden');
+                    inlineLoginBtn.disabled = false;
+                    inlineLoginBtn.textContent = 'Log In';
+                }
+                if (inlineLogoutBtn) inlineLogoutBtn.classList.remove('hidden');
+                if (inlineStudentId) inlineStudentId.disabled = true;
+                if (inlinePassword) inlinePassword.disabled = true;
+                
+                // Show user info
+                const displayName = currentUserProfile?.student_id || currentUser.email || '';
+                if (userDisplay) {
+                    userDisplay.textContent = `Logged in as: ${displayName}`;
+                    userDisplay.classList.remove('hidden');
+                }
+                if (loginError) loginError.textContent = '';
+                
+                // Dashboard should already be shown above, but ensure it's visible
+                if (dashboardSection && dashboardSection.classList.contains('hidden')) {
+                    console.log('🎯 Dashboard was hidden, showing now...');
+                    dashboardSection.classList.remove('hidden');
+                    dashboardSection.style.display = 'block';
+                    console.log('✅ Dashboard shown');
+                } else if (dashboardSection) {
+                    console.log('✅ Dashboard already visible');
+                } else {
+                    console.error('❌ dashboardSection element not found!');
+                }
+                
+                // Clear variants when logging in
+                const variantsContainer = document.getElementById('variantsContainer');
+                if (variantsContainer) {
+                    variantsContainer.innerHTML = '';
+                }
+                selectedOperation = null;
+                // Remove selected class from all operation cards
+                document.querySelectorAll('.operation-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
+                
+                // Ensure operations grid is visible
+                const operationsGrid = document.querySelector('.operations-grid');
+                if (operationsGrid) {
+                    operationsGrid.style.display = 'grid';
+                }
             } else {
-                authStatus.textContent = 'Not logged in';
-                authStatus.className = 'auth-status logged-out';
-                userEmail.textContent = '';
-                loginBtn.classList.remove('hidden');
-                signupBtn.classList.remove('hidden');
-                logoutBtn.classList.add('hidden');
+                // Update inline login UI
+                if (inlineLoginBtn) {
+                    inlineLoginBtn.classList.remove('hidden');
+                    inlineLoginBtn.disabled = false;
+                    inlineLoginBtn.textContent = 'Log In';
+                }
+                if (inlineLogoutBtn) inlineLogoutBtn.classList.add('hidden');
+                if (inlineStudentId) inlineStudentId.disabled = false;
+                if (inlinePassword) inlinePassword.disabled = false;
+                
+                if (userDisplay) {
+                    userDisplay.textContent = '';
+                    userDisplay.classList.add('hidden');
+                }
+                
+                currentUserProfile = null;
+                passedVariants.clear();
+                
+                // Hide dashboard when logged out
+                if (dashboardSection) {
+                    dashboardSection.classList.add('hidden');
+                }
+                
+                // Clear variants
+                document.getElementById('variantsContainer').innerHTML = '';
+                selectedOperation = null;
             }
+        }
+
+        // Select operation and show variants below
+        function selectOperation(operation) {
+            // Remove selected class from all cards
+            document.querySelectorAll('.operation-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked card (if event is available)
+            if (event && event.target) {
+                const clickedCard = event.target.closest('.operation-card');
+                if (clickedCard) {
+                    clickedCard.classList.add('selected');
+                }
+            }
+            
+            selectedOperation = operation;
+            loadVariantsForOperation(operation);
+        }
+
+        // Load variants for selected operation
+        async function loadVariantsForOperation(operation) {
+            const container = document.getElementById('variantsContainer');
+            if (!container) {
+                console.error('variantsContainer not found');
+                return;
+            }
+            
+            container.innerHTML = '<p style="text-align: center; color: #666;">Loading variants...</p>';
+
+            // Get variants for this operation
+            const opsVariants = variants[operation];
+            if (!opsVariants) {
+                container.innerHTML = '<p style="text-align: center; color: #dc3545;">No variants found for this operation.</p>';
+                return;
+            }
+
+            // Get learning sequence for this operation
+            const sequence = learningSequence[operation] || [];
+            console.log('📚 Learning sequence for', operation, ':', sequence);
+            console.log('✅ Passed variants:', Array.from(passedVariants));
+
+            // Sort variants by learning sequence
+            const variantKeys = Object.keys(opsVariants);
+            const sortedKeys = variantKeys.sort((a, b) => {
+                const indexA = sequence.indexOf(a);
+                const indexB = sequence.indexOf(b);
+                
+                // If both in sequence, sort by sequence order
+                if (indexA !== -1 && indexB !== -1) {
+                    return indexA - indexB;
+                }
+                // If only one in sequence, prioritize it
+                if (indexA !== -1) return -1;
+                if (indexB !== -1) return 1;
+                // If neither in sequence, maintain original order
+                return 0;
+            });
+
+            container.innerHTML = '';
+            
+            sortedKeys.forEach(variantKey => {
+                const variant = opsVariants[variantKey];
+                const variantKeyFull = `${operation}_${variantKey}`;
+                const isPassed = passedVariants.has(variantKeyFull);
+                
+                // Debug logging for passed variants
+                if (isPassed) {
+                    console.log(`✅ Variant ${variantKeyFull} is PASSED`);
+                }
+                
+                const card = document.createElement('div');
+                card.className = `variant-card ${isPassed ? 'passed' : ''}`;
+                card.onclick = () => launchVariant(operation, variantKey);
+                
+                card.innerHTML = `
+                    <div class="variant-name">${variant.name}</div>
+                    <div class="variant-status">${isPassed ? '✓ Passed' : 'Not started'}</div>
+                `;
+                
+                container.appendChild(card);
+            });
+            
+            console.log(`✅ Loaded ${sortedKeys.length} variants for ${operation}`);
+        }
+
+        // Launch variant from dashboard
+        function launchVariant(operation, variant) {
+            // Hide dashboard, show question section
+            document.getElementById('dashboardSection').classList.add('hidden');
+            const variantsContainer = document.getElementById('variantsContainer');
+            if (variantsContainer) {
+                variantsContainer.innerHTML = '';
+            }
+            
+            // Start the session with the selected operation and variant
+            startSession(operation, variant);
         }
 
         // Show login modal
@@ -1936,8 +2506,32 @@
             document.getElementById('authToggleText').textContent = "Don't have an account? ";
             document.getElementById('authToggle').querySelector('a').textContent = 'Sign Up';
             document.getElementById('authError').textContent = '';
-            document.getElementById('authEmail').value = '';
+            
+            // Show login fields, hide signup fields
+            const loginFields = document.getElementById('loginFields');
+            const signupFields = document.getElementById('signupFields');
+            loginFields.style.display = 'block';
+            signupFields.style.display = 'none';
+            
+            // Add required to login fields, remove from signup fields
+            document.getElementById('authStudentId').required = true;
+            document.getElementById('authPassword').required = true;
+            
+            // Remove required from signup fields to prevent validation errors
+            document.getElementById('signupStudentId').required = false;
+            document.getElementById('signupFirstName').required = false;
+            document.getElementById('signupGender').required = false;
+            document.getElementById('signupSchoolId').required = false;
+            document.getElementById('signupClass').required = false;
+            document.getElementById('signupSection').required = false;
+            document.getElementById('signupRollNumber').required = false;
+            document.getElementById('signupPassword').required = false;
+            document.getElementById('signupPasswordConfirm').required = false;
+            
+            // Clear form fields
+            document.getElementById('authStudentId').value = '';
             document.getElementById('authPassword').value = '';
+            
             document.getElementById('authModal').style.display = 'flex';
         }
 
@@ -1949,15 +2543,59 @@
             document.getElementById('authToggleText').textContent = 'Already have an account? ';
             document.getElementById('authToggle').querySelector('a').textContent = 'Log In';
             document.getElementById('authError').textContent = '';
-            document.getElementById('authEmail').value = '';
-            document.getElementById('authPassword').value = '';
+            
+            // Show signup fields, hide login fields
+            const loginFields = document.getElementById('loginFields');
+            const signupFields = document.getElementById('signupFields');
+            loginFields.style.display = 'none';
+            signupFields.style.display = 'block';
+            
+            // Remove required from login fields to prevent validation errors
+            document.getElementById('authStudentId').required = false;
+            document.getElementById('authPassword').required = false;
+            
+            // Add required to signup fields
+            document.getElementById('signupStudentId').required = true;
+            document.getElementById('signupFirstName').required = true;
+            document.getElementById('signupGender').required = true;
+            document.getElementById('signupSchoolId').required = true;
+            document.getElementById('signupClass').required = true;
+            document.getElementById('signupSection').required = true;
+            document.getElementById('signupRollNumber').required = true;
+            document.getElementById('signupPassword').required = true;
+            document.getElementById('signupPasswordConfirm').required = true;
+            
+            // Clear all form fields
+            document.getElementById('signupStudentId').value = '';
+            document.getElementById('signupFirstName').value = '';
+            document.getElementById('signupLastName').value = '';
+            document.getElementById('signupGender').value = '';
+            document.getElementById('signupSchoolId').value = '';
+            document.getElementById('signupClass').value = '';
+            document.getElementById('signupSection').value = '';
+            document.getElementById('signupRollNumber').value = '';
+            document.getElementById('signupPassword').value = '';
+            document.getElementById('signupPasswordConfirm').value = '';
+            
             document.getElementById('authModal').style.display = 'flex';
         }
 
         // Close auth modal
         function closeAuthModal() {
-            document.getElementById('authModal').style.display = 'none';
-            document.getElementById('authError').textContent = '';
+            const authModal = document.getElementById('authModal');
+            if (authModal) {
+                authModal.style.display = 'none';
+                console.log('✅ Auth modal closed');
+            }
+            const authError = document.getElementById('authError');
+            if (authError) {
+                authError.textContent = '';
+            }
+            // Reset form
+            const authForm = document.getElementById('authForm');
+            if (authForm) {
+                authForm.reset();
+            }
         }
 
         // Toggle between login and signup
@@ -1973,8 +2611,6 @@
         // Handle authentication (login or signup)
         async function handleAuth(event) {
             event.preventDefault();
-            const email = document.getElementById('authEmail').value;
-            const password = document.getElementById('authPassword').value;
             const errorEl = document.getElementById('authError');
             const submitBtn = document.getElementById('authSubmitBtn');
             const form = document.getElementById('authForm');
@@ -1992,24 +2628,72 @@
 
             try {
                 if (isLoginMode) {
-                    // Login with Supabase
+                    // Login: Get student_id and convert to internal email
+                    const studentId = document.getElementById('authStudentId').value.trim();
+                    const password = document.getElementById('authPassword').value;
+                    
+                    if (studentId.length !== 8) {
+                        throw new Error('Student ID must be exactly 8 characters');
+                    }
+                    
+                    const internalEmail = generateInternalEmail(studentId);
+                    console.log('🔐 Attempting login with student_id:', studentId, '→ email:', internalEmail);
+                    
                     const { data, error } = await supabase.auth.signInWithPassword({
-                        email: email,
+                        email: internalEmail,
                         password: password
                     });
 
                     if (error) throw error;
+                    
+                    // Fetch user profile after successful login
+                    currentUserProfile = await fetchUserProfile();
                     // Auth state change listener will handle UI update
                 } else {
-                    // Sign up with Supabase
-                    console.log('📧 Attempting signup with email:', email);
-                    console.log('📧 Redirect URL:', SITE_URL);
+                    // Sign up: Get all student fields
+                    const studentId = document.getElementById('signupStudentId').value.trim();
+                    const firstName = document.getElementById('signupFirstName').value.trim();
+                    const lastName = document.getElementById('signupLastName').value.trim();
+                    const gender = document.getElementById('signupGender').value;
+                    const schoolId = parseInt(document.getElementById('signupSchoolId').value);
+                    const classNum = parseInt(document.getElementById('signupClass').value);
+                    const section = document.getElementById('signupSection').value.trim();
+                    const rollNumber = parseInt(document.getElementById('signupRollNumber').value);
+                    const password = document.getElementById('signupPassword').value;
+                    const passwordConfirm = document.getElementById('signupPasswordConfirm').value;
                     
+                    // Validation
+                    if (studentId.length !== 8) {
+                        throw new Error('Student ID must be exactly 8 characters');
+                    }
+                    if (password.length < 6) {
+                        throw new Error('Password must be at least 6 characters');
+                    }
+                    if (password !== passwordConfirm) {
+                        throw new Error('Passwords do not match');
+                    }
+                    if (!firstName) {
+                        throw new Error('First name is required');
+                    }
+                    if (!gender) {
+                        throw new Error('Gender is required');
+                    }
+                    
+                    // Generate internal email
+                    const internalEmail = generateInternalEmail(studentId);
+                    console.log('📝 Attempting signup with student_id:', studentId, '→ email:', internalEmail);
+                    
+                    // Sign up with Supabase (using internal email)
                     const { data, error } = await supabase.auth.signUp({
-                        email: email,
+                        email: internalEmail,
                         password: password,
                         options: {
-                            emailRedirectTo: `${SITE_URL}`
+                            emailRedirectTo: `${SITE_URL}`,
+                            data: {
+                                student_id: studentId,
+                                first_name: firstName,
+                                last_name: lastName
+                            }
                         }
                     });
 
@@ -2020,9 +2704,37 @@
                     
                     console.log('📧 Signup response:', {
                         user: data.user ? 'User created' : 'No user',
-                        session: data.session ? 'Session created (auto-confirmed)' : 'No session (email confirmation required)',
-                        userConfirmed: data.user?.email_confirmed_at ? 'Already confirmed' : 'Needs confirmation'
+                        session: data.session ? 'Session created (auto-confirmed)' : 'No session (email confirmation required)'
                     });
+                    
+                    // Create user profile in user_profiles table
+                    if (data.user) {
+                        try {
+                            const { error: profileError } = await supabase
+                                .from('user_profiles')
+                                .insert([{
+                                    user_id: data.user.id,
+                                    student_id: studentId,
+                                    email: internalEmail,
+                                    first_name: firstName,
+                                    last_name: lastName || null,
+                                    gender: gender,
+                                    school_id: schoolId,
+                                    class: classNum,
+                                    section: section,
+                                    roll_number: rollNumber
+                                }]);
+                            
+                            if (profileError) {
+                                console.error('❌ Error creating user profile:', profileError);
+                                // Don't throw - user is created, profile can be added later
+                            } else {
+                                console.log('✅ User profile created successfully');
+                            }
+                        } catch (profileErr) {
+                            console.error('❌ Error creating user profile:', profileErr);
+                        }
+                    }
                     
                     // Check if email confirmation is required
                     if (data.user && !data.session) {
@@ -2036,6 +2748,8 @@
                     } else if (data.user && data.session) {
                         // Auto-logged in (email confirmation is disabled)
                         console.log('✅ Auto-confirmed - email confirmation is disabled in Supabase');
+                        // Fetch user profile
+                        currentUserProfile = await fetchUserProfile();
                         errorEl.textContent = 'Signup successful! You are now logged in.';
                         errorEl.style.color = '#28a745';
                         setTimeout(() => {
@@ -2072,6 +2786,11 @@
                 const { error } = await supabase.auth.signOut();
                 if (error) {
                     console.error('Logout error:', error);
+                } else {
+                    // Clear form fields
+                    document.getElementById('inlineStudentId').value = '';
+                    document.getElementById('inlinePassword').value = '';
+                    await updateAuthUI();
                 }
             }
         }
@@ -2087,6 +2806,11 @@
             }
 
             try {
+                // Calculate average time per correct answer
+                const avgTime = currentSession.correctCount > 0 
+                    ? Math.round((currentSession.totalTime / currentSession.correctCount) * 10) / 10 
+                    : 0;
+                
                 const sessionData = {
                     user_id: currentUser.id,
                     operation: currentSession.operation,
@@ -2094,8 +2818,10 @@
                     correct_count: currentSession.correctCount,
                     wrong_count: currentSession.wrongCount,
                     total_time: currentSession.totalTime,
+                    average_time: avgTime, // Average time per correct sum
                     total_questions: currentSession.correctCount + currentSession.wrongCount,
                     session_data: currentSession.results,
+                    passed: currentSession.passed || false, // Store pass/fail result
                     completed_at: new Date().toISOString()
                 };
 
@@ -2185,18 +2911,29 @@
         }
 
         // Update endSession to save scores
-        const originalEndSession = endSession;
-        function endSession() {
-            originalEndSession();
-            // Save score if user is logged in
-            if (currentUser) {
-                saveScore().then(success => {
-                    if (success) {
-                        console.log('Session data saved to server');
-                    }
-                });
-            }
-        }
+        // Store the original endSession function in a closure to avoid infinite recursion
+        (function() {
+            const originalEndSession = endSession;
+            window.endSession = function() {
+                // Call the original endSession function
+                originalEndSession.call(this);
+                // Save score if user is logged in
+                if (currentUser) {
+                    saveScore().then(success => {
+                        if (success) {
+                            console.log('Session data saved to server');
+                            // Refresh passed variants to update dashboard
+                            fetchPassedVariants().then(() => {
+                                // If we're on dashboard and have selected operation, refresh variants
+                                if (selectedOperation && !document.getElementById('dashboardSection').classList.contains('hidden')) {
+                                    loadVariantsForOperation(selectedOperation);
+                                }
+                            });
+                        }
+                    });
+                }
+            };
+        })();
 
         // Initialize everything when page loads
         window.addEventListener('DOMContentLoaded', () => {
