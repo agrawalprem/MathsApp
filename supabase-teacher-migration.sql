@@ -4,8 +4,15 @@
 -- ============================================================================
 
 -- Add user_type column to user_profiles
+-- Note: If column already exists, this will not change it. To make it NOT NULL, run the separate migration below.
 ALTER TABLE public.user_profiles 
 ADD COLUMN IF NOT EXISTS user_type TEXT CHECK (user_type IN ('Student', 'Teacher', 'Admin'));
+
+-- Make user_type NOT NULL (run this after ensuring all existing users have a user_type)
+-- First, update any NULL user_type values to a default (e.g., 'Student' for existing users)
+-- UPDATE public.user_profiles SET user_type = 'Student' WHERE user_type IS NULL;
+-- Then uncomment the line below:
+-- ALTER TABLE public.user_profiles ALTER COLUMN user_type SET NOT NULL;
 
 -- Add CHECK constraints to ensure school_id, class, and section are NOT NULL for students and teachers
 ALTER TABLE public.user_profiles

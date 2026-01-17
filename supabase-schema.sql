@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
     class TEXT,
     section TEXT,
     roll_number TEXT,
-    user_type TEXT CHECK (user_type IN ('Student', 'Teacher', 'Admin')),
+    user_type TEXT NOT NULL CHECK (user_type IN ('Student', 'Teacher', 'Admin')),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     -- Constraint: school_id, class, and section must be NOT NULL for students and teachers
