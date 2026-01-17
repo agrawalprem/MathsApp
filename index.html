@@ -2447,16 +2447,36 @@
             document.getElementById('summarySection').classList.add('hidden');
             // Show dashboard if logged in (preserve session)
             if (currentUser) {
-                document.getElementById('dashboardSection').classList.remove('hidden');
-                // Refresh passed/failed variants and operation completion status (sequential to avoid race condition)
+                const dashboardSection = document.getElementById('dashboardSection');
+                dashboardSection.classList.remove('hidden');
+                dashboardSection.style.display = 'block';
+                console.log('🔄 Dashboard shown, refreshing variants...');
+                
+                // Always refresh passed/failed variants when returning to dashboard
+                // This ensures the dashboard shows the latest status
                 fetchPassedVariants()
-                    .catch(err => console.warn('⚠️ Could not fetch passed variants:', err))
-                    .then(() => fetchFailedVariants().catch(err => console.warn('⚠️ Could not fetch failed variants:', err)))
+                    .catch(err => {
+                        console.warn('⚠️ Could not fetch passed variants:', err);
+                        return Promise.resolve(); // Continue even if fetch fails
+                    })
                     .then(() => {
+                        return fetchFailedVariants().catch(err => {
+                            console.warn('⚠️ Could not fetch failed variants:', err);
+                            return Promise.resolve(); // Continue even if fetch fails
+                        });
+                    })
+                    .then(() => {
+                        console.log('✅ Variants refreshed, updating dashboard...');
+                        // Update operation completion status (green cards)
                         updateOperationCompletionStatus();
-                        // Refresh variants for selected operation
+                        
+                        // Always refresh variant cards if an operation is selected
+                        // This ensures passed/failed status is shown
                         if (selectedOperation) {
+                            console.log('🔄 Refreshing variant cards for:', selectedOperation);
                             loadVariantsForOperation(selectedOperation);
+                        } else {
+                            console.log('ℹ️ No operation selected - variant cards will update when operation is selected');
                         }
                     });
             } else {
@@ -4237,16 +4257,25 @@
                     console.log('🔄 User is logged in, calling saveScore()...');
                     saveScore().then(success => {
                         if (success) {
-                            console.log('✅ Session data saved to server');
+                            console.log('✅ Session data saved to server, refreshing dashboard...');
                             // Refresh passed and failed variants to update dashboard (sequential to avoid race condition)
                             fetchPassedVariants()
-                                .then(() => fetchFailedVariants())
                                 .then(() => {
-                                    // Update operation completion status
+                                    console.log('✅ Passed variants refreshed after score save');
+                                    return fetchFailedVariants();
+                                })
+                                .then(() => {
+                                    console.log('✅ Failed variants refreshed after score save');
+                                    // Update operation completion status (green cards)
                                     updateOperationCompletionStatus();
-                                    // If we're on dashboard and have selected operation, refresh variants
-                                    if (selectedOperation && !document.getElementById('dashboardSection').classList.contains('hidden')) {
+                                    
+                                    // Always refresh variant cards if operation is selected and dashboard is visible
+                                    const dashboardSection = document.getElementById('dashboardSection');
+                                    if (selectedOperation && dashboardSection && !dashboardSection.classList.contains('hidden')) {
+                                        console.log('🔄 Refreshing variant cards after score save for:', selectedOperation);
                                         loadVariantsForOperation(selectedOperation);
+                                    } else {
+                                        console.log('ℹ️ Dashboard not visible or no operation selected - will refresh when dashboard is shown');
                                     }
                                 })
                                 .catch(err => {
