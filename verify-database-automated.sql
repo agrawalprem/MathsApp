@@ -143,12 +143,17 @@ SELECT
     END AS result;
 
 -- ============================================================================
--- SUMMARY: List all policies for review
+-- SUMMARY: Policy count by table
 -- ============================================================================
 SELECT 
-    'Policy Details' AS check_type,
-    tablename || '.' || policyname || ' (' || cmd || ')' AS result
+    'Policy Count' AS check_type,
+    tablename || ': ' || COUNT(*) || ' policies' AS result
 FROM pg_policies 
 WHERE schemaname = 'public' 
 AND tablename IN ('user_profiles', 'user_scores')
-ORDER BY tablename, policyname;
+GROUP BY tablename
+ORDER BY tablename;
+
+-- ============================================================================
+-- NOTE: For detailed policy validation, run verify-policies-detailed.sql
+-- ============================================================================
