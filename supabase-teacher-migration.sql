@@ -64,6 +64,8 @@ CREATE POLICY "Teachers can view their students"
     );
 
 -- Teachers can SELECT scores of their students
+-- Note: Users viewing their own scores is already handled by "Users can view own scores" policy
+-- This policy only adds the ability for teachers to view their students' scores
 DROP POLICY IF EXISTS "Teachers can view their students' scores" ON public.user_scores;
 CREATE POLICY "Teachers can view their students' scores"
     ON public.user_scores
@@ -80,9 +82,7 @@ CREATE POLICY "Teachers can view their students' scores"
                 AND teacher_profile.section = up.section
                 AND teacher_profile.school_id = up.school_id
             WHERE up.user_type = 'Student'
-        ) OR
-        -- User can always see their own scores
-        user_id = auth.uid()
+        )
     );
 
 -- ============================================================================
