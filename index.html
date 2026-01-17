@@ -3162,6 +3162,11 @@
                     console.log('✅ Failed variants fetched');
                     // Update operation completion status
                     updateOperationCompletionStatus();
+                    // Refresh variant cards if an operation is already selected
+                    if (selectedOperation) {
+                        console.log('🔄 Refreshing variant cards for selected operation:', selectedOperation);
+                        loadVariantsForOperation(selectedOperation);
+                    }
                 } catch (err) {
                     console.error('❌ Error fetching user data:', err);
                     // Continue anyway - dashboard is already shown
