@@ -2775,6 +2775,7 @@
             
             try {
                 // Add timeout to prevent hanging
+                console.log('📥 Executing profile query for user_id:', currentUser.id);
                 const queryPromise = supabase
                     .from('user_profiles')
                     .select('*')
@@ -2782,10 +2783,18 @@
                     .single();
                 
                 const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Profile fetch timeout after 3 seconds')), 3000)
+                    setTimeout(() => reject(new Error('Profile fetch timeout after 10 seconds')), 10000)
                 );
                 
-                const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
+                const result = await Promise.race([queryPromise, timeoutPromise]);
+                const { data, error } = result || { data: null, error: null };
+                
+                console.log('📥 Profile query result:', { 
+                    hasData: !!data, 
+                    hasError: !!error,
+                    errorCode: error?.code,
+                    errorMessage: error?.message 
+                });
                 
                 isFetchingProfile = false;
                 
