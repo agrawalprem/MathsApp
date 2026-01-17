@@ -3163,6 +3163,7 @@
                     // Update operation completion status
                     updateOperationCompletionStatus();
                     // Refresh variant cards if an operation is already selected
+                    // Note: This will refresh after variants are loaded, ensuring passed/failed status is shown
                     if (selectedOperation) {
                         console.log('🔄 Refreshing variant cards for selected operation:', selectedOperation);
                         loadVariantsForOperation(selectedOperation);
@@ -3309,7 +3310,24 @@
             }
             
             selectedOperation = operation;
-            loadVariantsForOperation(operation);
+            // Ensure passed/failed variants are loaded before showing variants
+            // If they're not loaded yet, fetch them first, then load variants
+            if (passedVariants.size === 0 && failedVariants.size === 0 && currentUser) {
+                console.log('📥 Variants not loaded yet, fetching now...');
+                fetchPassedVariants()
+                    .then(() => fetchFailedVariants())
+                    .then(() => {
+                        updateOperationCompletionStatus();
+                        loadVariantsForOperation(operation);
+                    })
+                    .catch(err => {
+                        console.warn('⚠️ Error fetching variants, loading anyway:', err);
+                        loadVariantsForOperation(operation);
+                    });
+            } else {
+                // Variants already loaded, just show them
+                loadVariantsForOperation(operation);
+            }
         }
 
         // Load variants for selected operation
