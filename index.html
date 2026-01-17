@@ -3156,17 +3156,19 @@
                     // Fetch passed and failed variants (sequential to avoid race condition)
                     console.log('📥 Fetching passed variants...');
                     await fetchPassedVariants();
-                    console.log('✅ Passed variants fetched');
+                    console.log('✅ Passed variants fetched, count:', passedVariants.size);
                     console.log('📥 Fetching failed variants...');
                     await fetchFailedVariants();
-                    console.log('✅ Failed variants fetched');
-                    // Update operation completion status
+                    console.log('✅ Failed variants fetched, count:', failedVariants.size);
+                    // Update operation completion status (green cards for completed operations)
                     updateOperationCompletionStatus();
                     // Refresh variant cards if an operation is already selected
-                    // Note: This will refresh after variants are loaded, ensuring passed/failed status is shown
+                    // This ensures passed/failed status is shown immediately
                     if (selectedOperation) {
                         console.log('🔄 Refreshing variant cards for selected operation:', selectedOperation);
                         loadVariantsForOperation(selectedOperation);
+                    } else {
+                        console.log('ℹ️ No operation selected yet - variant cards will show status when operation is selected');
                     }
                 } catch (err) {
                     console.error('❌ Error fetching user data:', err);
