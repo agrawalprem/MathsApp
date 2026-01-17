@@ -3317,22 +3317,27 @@
             }
             
             selectedOperation = operation;
-            // Ensure passed/failed variants are loaded before showing variants
-            // If they're not loaded yet, fetch them first, then load variants
-            if (passedVariants.size === 0 && failedVariants.size === 0 && currentUser) {
-                console.log('📥 Variants not loaded yet, fetching now...');
+            // Always fetch latest passed/failed variants to ensure dashboard is up-to-date
+            // This ensures the dashboard always shows current status for all user types
+            if (currentUser && supabase) {
+                console.log('📥 Fetching latest passed/failed variants for dashboard update...');
                 fetchPassedVariants()
-                    .then(() => fetchFailedVariants())
                     .then(() => {
+                        console.log('✅ Passed variants fetched, count:', passedVariants.size);
+                        return fetchFailedVariants();
+                    })
+                    .then(() => {
+                        console.log('✅ Failed variants fetched, count:', failedVariants.size);
                         updateOperationCompletionStatus();
                         loadVariantsForOperation(operation);
                     })
                     .catch(err => {
-                        console.warn('⚠️ Error fetching variants, loading anyway:', err);
+                        console.warn('⚠️ Error fetching variants, loading with cached data:', err);
+                        // Load anyway with whatever data we have
                         loadVariantsForOperation(operation);
                     });
             } else {
-                // Variants already loaded, just show them
+                // Not logged in, just show variants without status
                 loadVariantsForOperation(operation);
             }
         }
