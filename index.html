@@ -3382,7 +3382,9 @@
             // Get learning sequence for this operation
             const sequence = learningSequence[operation] || [];
             console.log('📚 Learning sequence for', operation, ':', sequence);
-            console.log('✅ Passed variants:', Array.from(passedVariants));
+            console.log('✅ Passed variants Set:', Array.from(passedVariants));
+            console.log('❌ Failed variants Set:', Array.from(failedVariants));
+            console.log('📊 Passed count:', passedVariants.size, 'Failed count:', failedVariants.size);
 
             // Sort variants by learning sequence
             const variantKeys = Object.keys(opsVariants);
@@ -3403,17 +3405,20 @@
 
             container.innerHTML = '';
             
-            sortedKeys.forEach(variantKey => {
+                sortedKeys.forEach(variantKey => {
                 const variant = opsVariants[variantKey];
                 const variantKeyFull = `${operation}_${variantKey}`;
                 const isPassed = passedVariants.has(variantKeyFull);
                 const isFailed = failedVariants.has(variantKeyFull);
                 
                 // Debug logging for passed/failed variants
+                console.log(`🔍 Checking variant ${variantKeyFull}: passed=${isPassed}, failed=${isFailed}`);
                 if (isPassed) {
-                    console.log(`✅ Variant ${variantKeyFull} is PASSED`);
+                    console.log(`✅ Variant ${variantKeyFull} is PASSED - will show green`);
                 } else if (isFailed) {
-                    console.log(`❌ Variant ${variantKeyFull} is FAILED (all attempts failed)`);
+                    console.log(`❌ Variant ${variantKeyFull} is FAILED - will show red`);
+                } else {
+                    console.log(`⚪ Variant ${variantKeyFull} is NOT STARTED - will show default`);
                 }
                 
                 const card = document.createElement('div');
