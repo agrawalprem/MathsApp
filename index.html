@@ -2790,6 +2790,13 @@
                 isFetchingProfile = false;
                 
                 if (error) {
+                    // Log full error details for debugging
+                    console.error('❌ Error fetching user profile - Full error:', JSON.stringify(error, null, 2));
+                    console.error('   Error code:', error.code);
+                    console.error('   Error message:', error.message);
+                    console.error('   Error details:', error.details);
+                    console.error('   Error hint:', error.hint);
+                    
                     // If profile doesn't exist, that's okay - user might not have completed signup
                     if (error.code === 'PGRST116' || error.message?.includes('timeout')) {
                         if (error.code === 'PGRST116') {
@@ -2798,7 +2805,7 @@
                             console.warn('⚠️ Profile fetch timed out - this is non-critical, continuing without profile');
                         }
                     } else {
-                        console.error('❌ Error fetching user profile:', error);
+                        console.error('❌ Error fetching user profile - This may indicate an RLS policy issue or database problem');
                     }
                     return null;
                 }
@@ -2866,7 +2873,12 @@
                 const { data, error } = result || { data: null, error: null };
 
                 if (error) {
-                    console.error('Error fetching passed variants:', error);
+                    console.error('❌ Error fetching passed variants - Full error:', JSON.stringify(error, null, 2));
+                    console.error('   Error code:', error.code);
+                    console.error('   Error message:', error.message);
+                    console.error('   Error details:', error.details);
+                    console.error('   Error hint:', error.hint);
+                    console.error('   This may indicate an RLS policy issue or database problem');
                     return;
                 }
 
@@ -2960,7 +2972,12 @@
                 const { data, error } = result || { data: null, error: null };
 
                 if (error) {
-                    console.error('Error fetching failed variants:', error);
+                    console.error('❌ Error fetching failed variants - Full error:', JSON.stringify(error, null, 2));
+                    console.error('   Error code:', error.code);
+                    console.error('   Error message:', error.message);
+                    console.error('   Error details:', error.details);
+                    console.error('   Error hint:', error.hint);
+                    console.error('   This may indicate an RLS policy issue or database problem');
                     return;
                 }
 
