@@ -7,17 +7,33 @@
 ALTER TABLE public.user_profiles 
 ADD COLUMN IF NOT EXISTS user_type TEXT CHECK (user_type IN ('Student', 'Teacher', 'Admin'));
 
+-- Add CHECK constraints to ensure school_id, class, and section are NOT NULL for students and teachers
+ALTER TABLE public.user_profiles
+DROP CONSTRAINT IF EXISTS check_student_teacher_required_fields;
+
+ALTER TABLE public.user_profiles
+ADD CONSTRAINT check_student_teacher_required_fields 
+CHECK (
+    (user_type IN ('Student', 'Teacher') AND school_id IS NOT NULL AND class IS NOT NULL AND section IS NOT NULL)
+    OR 
+    (user_type NOT IN ('Student', 'Teacher'))
+);
+
 -- Create index for performance on user_type
 CREATE INDEX IF NOT EXISTS idx_user_profiles_user_type ON public.user_profiles(user_type);
 
--- Create index for class+section lookups
-CREATE INDEX IF NOT EXISTS idx_user_profiles_class_section ON public.user_profiles(class, section);
+-- Create composite index on (school_id, class, section) for students and teachers
+-- This index is useful for teacher-student lookups and queries
+CREATE INDEX IF NOT EXISTS idx_user_profiles_school_class_section 
+ON public.user_profiles(school_id, class, section)
+WHERE user_type IN ('Student', 'Teacher');
 
 -- Create unique partial index to ensure only one teacher per class+section combination
--- This constraint ensures that for each (class, section, school_id) combination,
+-- This constraint ensures that for each (class, section) combination,
 -- there can be only one user with user_type = 'Teacher'
+-- Note: Since school_id, class, and section are NOT NULL for teachers, we don't need NULL checks
 CREATE UNIQUE INDEX IF NOT EXISTS idx_user_profiles_unique_teacher_class 
-ON public.user_profiles(class, section, COALESCE(school_id, ''))
+ON public.user_profiles(class, section)
 WHERE user_type = 'Teacher';
 
 -- ============================================================================
@@ -40,11 +56,7 @@ CREATE POLICY "Teachers can view their students"
                 AND teacher_profile.user_type = 'Teacher'
                 AND teacher_profile.class = user_profiles.class
                 AND teacher_profile.section = user_profiles.section
-                AND (
-                    teacher_profile.school_id IS NULL 
-                    OR user_profiles.school_id IS NULL 
-                    OR teacher_profile.school_id = user_profiles.school_id
-                )
+                AND teacher_profile.school_id = user_profiles.school_id
             )
         ) OR
         -- User can always see their own profile
@@ -66,11 +78,7 @@ CREATE POLICY "Teachers can view their students' scores"
                 AND teacher_profile.user_type = 'Teacher'
                 AND teacher_profile.class = up.class
                 AND teacher_profile.section = up.section
-                AND (
-                    teacher_profile.school_id IS NULL 
-                    OR up.school_id IS NULL 
-                    OR teacher_profile.school_id = up.school_id
-                )
+                AND teacher_profile.school_id = up.school_id
             WHERE up.user_type = 'Student'
         ) OR
         -- User can always see their own scores

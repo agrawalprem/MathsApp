@@ -28,7 +28,14 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
     roll_number TEXT,
     user_type TEXT CHECK (user_type IN ('Student', 'Teacher', 'Admin')),
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    -- Constraint: school_id, class, and section must be NOT NULL for students and teachers
+    CONSTRAINT check_student_teacher_required_fields 
+    CHECK (
+        (user_type IN ('Student', 'Teacher') AND school_id IS NOT NULL AND class IS NOT NULL AND section IS NOT NULL)
+        OR 
+        (user_type NOT IN ('Student', 'Teacher'))
+    )
 );
 
 -- ============================================================================
@@ -142,13 +149,17 @@ CREATE INDEX IF NOT EXISTS idx_user_profiles_email ON public.user_profiles(email
 -- Index on user_type (for filtering by user type)
 CREATE INDEX IF NOT EXISTS idx_user_profiles_user_type ON public.user_profiles(user_type);
 
--- Index on class+section (for teacher-student lookups)
-CREATE INDEX IF NOT EXISTS idx_user_profiles_class_section ON public.user_profiles(class, section);
+-- Composite index on (school_id, class, section) for students and teachers
+-- This index is useful for teacher-student lookups and queries
+CREATE INDEX IF NOT EXISTS idx_user_profiles_school_class_section 
+ON public.user_profiles(school_id, class, section)
+WHERE user_type IN ('Student', 'Teacher');
 
--- Unique partial index: only one teacher per (class, section, school_id)
+-- Unique partial index: only one teacher per (class, section)
 -- This ensures that for each class+section combination, there is only one teacher
+-- Note: Since school_id, class, and section are NOT NULL for teachers, we don't need NULL checks
 CREATE UNIQUE INDEX IF NOT EXISTS idx_user_profiles_unique_teacher_class 
-ON public.user_profiles(class, section, COALESCE(school_id, ''))
+ON public.user_profiles(class, section)
 WHERE user_type = 'Teacher';
 
 -- user_scores indexes
