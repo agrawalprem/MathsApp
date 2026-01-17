@@ -2872,15 +2872,21 @@
 
                 // Store as "operation_variant" keys
                 passedVariants.clear();
-                if (data) {
+                if (data && Array.isArray(data)) {
+                    console.log('📥 Processing', data.length, 'passed score records...');
                     data.forEach(score => {
-                        const key = `${score.operation}_${score.variant}`;
-                        passedVariants.add(key);
-                        console.log('✅ Added passed variant:', key, 'from score:', score);
+                        if (score.operation && score.variant) {
+                            const key = `${score.operation}_${score.variant}`;
+                            passedVariants.add(key);
+                            console.log('✅ Added passed variant:', key, 'from score:', { operation: score.operation, variant: score.variant, passed: score.passed });
+                        } else {
+                            console.warn('⚠️ Invalid score record (missing operation or variant):', score);
+                        }
                     });
+                } else {
+                    console.log('ℹ️ No passed score data received (data is null or not an array)');
                 }
-                console.log('✅ Passed variants loaded:', Array.from(passedVariants));
-                console.log('📊 Total passed variants:', passedVariants.size);
+                console.log('✅ Passed variants Set updated. Total:', passedVariants.size, 'Variants:', Array.from(passedVariants));
             } catch (error) {
                 console.error('Error fetching passed variants:', error);
                 // Don't throw - just log and continue
@@ -2961,18 +2967,26 @@
                 // Store as "operation_variant" keys
                 // Only mark as failed if it's not also in passedVariants (safety check)
                 failedVariants.clear();
-                if (data) {
+                if (data && Array.isArray(data)) {
+                    console.log('📥 Processing', data.length, 'failed score records...');
                     data.forEach(score => {
-                        const key = `${score.operation}_${score.variant}`;
-                        // Only mark as failed if it's not also passed (shouldn't happen, but safety check)
-                        if (!passedVariants.has(key)) {
-                            failedVariants.add(key);
-                            console.log('❌ Added failed variant:', key);
+                        if (score.operation && score.variant) {
+                            const key = `${score.operation}_${score.variant}`;
+                            // Only mark as failed if it's not also passed (shouldn't happen, but safety check)
+                            if (!passedVariants.has(key)) {
+                                failedVariants.add(key);
+                                console.log('❌ Added failed variant:', key, 'from score:', { operation: score.operation, variant: score.variant, passed: score.passed });
+                            } else {
+                                console.log('⚠️ Skipping failed variant', key, '- already in passed variants');
+                            }
+                        } else {
+                            console.warn('⚠️ Invalid score record (missing operation or variant):', score);
                         }
                     });
+                } else {
+                    console.log('ℹ️ No failed score data received (data is null or not an array)');
                 }
-                console.log('❌ Failed variants loaded:', Array.from(failedVariants));
-                console.log('📊 Total failed variants:', failedVariants.size);
+                console.log('❌ Failed variants Set updated. Total:', failedVariants.size, 'Variants:', Array.from(failedVariants));
             } catch (error) {
                 console.error('Error fetching failed variants:', error);
                 // Don't throw - just log and continue
