@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - Student Progress</title>
+    <link rel="stylesheet" href="teacher-dashboard.css">
+    <!-- ExcelJS for Excel export -->
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Teacher Dashboard - Student Progress</h1>
+            <div class="user-info">
+                <span id="teacherName"></span>
+                <button id="logoutBtn" class="btn btn-secondary" onclick="handleLogout()">Log Out</button>
+            </div>
+        </header>
+
+        <div id="loadingMessage" class="loading-message">
+            Loading student data...
+        </div>
+
+        <div id="errorMessage" class="error-message hidden"></div>
+
+        <div id="dashboardControls" class="dashboard-controls hidden">
+            <button id="exportBtn" class="btn btn-primary" onclick="exportToExcel()">
+                Export to Excel
+            </button>
+            <div class="stats">
+                <span>Total Students: <strong id="studentCount">0</strong></span>
+                <span>Total Variants: <strong id="variantCount">0</strong></span>
+            </div>
+        </div>
+
+        <div id="dashboardGrid" class="dashboard-grid-container hidden">
+            <div class="grid-wrapper">
+                <table id="progressTable" class="progress-table">
+                    <thead id="tableHead"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="teacher-dashboard.js"></script>
+</body>
+</html>
