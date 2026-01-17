@@ -3217,11 +3217,16 @@
                 if (variantsContainer) {
                     variantsContainer.innerHTML = '';
                 }
-                selectedOperation = null;
+                // Don't clear selectedOperation immediately - let refresh happen first if needed
+                // It will be cleared when user selects a new operation
                 // Remove selected class from all operation cards
                 document.querySelectorAll('.operation-card').forEach(card => {
                     card.classList.remove('selected');
                 });
+                // Clear selectedOperation after a short delay to allow refresh to complete
+                setTimeout(() => {
+                    selectedOperation = null;
+                }, 100);
                 
                 // Ensure operations grid is visible
                 const operationsGrid = document.querySelector('.operations-grid');
