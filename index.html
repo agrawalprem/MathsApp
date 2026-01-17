@@ -187,6 +187,15 @@
             border-color: #2196F3;
         }
 
+        .operation-card.completed {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+
+        .operation-card.completed:hover {
+            background: #c3e6cb;
+        }
+
         .operation-symbol {
             font-size: 32px;
             font-weight: bold;
@@ -233,6 +242,16 @@
             background: #c3e6cb;
         }
 
+        .variant-card.failed {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+
+        .variant-card.failed:hover {
+            background: #f5c6cb;
+        }
+
         .variant-name {
             font-size: 16px;
             font-weight: 500;
@@ -246,6 +265,11 @@
 
         .variant-card.passed .variant-status {
             color: #155724;
+            font-weight: 600;
+        }
+
+        .variant-card.failed .variant-status {
+            color: #721c24;
             font-weight: 600;
         }
 
@@ -561,6 +585,11 @@
 
         .question-item.wrong {
             border-left-color: #dc3545;
+            color: #dc3545;
+        }
+        
+        .question-item.wrong strong {
+            color: #dc3545;
         }
 
         .question-item.correct {
@@ -716,20 +745,31 @@
             <p>in Baby Steps</p>
         </div>
 
-        <!-- Inline Login (always visible) -->
-        <div id="loginSection" class="login-section">
-            <form class="login-form" onsubmit="return handleInlineLogin(event);">
-                <input type="text" id="inlineStudentId" placeholder="Student ID (8 characters)" maxlength="8" pattern=".{8}" style="flex: 1; max-width: 200px;" required>
-                <input type="password" id="inlinePassword" placeholder="Password" style="flex: 1; max-width: 200px;" required>
-                <button type="submit" class="btn" id="inlineLoginBtn" style="flex: 0 0 auto;">Log In</button>
-                <button type="button" class="btn btn-secondary hidden" onclick="handleLogout()" id="inlineLogoutBtn" style="flex: 0 0 auto;">Log Out</button>
-            </form>
-            <div id="loginError" class="login-error"></div>
-            <div id="userDisplay" class="user-display hidden"></div>
-        </div>
-
         <!-- Dashboard (shown when logged in) -->
         <div id="dashboardSection" class="dashboard-section hidden">
+            <!-- Login Form (part of dashboard) -->
+            <div id="loginSection" class="login-section">
+                <form class="login-form" onsubmit="return handleInlineLogin(event);">
+                    <input type="email" id="inlineEmail" placeholder="Email" style="flex: 1; max-width: 200px;" required>
+                    <input type="password" id="inlinePassword" placeholder="Password" style="flex: 1; max-width: 200px;" required>
+                    <button type="submit" class="btn" id="inlineLoginBtn" style="flex: 0 0 auto;">Log In</button>
+                    <button type="button" class="btn btn-secondary hidden" onclick="handleLogout()" id="inlineLogoutBtn" style="flex: 0 0 auto;">Log Out</button>
+                </form>
+                <div id="loginError" class="login-error"></div>
+                <div id="userDisplay" class="user-display hidden"></div>
+                <div style="margin-top: 10px; font-size: 14px; text-align: center;">
+                    <a href="#" onclick="showForgotPasswordModal(); return false;" style="color: #667eea; text-decoration: none; font-weight: 500;">Forgot Password?</a>
+                </div>
+                <div id="signupLinkContainer" style="margin-top: 10px; font-size: 14px; text-align: center;">
+                    <span>Don't have an account? </span>
+                    <a href="#" onclick="showSignupModal(); return false;" style="color: #667eea; text-decoration: none; font-weight: 500;">Sign Up</a>
+                </div>
+            </div>
+            
+            <div id="guestNotice" class="guest-notice hidden" style="text-align: center; margin: 15px 0; padding: 10px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; color: #856404;">
+                <strong>Note:</strong> You are not logged in. You can practice, but your results will not be saved. <a href="#" onclick="document.getElementById('inlineEmail').focus(); return false;" style="color: #667eea; text-decoration: underline;">Log in</a> to save your progress.
+            </div>
+            
             <h2 style="text-align: center; margin-bottom: 20px; color: #333;">Choose an Operation</h2>
             
             <!-- Operation Symbols -->
@@ -776,7 +816,7 @@
             <div class="summary-stats" id="summaryStats"></div>
             <div class="pass-fail" id="passFail"></div>
             <div class="question-details" id="questionDetails"></div>
-            <button class="btn" onclick="resetSession()" style="margin-top: 20px;">Start New Session</button>
+            <button class="btn" onclick="resetSession()" style="margin-top: 20px;">Go Back</button>
         </div>
     </div>
 
@@ -799,13 +839,13 @@
             <form id="authForm" class="auth-form" onsubmit="handleAuth(event)">
                 <!-- Login fields (shown when isLoginMode = true) -->
                 <div id="loginFields">
-                    <input type="text" id="authStudentId" placeholder="Student ID (8 characters)" maxlength="8" pattern=".{8}" title="Student ID must be exactly 8 characters" required>
+                    <input type="email" id="authEmail" placeholder="Email" required>
                     <input type="password" id="authPassword" placeholder="Password" required>
                 </div>
                 
                 <!-- Signup fields (shown when isLoginMode = false) -->
                 <div id="signupFields" style="display: none;">
-                    <input type="text" id="signupStudentId" placeholder="Student ID (8 characters)" maxlength="8" pattern=".{8}" title="Student ID must be exactly 8 characters" required>
+                    <input type="email" id="signupEmail" placeholder="Email" required>
                     <input type="text" id="signupFirstName" placeholder="First Name" required>
                     <input type="text" id="signupLastName" placeholder="Last Name">
                     <select id="signupGender" required>
@@ -828,6 +868,38 @@
             <div id="authToggle" style="margin-top: 15px; font-size: 14px;">
                 <span id="authToggleText">Don't have an account? </span>
                 <a href="#" onclick="toggleAuthMode(event)" style="color: #667eea; text-decoration: none;">Sign Up</a>
+            </div>
+            <div id="forgotPasswordLink" style="margin-top: 10px; font-size: 14px; text-align: center; display: none;">
+                <a href="#" onclick="showForgotPasswordModal(); return false;" style="color: #667eea; text-decoration: none;">Forgot Password?</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forgot Password Modal -->
+    <div id="forgotPasswordModal" class="modal">
+        <div class="auth-modal-content" style="max-width: 500px;">
+            <span style="position: absolute; top: 10px; right: 15px; cursor: pointer; font-size: 24px; color: #999;" onclick="closeForgotPasswordModal()">&times;</span>
+            <h3 id="forgotPasswordModalTitle">Reset Password</h3>
+            <div id="forgotPasswordRequestForm">
+                <p style="margin-bottom: 20px; color: #666;">Enter your email address and we'll send you a link to reset your password.</p>
+                <form id="forgotPasswordForm" onsubmit="handleForgotPassword(event)">
+                    <input type="email" id="forgotPasswordEmail" placeholder="Email" required style="width: 100%; margin-bottom: 15px;">
+                    <button type="submit" class="btn" id="forgotPasswordSubmitBtn">Send Reset Link</button>
+                </form>
+                <div id="forgotPasswordError" class="auth-error" style="margin-top: 15px;"></div>
+                <div id="forgotPasswordSuccess" style="margin-top: 15px; color: #28a745; display: none;"></div>
+            </div>
+            <div id="forgotPasswordResetForm" style="display: none;">
+                <p style="margin-bottom: 20px; color: #666;">Enter your new password.</p>
+                <form id="resetPasswordForm" onsubmit="handleResetPassword(event)">
+                    <input type="password" id="newPassword" placeholder="New Password" minlength="6" required style="width: 100%; margin-bottom: 15px;">
+                    <input type="password" id="confirmNewPassword" placeholder="Confirm New Password" minlength="6" required style="width: 100%; margin-bottom: 15px;">
+                    <button type="submit" class="btn" id="resetPasswordSubmitBtn">Update Password</button>
+                </form>
+                <div id="resetPasswordError" class="auth-error" style="margin-top: 15px;"></div>
+            </div>
+            <div style="margin-top: 15px; font-size: 14px; text-align: center;">
+                <a href="#" onclick="closeForgotPasswordModal(); showSignupModal(); return false;" style="color: #667eea; text-decoration: none;">Back to Login</a>
             </div>
         </div>
     </div>
@@ -868,16 +940,64 @@
                 // '1M3': { ... },
             },
             subtraction: {
-                // Add multi-digit subtraction variants here:
-                // '2M1': { ... },
+                '2M1': {
+                    first: [10000, 99999],
+                    second: [1000, 99999],
+                    name: '2M1: Subtracting Multi-digit Numbers without Borrow',
+                    noBorrow: true,
+                    maxQuestions: 10
+                },
+                '2M2': {
+                    first: [10000, 99999],
+                    second: [1000, 99999],
+                    name: '2M2: Subtracting Multi-digit Numbers with Borrow',
+                    hasBorrow: true,
+                    maxQuestions: 10
+                },
+                '2M3': {
+                    first: [10000, 99999],
+                    second: [1000, 99999],
+                    name: '2M3: Subtracting Multi-digit Numbers with Borrow from 0',
+                    hasBorrow: true,
+                    hasBorrowFromZero: true,
+                    maxQuestions: 10
+                }
             },
             multiplication: {
-                // Add multi-digit multiplication variants here:
-                // '3M1': { ... },
+                '3M1': {
+                    first: [10000, 99999],
+                    second: [0, 9],
+                    name: '3M1: Multi-digit x 1-digit Multiplication 1',
+                    noZero: true,
+                    onePerSecond: true,
+                    maxQuestions: 10
+                },
+                '3M2': {
+                    first: [10000, 99999],
+                    second: [0, 9],
+                    name: '3M2: Multi-digit x 1-digit Multiplication 2',
+                    hasZero: true,
+                    onePerSecond: true,
+                    maxQuestions: 10
+                }
             },
             division: {
-                // Add multi-digit division variants here:
-                // '4M1': { ... },
+                '4M1': {
+                    first: [10000, 99999],
+                    second: [1, 9],
+                    name: '4M1: Multi-digit by 1-digit Division 1',
+                    noZero: true,
+                    onePerSecond: true,
+                    maxQuestions: 9
+                },
+                '4M2': {
+                    first: [10000, 99999],
+                    second: [1, 9],
+                    name: '4M2: Multi-digit by 1-digit Division 2',
+                    hasZero: true,
+                    onePerSecond: true,
+                    maxQuestions: 9
+                }
             }
         };
 
@@ -1027,6 +1147,29 @@
             return true; // No carry
         }
 
+        function hasBorrow(first, second) {
+            // Convert numbers to strings to check digit by digit
+            const firstStr = first.toString();
+            const secondStr = second.toString();
+            const maxLength = Math.max(firstStr.length, secondStr.length);
+            
+            // Pad shorter number with leading zeros
+            const firstPadded = firstStr.padStart(maxLength, '0');
+            const secondPadded = secondStr.padStart(maxLength, '0');
+            
+            // Check each digit position from right to left
+            let needsBorrow = false;
+            for (let i = maxLength - 1; i >= 0; i--) {
+                const firstDigit = parseInt(firstPadded[i]);
+                const secondDigit = parseInt(secondPadded[i]);
+                if (firstDigit < secondDigit) {
+                    needsBorrow = true;
+                    break;
+                }
+            }
+            return needsBorrow;
+        }
+
         function hasCarry(first, second) {
             // Convert numbers to strings to check digit by digit
             const firstStr = first.toString();
@@ -1145,19 +1288,226 @@
             } else if (operation === 'subtraction') {
                 const secondRange = variantConfig.second;
                 const resultRange = variantConfig.result;
+                const firstRange = variantConfig.first; // For multi-digit variants
 
-                for (let second = secondRange[0]; second <= secondRange[1]; second++) {
-                    for (let result = resultRange[0]; result <= resultRange[1]; result++) {
-                        const first = second + result;
-                        // No limit on first number for subtraction
-                        allQuestions.push({ first: first, second: second, answer: result });
+                if (variantConfig.noBorrow) {
+                    // Special handling for multi-digit subtraction without borrow
+                    const maxQuestions = variantConfig.maxQuestions || 10;
+                    const usedQuestions = new Set();
+                    let attempts = 0;
+                    const maxAttempts = 10000;
+                    
+                    while (allQuestions.length < maxQuestions && attempts < maxAttempts) {
+                        attempts++;
+                        const first = Math.floor(Math.random() * (firstRange[1] - firstRange[0] + 1)) + firstRange[0];
+                        const firstStr = first.toString();
+                        const firstDigits = firstStr.split('').map(d => parseInt(d));
+                        
+                        // Construct second number digit by digit (right to left) to avoid borrow
+                        const secondDigits = [];
+                        const numDigits = firstStr.length;
+                        
+                        for (let i = numDigits - 1; i >= 0; i--) {
+                            const firstDigit = firstDigits[i];
+                            // Valid digits: 0 to firstDigit (to avoid borrow)
+                            const maxValidDigit = firstDigit;
+                            const validDigits = [];
+                            
+                            for (let d = 0; d <= maxValidDigit; d++) {
+                                validDigits.push(d);
+                            }
+                            
+                            if (validDigits.length > 0) {
+                                const randomIndex = Math.floor(Math.random() * validDigits.length);
+                                secondDigits.unshift(validDigits[randomIndex]);
+                            } else {
+                                break;
+                            }
+                        }
+                        
+                        const second = parseInt(secondDigits.join(''));
+                        const result = first - second;
+                        
+                        if (result >= 0 && (!secondRange || (second >= secondRange[0] && second <= secondRange[1]))) {
+                            const questionKey = `${first}_${second}_${result}`;
+                            if (!usedQuestions.has(questionKey)) {
+                                usedQuestions.add(questionKey);
+                                allQuestions.push({ first: first, second: second, answer: result });
+                            }
+                        }
+                    }
+                } else if (variantConfig.hasBorrow) {
+                    // Special handling for multi-digit subtraction with borrow
+                    const maxQuestions = variantConfig.maxQuestions || 10;
+                    const usedQuestions = new Set();
+                    let attempts = 0;
+                    const maxAttempts = 100000;
+                    
+                    while (allQuestions.length < maxQuestions && attempts < maxAttempts) {
+                        attempts++;
+                        
+                        let firstStr = '';
+                        const firstNumDigits = firstRange[1].toString().length; // Get number of digits from max
+                        
+                        if (variantConfig.hasBorrowFromZero) {
+                            // 2M3: First number must have at least 2 zeros (but first digit cannot be 0)
+                            // Generate first number with at least 2 zeros
+                            const zeroPositions = new Set();
+                            // Choose number of zeros: at least 2, up to numDigits-2 (since first digit can't be 0)
+                            const maxZeros = firstNumDigits - 2; // Leave room for non-zero first digit
+                            const numZeros = maxZeros >= 2 ? (Math.floor(Math.random() * (maxZeros - 1)) + 2) : 2; // At least 2 zeros
+                            
+                            // Randomly select positions for zeros (at least 2, but not position 0)
+                            while (zeroPositions.size < numZeros && zeroPositions.size < firstNumDigits - 2) {
+                                const pos = Math.floor(Math.random() * (firstNumDigits - 1)) + 1; // Positions 1 to numDigits-1 (skip first position)
+                                zeroPositions.add(pos);
+                            }
+                            
+                            // Generate first number digit by digit
+                            for (let i = 0; i < firstNumDigits; i++) {
+                                if (i === 0) {
+                                    // First digit must be non-zero
+                                    firstStr += Math.floor(Math.random() * 9) + 1; // 1 to 9
+                                } else if (zeroPositions.has(i)) {
+                                    firstStr += '0';
+                                } else {
+                                    firstStr += Math.floor(Math.random() * 9) + 1; // 1 to 9 (non-zero)
+                                }
+                            }
+                        } else {
+                            // 2M2: First number must have no zeros (all digits 1-9)
+                            // For 5-digit: range is 11111 to 99999 (all digits 1-9)
+                            for (let i = 0; i < firstNumDigits; i++) {
+                                // Each digit is 1-9 (no zeros)
+                                firstStr += Math.floor(Math.random() * 9) + 1; // 1 to 9
+                            }
+                        }
+                        
+                        const first = parseInt(firstStr);
+                        
+                        // Ensure first number is valid (not all zeros, and within range)
+                        if (first === 0 || first < firstRange[0] || first > firstRange[1]) {
+                            continue;
+                        }
+                        
+                        // Generate second number randomly, smaller than first
+                        let second;
+                        if (variantConfig.hasBorrowFromZero) {
+                            // 2M3: Second number can be any length (4 or 5 digits)
+                            const secondMax = Math.min(secondRange[1] || first - 1, first - 1);
+                            const secondMin = secondRange[0] || 1;
+                            second = Math.floor(Math.random() * (secondMax - secondMin + 1)) + secondMin;
+                        } else {
+                            // 2M2: Second number should also be 5-digit (10000 to first-1)
+                            // Ensure second number is same length as first (5-digit)
+                            const secondMin = 10000; // Minimum 5-digit number
+                            const secondMax = first - 1; // Must be smaller than first
+                            if (secondMax < secondMin) {
+                                continue; // Skip if first is too small (shouldn't happen)
+                            }
+                            second = Math.floor(Math.random() * (secondMax - secondMin + 1)) + secondMin;
+                        }
+                        
+                        // Ensure second is smaller than first and has borrow
+                        if (first > second && hasBorrow(first, second)) {
+                            const questionKey = `${first}_${second}_${first - second}`;
+                            if (!usedQuestions.has(questionKey)) {
+                                usedQuestions.add(questionKey);
+                                allQuestions.push({ first: first, second: second, answer: first - second });
+                            }
+                        }
+                    }
+                } else {
+                    // Standard single-digit subtraction
+                    for (let second = secondRange[0]; second <= secondRange[1]; second++) {
+                        for (let result = resultRange[0]; result <= resultRange[1]; result++) {
+                            const first = second + result;
+                            // No limit on first number for subtraction
+                            allQuestions.push({ first: first, second: second, answer: result });
+                        }
                     }
                 }
             } else if (operation === 'multiplication') {
                 const firstRange = variantConfig.first;
                 const secondRange = variantConfig.second;
 
-                if (variantConfig.sequential) {
+                if (variantConfig.onePerSecond) {
+                    // 3M1 and 3M2: One question for each second number (0-9), random first number
+                    // First number: 5-digit, randomly generated
+                    // 3M1: no zeros, 3M2: at least 1 zero
+                    const firstNumDigits = firstRange[1].toString().length; // 5 digits
+                    let first;
+                    
+                    // Generate one first number for the entire session
+                    let attempts = 0;
+                    const maxAttempts = 10000;
+                    
+                    while (attempts < maxAttempts) {
+                        attempts++;
+                        // Generate random 5-digit number (10000 to 99999)
+                        first = Math.floor(Math.random() * (firstRange[1] - firstRange[0] + 1)) + firstRange[0];
+                        const firstStr = first.toString();
+                        
+                        if (variantConfig.noZero) {
+                            // 3M1: Check for absence of zero
+                            if (!firstStr.includes('0')) {
+                                break; // Found a number with no zeros
+                            }
+                        } else if (variantConfig.hasZero) {
+                            // 3M2: Check for presence of zero
+                            if (firstStr.includes('0')) {
+                                break; // Found a number with at least one zero
+                            }
+                        } else {
+                            // No constraint, use any valid number
+                            break;
+                        }
+                    }
+                    
+                    if (!first || first < firstRange[0] || first > firstRange[1]) {
+                        console.error('Failed to generate valid first number for multiplication variant');
+                        return; // Exit if we can't generate a valid first number
+                    }
+                    
+                    // Generate exactly one question for each second number (0-9), total 10 questions
+                    // Use a Set to ensure no duplicate second numbers
+                    const usedSeconds = new Set();
+                    for (let second = secondRange[0]; second <= secondRange[1]; second++) {
+                        if (!usedSeconds.has(second)) {
+                            usedSeconds.add(second);
+                            allQuestions.push({ first: first, second: second, answer: first * second });
+                        }
+                    }
+                    
+                    // Ensure we have exactly 10 questions (one for each digit 0-9)
+                    if (allQuestions.length !== 10) {
+                        console.warn(`Expected 10 questions but generated ${allQuestions.length} for ${variantConfig.name}`);
+                    }
+                    
+                    // Shuffle questions to randomize sequence of second number
+                    for (let i = allQuestions.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [allQuestions[i], allQuestions[j]] = [allQuestions[j], allQuestions[i]];
+                    }
+                } else if (variantConfig.maxQuestions) {
+                    // Multi-digit multiplication: generate limited random questions
+                    const maxQuestions = variantConfig.maxQuestions;
+                    const usedQuestions = new Set();
+                    let attempts = 0;
+                    const maxAttempts = 10000;
+                    
+                    while (allQuestions.length < maxQuestions && attempts < maxAttempts) {
+                        attempts++;
+                        const first = Math.floor(Math.random() * (firstRange[1] - firstRange[0] + 1)) + firstRange[0];
+                        const second = Math.floor(Math.random() * (secondRange[1] - secondRange[0] + 1)) + secondRange[0];
+                        const questionKey = `${first}_${second}_${first * second}`;
+                        
+                        if (!usedQuestions.has(questionKey)) {
+                            usedQuestions.add(questionKey);
+                            allQuestions.push({ first: first, second: second, answer: first * second });
+                        }
+                    }
+                } else if (variantConfig.sequential) {
                     // Sequential variants: generate questions in order (0-9 for second number)
                     const first = firstRange[0]; // For sequential, first number is fixed
                     for (let j = secondRange[0]; j <= secondRange[1]; j++) {
@@ -1175,11 +1525,187 @@
                 const secondRange = variantConfig.second;
                 const resultRange = variantConfig.result;
 
-                for (let second = secondRange[0]; second <= secondRange[1]; second++) {
-                    for (let result = resultRange[0]; result <= resultRange[1]; result++) {
+                if (variantConfig.onePerSecond) {
+                    // 4M1 and 4M2: One question for each second number (1-9)
+                    // First number: 5-digit, randomly generated
+                    // 4M1: no zeros, 4M2: at least 1 zero
+                    // If division has remainder, subtract remainder from first number
+                    // Check adjusted first number still meets zero requirements
+                    const firstRange = variantConfig.first || [10000, 99999];
+                    const firstNumDigits = firstRange[1].toString().length; // 5 digits
+                    let baseFirst;
+                    
+                    // Helper function to check if number has zeros
+                    function hasZeros(num) {
+                        return num.toString().includes('0');
+                    }
+                    
+                    // Helper function to count zeros
+                    function countZeros(num) {
+                        return (num.toString().match(/0/g) || []).length;
+                    }
+                    
+                    // Generate one base first number for the entire session
+                    let attempts = 0;
+                    const maxAttempts = 1000;
+                    while (attempts < maxAttempts) {
+                        attempts++;
+                        let firstStr = '';
+                        
+                        if (variantConfig.noZero) {
+                            // 4M1: First number with no zeros (all digits 1-9)
+                            for (let i = 0; i < firstNumDigits; i++) {
+                                firstStr += Math.floor(Math.random() * 9) + 1; // 1 to 9
+                            }
+                        } else if (variantConfig.hasZero) {
+                            // 4M2: First number with at least 1 zero
+                            const zeroPositions = new Set();
+                            const numZeros = Math.floor(Math.random() * (firstNumDigits - 1)) + 1; // At least 1 zero
+                            
+                            // Randomly select positions for zeros (but not first position)
+                            while (zeroPositions.size < numZeros && zeroPositions.size < firstNumDigits - 1) {
+                                const pos = Math.floor(Math.random() * (firstNumDigits - 1)) + 1; // Positions 1 to 4
+                                zeroPositions.add(pos);
+                            }
+                            
+                            for (let i = 0; i < firstNumDigits; i++) {
+                                if (i === 0) {
+                                    // First digit must be non-zero
+                                    firstStr += Math.floor(Math.random() * 9) + 1; // 1 to 9
+                                } else if (zeroPositions.has(i)) {
+                                    firstStr += '0';
+                                } else {
+                                    firstStr += Math.floor(Math.random() * 9) + 1; // 1 to 9
+                                }
+                            }
+                        } else {
+                            // Fallback: random 5-digit number
+                            baseFirst = Math.floor(Math.random() * (firstRange[1] - firstRange[0] + 1)) + firstRange[0];
+                            break;
+                        }
+                        
+                        baseFirst = parseInt(firstStr);
+                        if (baseFirst >= firstRange[0] && baseFirst <= firstRange[1] && baseFirst > 0) {
+                            break;
+                        }
+                    }
+                    
+                    if (!baseFirst || baseFirst < firstRange[0] || baseFirst > firstRange[1]) {
+                        console.error('Failed to generate valid first number for division variant');
+                        return; // Exit if we can't generate a valid first number
+                    }
+                    
+                    // Generate one question for each second number (1-9)
+                    // Adjust first number if remainder exists
+                    for (let second = secondRange[0]; second <= secondRange[1]; second++) {
+                        let adjustedFirst = baseFirst;
+                        const remainder = adjustedFirst % second;
+                        
+                        // If there's a remainder, subtract it from first number
+                        if (remainder > 0) {
+                            adjustedFirst = adjustedFirst - remainder;
+                            
+                            // Check if adjusted first number still meets zero requirements
+                            let valid = false;
+                            if (variantConfig.noZero) {
+                                // 4M1: Adjusted first should have no zeros
+                                valid = !hasZeros(adjustedFirst) && adjustedFirst >= 10000;
+                            } else if (variantConfig.hasZero) {
+                                // 4M2: Adjusted first should have at least 1 zero
+                                valid = countZeros(adjustedFirst) >= 1 && adjustedFirst >= 10000;
+                            } else {
+                                valid = adjustedFirst >= firstRange[0];
+                            }
+                            
+                            if (!valid) {
+                                // Try adding multiples of second to find valid first number
+                                let foundValid = false;
+                                for (let multiple = 1; multiple <= 100 && !foundValid; multiple++) {
+                                    const testFirst = baseFirst - remainder + (second * multiple);
+                                    if (testFirst < firstRange[0] || testFirst > firstRange[1]) continue;
+                                    
+                                    if (variantConfig.noZero) {
+                                        if (!hasZeros(testFirst) && testFirst >= 10000) {
+                                            adjustedFirst = testFirst;
+                                            foundValid = true;
+                                        }
+                                    } else if (variantConfig.hasZero) {
+                                        if (countZeros(testFirst) >= 1 && testFirst >= 10000) {
+                                            adjustedFirst = testFirst;
+                                            foundValid = true;
+                                        }
+                                    } else {
+                                        adjustedFirst = testFirst;
+                                        foundValid = true;
+                                    }
+                                }
+                                
+                                // If still not valid, try subtracting multiples
+                                if (!foundValid) {
+                                    for (let multiple = 1; multiple <= remainder && !foundValid; multiple++) {
+                                        const testFirst = baseFirst - remainder - (second * multiple);
+                                        if (testFirst < firstRange[0] || testFirst > firstRange[1]) break;
+                                        
+                                        if (variantConfig.noZero) {
+                                            if (!hasZeros(testFirst) && testFirst >= 10000) {
+                                                adjustedFirst = testFirst;
+                                                foundValid = true;
+                                            }
+                                        } else if (variantConfig.hasZero) {
+                                            if (countZeros(testFirst) >= 1 && testFirst >= 10000) {
+                                                adjustedFirst = testFirst;
+                                                foundValid = true;
+                                            }
+                                        } else {
+                                            adjustedFirst = testFirst;
+                                            foundValid = true;
+                                        }
+                                    }
+                                }
+                                
+                                // If still not valid, use the base adjustment (might have zeros but will still work)
+                                if (!foundValid) {
+                                    adjustedFirst = baseFirst - remainder;
+                                }
+                            }
+                        }
+                        
+                        const result = Math.floor(adjustedFirst / second);
+                        allQuestions.push({ first: adjustedFirst, second: second, answer: result });
+                    }
+                    
+                    // Shuffle questions to randomize sequence of second number
+                    for (let i = allQuestions.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [allQuestions[i], allQuestions[j]] = [allQuestions[j], allQuestions[i]];
+                    }
+                } else if (variantConfig.maxQuestions) {
+                    // Multi-digit division: generate limited random questions
+                    const maxQuestions = variantConfig.maxQuestions;
+                    const usedQuestions = new Set();
+                    let attempts = 0;
+                    const maxAttempts = 10000;
+                    
+                    while (allQuestions.length < maxQuestions && attempts < maxAttempts) {
+                        attempts++;
+                        const second = Math.floor(Math.random() * (secondRange[1] - secondRange[0] + 1)) + secondRange[0];
+                        const result = Math.floor(Math.random() * (resultRange[1] - resultRange[0] + 1)) + resultRange[0];
                         const first = second * result;
-                        // No limit on first number for division
-                        allQuestions.push({ first: first, second: second, answer: result });
+                        const questionKey = `${first}_${second}_${result}`;
+                        
+                        if (!usedQuestions.has(questionKey)) {
+                            usedQuestions.add(questionKey);
+                            allQuestions.push({ first: first, second: second, answer: result });
+                        }
+                    }
+                } else {
+                    // Standard single-digit division
+                    for (let second = secondRange[0]; second <= secondRange[1]; second++) {
+                        for (let result = resultRange[0]; result <= resultRange[1]; result++) {
+                            const first = second * result;
+                            // No limit on first number for division
+                            allQuestions.push({ first: first, second: second, answer: result });
+                        }
                     }
                 }
             }
@@ -1294,6 +1820,9 @@
             input.classList.remove('hidden');
             input.value = '';
             input.disabled = false;
+            // Reset background color to white for new question
+            input.style.backgroundColor = 'white';
+            input.style.transition = '';
             
             // Remove previous event listeners by cloning
             const newInput = input.cloneNode(true);
@@ -1438,14 +1967,15 @@
             rows.forEach(row => multidigitTable.appendChild(row));
             
             // Store data for handlers
+            const isDivision = currentSession.operation === 'division';
             multidigitTable._question = question;
             multidigitTable._answerCells = answerCells;
             multidigitTable._answerDisplayCells = answerDisplayCells;
             multidigitTable._requiredDigits = requiredDigits;
             multidigitTable._enteredDigits = [];
-            multidigitTable._currentPosition = numCols - 1; // Start from rightmost
+            multidigitTable._currentPosition = isDivision ? 4 : numCols - 1; // Division starts at 5th cell (index 4), others start at rightmost
             
-            // Handle keypress for right-to-left entry
+            // Handle keypress for right-to-left entry (or left-to-right for division)
             const handleKeyPress = (e) => {
                 const target = e.target;
                 if (!target.classList.contains('input-cell')) return;
@@ -1456,8 +1986,14 @@
                     e.stopPropagation();
                     const enteredCount = multidigitTable._enteredDigits.length;
                     if (enteredCount < requiredDigits && enteredCount < numCols) {
-                        // Add digit from right to left (rightmost position is numCols - 1)
-                        const position = numCols - 1 - enteredCount;
+                        let position;
+                        if (isDivision) {
+                            // Division: add digit from left to right, starting at position 4
+                            position = 4 + enteredCount;
+                        } else {
+                            // Other operations: add digit from right to left (rightmost position is numCols - 1)
+                            position = numCols - 1 - enteredCount;
+                        }
                         const cell = answerCells[position];
                         cell.textContent = e.key;
                         cell.className = 'input-cell entered';
@@ -1466,17 +2002,37 @@
                         
                         // Check if all digits entered
                         if (multidigitTable._enteredDigits.length === requiredDigits) {
-                            // Reverse the array since digits were entered right-to-left
-                            const reversedDigits = [...multidigitTable._enteredDigits].reverse();
-                            const userAnswer = parseInt(reversedDigits.join(''));
+                            let userAnswer;
+                            if (isDivision) {
+                                // Division: digits entered left-to-right, no reversal needed
+                                userAnswer = parseInt(multidigitTable._enteredDigits.join(''));
+                            } else {
+                                // Other operations: reverse the array since digits were entered right-to-left
+                                const reversedDigits = [...multidigitTable._enteredDigits].reverse();
+                                userAnswer = parseInt(reversedDigits.join(''));
+                            }
                             setTimeout(() => {
                                 checkAnswer(question, userAnswer);
                             }, 100);
-                        } else if (position > 0) {
-                            // Move focus to next cell (left)
-                            setTimeout(() => {
-                                answerCells[position - 1].focus();
-                            }, 10);
+                        } else {
+                            // Move focus to next cell
+                            let nextPosition;
+                            if (isDivision) {
+                                // Division: move right
+                                nextPosition = position + 1;
+                                if (nextPosition < numCols) {
+                                    setTimeout(() => {
+                                        answerCells[nextPosition].focus();
+                                    }, 10);
+                                }
+                            } else {
+                                // Other operations: move left
+                                if (position > 0) {
+                                    setTimeout(() => {
+                                        answerCells[position - 1].focus();
+                                    }, 10);
+                                }
+                            }
                         }
                     }
                 } else if (e.key === 'Backspace' || e.key === 'Delete') {
@@ -1484,8 +2040,14 @@
                     e.stopPropagation();
                     const enteredCount = multidigitTable._enteredDigits.length;
                     if (enteredCount > 0) {
-                        // Remove digit from right to left
-                        const position = numCols - enteredCount;
+                        let position;
+                        if (isDivision) {
+                            // Division: remove last entered digit (from rightmost entered position)
+                            position = 4 + enteredCount - 1;
+                        } else {
+                            // Other operations: remove digit from right to left
+                            position = numCols - enteredCount;
+                        }
                         const cell = answerCells[position];
                         cell.textContent = '';
                         cell.className = 'input-cell';
@@ -1559,22 +2121,23 @@
                 });
             });
             
-            // Focus on rightmost cell after DOM update and all event listeners are attached
+            // Focus on initial cell after DOM update and all event listeners are attached
+            // Division: 5th cell (index 4), Others: rightmost cell
             // Use multiple attempts to ensure focus works on mobile
-            const focusRightmostCell = () => {
-                const rightmostCell = answerCells[numCols - 1];
-                if (rightmostCell) {
+            const focusInitialCell = () => {
+                const initialCell = answerCells[multidigitTable._currentPosition];
+                if (initialCell) {
                     // First attempt
-                    rightmostCell.focus();
+                    initialCell.focus();
                     // Second attempt after a delay for mobile devices
                     setTimeout(() => {
-                        rightmostCell.focus();
+                        initialCell.focus();
                         // Third attempt if on mobile (for stubborn devices)
                         if (window.innerWidth <= 768) {
                             setTimeout(() => {
-                                rightmostCell.focus();
+                                initialCell.focus();
                                 // Scroll the cell into view to ensure it's visible
-                                rightmostCell.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
+                                initialCell.scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
                             }, 300);
                         }
                     }, 150);
@@ -1583,7 +2146,7 @@
             
             // Wait for DOM to fully render before focusing
             requestAnimationFrame(() => {
-                setTimeout(focusRightmostCell, 100);
+                setTimeout(focusInitialCell, 100);
             });
         }
 
@@ -1749,11 +2312,16 @@
                     }, 500);
                 });
             } else {
-                // If correct, wait a moment then move to next question
+                // If correct, make input light green for single-digit questions (not multi-digit)
+                if (!variantConfig.rightToLeft && input && !input.classList.contains('hidden')) {
+                    input.style.backgroundColor = '#d4edda'; // Light green color (same as dashboard)
+                    input.style.transition = 'background-color 0.3s ease';
+                }
+                // Wait 0.25 seconds then move to next question (green will persist during this time)
                 setTimeout(() => {
                     currentSession.questionIndex++;
                     askNextQuestion();
-                }, 1500);
+                }, 250);
             }
         }
 
@@ -1762,12 +2330,26 @@
         }
 
         function continueSession() {
-            document.getElementById('modal').style.display = 'none';
+            console.log('▶️ continueSession() called');
+            const modal = document.getElementById('modal');
+            if (modal) {
+                modal.style.display = 'none';
+                console.log('✅ Modal closed');
+            }
+            // Increment questionIndex to move past question 50, then continue
+            currentSession.questionIndex++;
+            console.log('✅ Question index incremented to:', currentSession.questionIndex);
             askNextQuestion();
         }
 
         function endSession() {
             console.log('🛑 endSession() called');
+            const modal = document.getElementById('modal');
+            if (modal) {
+                modal.style.display = 'none';
+                console.log('✅ Modal closed');
+            }
+            
             if (timerInterval) {
                 clearInterval(timerInterval);
             }
@@ -1791,6 +2373,9 @@
             
             showSummary();
         }
+
+        // Make functions globally accessible for onclick handlers
+        window.continueSession = continueSession;
 
         function showSummary() {
             console.log('📊 showSummary() called');
@@ -1858,14 +2443,22 @@
         }
 
         function resetSession() {
+            // Go back to dashboard - does NOT log out the user
             document.getElementById('summarySection').classList.add('hidden');
-            // Show dashboard if logged in
+            // Show dashboard if logged in (preserve session)
             if (currentUser) {
                 document.getElementById('dashboardSection').classList.remove('hidden');
-                // Refresh dashboard to update passed variants
-                if (selectedOperation) {
-                    loadVariantsForOperation(selectedOperation);
-                }
+                // Refresh passed/failed variants and operation completion status (sequential to avoid race condition)
+                fetchPassedVariants()
+                    .catch(err => console.warn('⚠️ Could not fetch passed variants:', err))
+                    .then(() => fetchFailedVariants().catch(err => console.warn('⚠️ Could not fetch failed variants:', err)))
+                    .then(() => {
+                        updateOperationCompletionStatus();
+                        // Refresh variants for selected operation
+                        if (selectedOperation) {
+                            loadVariantsForOperation(selectedOperation);
+                        }
+                    });
             } else {
                 document.getElementById('dashboardSection').classList.add('hidden');
             }
@@ -1873,6 +2466,7 @@
             if (timerInterval) {
                 clearInterval(timerInterval);
             }
+            // Note: This function does NOT call signOut() or handleLogout() - user remains logged in
         }
 
         // ============================================================================
@@ -1884,24 +2478,25 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhncm9tbmVydnV3cW1za2Rlbm1iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwNTExMDgsImV4cCI6MjA4MzYyNzEwOH0.AYWM-6xGhVWnn61ctxj6fClW7KLEp98dlmrd3e5IqJ8'; // e.g., eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
         
         // Site URL for email redirects - Update this with your Netlify site URL
-        // If testing locally, you can use: 'http://localhost:8000' or your local server URL
-        // For production, use your Netlify URL: 'https://your-site-name.netlify.app'
-        const SITE_URL = window.location.origin; // Auto-detects current URL (works for both local and production)
+        // IMPORTANT: Password reset emails should always redirect to your production URL (Netlify)
+        // Also update Supabase Dashboard → Authentication → URL Configuration:
+        //   1. Set "Site URL" to your Netlify URL (e.g., https://premagrawal-maths.netlify.app)
+        //   2. Add to "Redirect URLs": https://premagrawal-maths.netlify.app/**
+        const PRODUCTION_URL = 'https://premagrawal-maths.netlify.app';
+        const SITE_URL = window.location.origin; // Current URL (for local testing)
+        
+        // For password reset, always use production URL (emails should go to live site, not localhost)
+        const PASSWORD_RESET_REDIRECT_URL = PRODUCTION_URL;
         
         // Initialize Supabase client
         let supabase = null;
         let currentUser = null;
-        let currentUserProfile = null; // Stores user profile with student_id and other fields
+        let currentUserProfile = null; // Stores user profile with email and other fields
         let isLoginMode = true;
-        
-        // Generate internal email from student_id
-        function generateInternalEmail(studentId) {
-            return `${studentId}@premmaths.local`;
-        }
 
         // Handle email confirmation callback
         function handleEmailConfirmation() {
-            // Check if this is an email confirmation callback
+            // Check if this is an email confirmation or password reset callback
             const hashParams = new URLSearchParams(window.location.hash.substring(1));
             const accessToken = hashParams.get('access_token');
             const type = hashParams.get('type');
@@ -1911,12 +2506,17 @@
                 console.log('✅ Email confirmation detected - Supabase will process this automatically');
                 // Supabase will automatically process the session from URL hash
                 // when detectSessionInUrl: true is set and getSession() is called
+            } else if (type === 'recovery' && accessToken) {
+                // User clicked password reset link in email
+                console.log('✅ Password reset confirmation detected');
+                // Show forgot password modal with reset form
+                showForgotPasswordModal();
             }
         }
         
-        // Clean up URL hash after email confirmation
+        // Clean up URL hash after email confirmation or password reset
         function cleanupEmailConfirmationUrl() {
-            if (window.location.hash.includes('access_token') || window.location.hash.includes('type=signup')) {
+            if (window.location.hash.includes('access_token') || window.location.hash.includes('type=signup') || window.location.hash.includes('type=recovery')) {
                 // Clean up the URL hash after processing
                 setTimeout(() => {
                     window.history.replaceState(null, '', window.location.pathname + window.location.search);
@@ -1972,13 +2572,49 @@
                         return;
                     }
                     
+            // Check if this is a password reset link (before checking for existing session)
+            // Check both hash and query parameters
+            let type = null;
+            let accessToken = null;
+            
+            if (window.location.hash) {
+                const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                type = hashParams.get('type') || type;
+                accessToken = hashParams.get('access_token') || accessToken;
+            }
+            
+            if (window.location.search) {
+                const queryParams = new URLSearchParams(window.location.search);
+                type = queryParams.get('type') || type;
+                accessToken = queryParams.get('access_token') || accessToken;
+            }
+            
+            if (type === 'recovery' && accessToken) {
+                // User clicked password reset link - Supabase should have processed the session
+                // Wait a moment for Supabase to fully process the session, then show modal
+                setTimeout(() => {
+                    showForgotPasswordModal();
+                }, 500);
+                return; // Don't process as normal session
+            }
+            
+            // Also check if we flagged to show password reset from page load
+            if (window._showPasswordReset || window._passwordResetDetected) {
+                delete window._showPasswordReset;
+                delete window._passwordResetDetected;
+                setTimeout(() => {
+                    showForgotPasswordModal();
+                }, 500);
+                return;
+            }
+                    
                     if (session) {
                         currentUser = session.user;
                         console.log('🔄 Page loaded: Found existing session from previous login');
                         console.log('   User ID:', currentUser.id);
                         console.log('   Email:', currentUser.email);
                         console.log('   (Session was stored in browser - you were already logged in)');
-                        // Fetch user profile to get student_id
+                        // Fetch user profile
                         fetchUserProfile().then(async profile => {
                             currentUserProfile = profile;
                             await updateAuthUI();
@@ -1993,10 +2629,13 @@
                             document.querySelectorAll('.operation-card').forEach(card => {
                                 card.classList.remove('selected');
                             });
-                            console.log('✅ Existing session restored for user:', profile?.student_id || currentUser.email);
+                            console.log('✅ Existing session restored for user:', currentUser.email);
                         });
                     } else {
                         console.log('ℹ️ No existing session found - user needs to log in');
+                        // Show login form when no session
+                        currentUser = null;
+                        updateAuthUI();
                     }
                 });
                 
@@ -2123,7 +2762,7 @@
                     .single();
                 
                 const timeoutPromise = new Promise((_, reject) => 
-                    setTimeout(() => reject(new Error('Profile fetch timeout after 5 seconds')), 5000)
+                    setTimeout(() => reject(new Error('Profile fetch timeout after 3 seconds')), 3000)
                 );
                 
                 const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
@@ -2131,19 +2770,34 @@
                 isFetchingProfile = false;
                 
                 if (error) {
-                    console.error('❌ Error fetching user profile:', error);
                     // If profile doesn't exist, that's okay - user might not have completed signup
-                    if (error.code === 'PGRST116') {
-                        console.log('ℹ️ User profile not found in database (user may need to complete signup)');
+                    if (error.code === 'PGRST116' || error.message?.includes('timeout')) {
+                        if (error.code === 'PGRST116') {
+                            console.log('ℹ️ User profile not found in database (user may need to complete signup)');
+                        } else {
+                            console.warn('⚠️ Profile fetch timed out - this is non-critical, continuing without profile');
+                        }
+                    } else {
+                        console.error('❌ Error fetching user profile:', error);
                     }
                     return null;
                 }
                 
-                console.log('✅ fetchUserProfile: Success, got profile:', data?.student_id || 'no student_id');
+                // Log the full profile data to debug
+                if (data) {
+                    console.log('✅ fetchUserProfile: Success, full profile data:', JSON.stringify(data, null, 2));
+                } else {
+                    console.warn('⚠️ fetchUserProfile: Query succeeded but returned null data');
+                }
                 return data;
             } catch (error) {
                 isFetchingProfile = false;
-                console.error('❌ Error fetching user profile (catch):', error);
+                // Don't log timeout errors as critical - they're expected if table doesn't exist or RLS blocks
+                if (error.message?.includes('timeout')) {
+                    console.warn('⚠️ Profile fetch timed out - this is non-critical, continuing without profile');
+                } else {
+                    console.error('❌ Error fetching user profile (catch):', error);
+                }
                 return null;
             }
         }
@@ -2151,14 +2805,15 @@
         // Dashboard state
         let selectedOperation = null;
         let passedVariants = new Set(); // Store passed variant keys (operation_variant)
+        let failedVariants = new Set(); // Store failed variant keys (operation_variant) - all attempts failed
         let isFetchingProfile = false; // Prevent multiple simultaneous profile fetches
         
         // Learning sequence for each operation (order students should learn)
         const learningSequence = {
             addition: ['1A0', '1A1', '1A2', '1A3', '1A', '1B', '1C', '1D', '1', '1M1', '1M2'],
-            subtraction: ['2A', '2B', '2C', '2D', '2'],
-            multiplication: ['3A0', '3A1', '3A2S', '3A2', '3A3S', '3A3', '3A', '3B4S', '3B4', '3B5S', '3B5', '3B6S', '3B6', '3B', '3C7S', '3C7', '3C8S', '3C8', '3C9S', '3C9', '3C', '3'],
-            division: ['4A1', '4A2', '4A3', '4A', '4B4', '4B5', '4B6', '4B', '4C7', '4C8', '4C9', '4C', '4']
+            subtraction: ['2A', '2B', '2C', '2D', '2', '2M1', '2M2', '2M3'],
+            multiplication: ['3A0', '3A1', '3A2S', '3A2', '3A3S', '3A3', '3A', '3B4S', '3B4', '3B5S', '3B5', '3B6S', '3B6', '3B', '3C7S', '3C7', '3C8S', '3C8', '3C9S', '3C9', '3C', '3', '3M1', '3M2'],
+            division: ['4A1', '4A2', '4A3', '4A', '4B4', '4B5', '4B6', '4B', '4C7', '4C8', '4C9', '4C', '4', '4M1', '4M2']
         };
 
         // Fetch passed variants from user_scores
@@ -2169,11 +2824,26 @@
             }
 
             try {
-                const { data, error } = await supabase
+                // Add timeout to prevent hanging
+                const queryPromise = supabase
                     .from('user_scores')
                     .select('operation, variant')
                     .eq('user_id', currentUser.id)
                     .eq('passed', true);
+                
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Query timeout')), 5000)
+                );
+                
+                let result;
+                try {
+                    result = await Promise.race([queryPromise, timeoutPromise]);
+                } catch (timeoutError) {
+                    console.warn('⚠️ Passed variants query timed out, continuing without data');
+                    return;
+                }
+                
+                const { data, error } = result || { data: null, error: null };
 
                 if (error) {
                     console.error('Error fetching passed variants:', error);
@@ -2193,6 +2863,99 @@
                 console.log('📊 Total passed variants:', passedVariants.size);
             } catch (error) {
                 console.error('Error fetching passed variants:', error);
+                // Don't throw - just log and continue
+            }
+        }
+
+        // Update operation card completion status (green if all variants passed)
+        function updateOperationCompletionStatus() {
+            if (!currentUser) return;
+
+            const operations = ['addition', 'subtraction', 'multiplication', 'division'];
+            
+            operations.forEach(operation => {
+                const opsVariants = variants[operation];
+                if (!opsVariants) return;
+
+                const variantKeys = Object.keys(opsVariants);
+                const allVariantsPassed = variantKeys.every(variantKey => {
+                    const variantKeyFull = `${operation}_${variantKey}`;
+                    return passedVariants.has(variantKeyFull);
+                });
+
+                // Find the operation card
+                const operationCards = document.querySelectorAll('.operation-card');
+                operationCards.forEach(card => {
+                    const onclickAttr = card.getAttribute('onclick');
+                    if (onclickAttr && onclickAttr.includes(`selectOperation('${operation}')`)) {
+                        if (allVariantsPassed && variantKeys.length > 0) {
+                            card.classList.add('completed');
+                            console.log(`✅ Operation ${operation} marked as completed (all variants passed)`);
+                        } else {
+                            card.classList.remove('completed');
+                        }
+                    }
+                });
+            });
+        }
+
+        // Fetch variants where all attempts failed
+        async function fetchFailedVariants() {
+            if (!currentUser || !supabase) {
+                failedVariants.clear();
+                return;
+            }
+
+            try {
+                // Get all scores for this user where passed = false
+                // These are variants where user attempted but all attempts failed
+                // Note: We query for passed=false, but we need to ensure the variant is not also passed
+                // So we'll check against passedVariants after it's populated
+                
+                // Add timeout to prevent hanging
+                const queryPromise = supabase
+                    .from('user_scores')
+                    .select('operation, variant, passed')
+                    .eq('user_id', currentUser.id)
+                    .eq('passed', false);
+                
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Query timeout')), 5000)
+                );
+                
+                let result;
+                try {
+                    result = await Promise.race([queryPromise, timeoutPromise]);
+                } catch (timeoutError) {
+                    console.warn('⚠️ Failed variants query timed out, continuing without data');
+                    return;
+                }
+                
+                const { data, error } = result || { data: null, error: null };
+
+                if (error) {
+                    console.error('Error fetching failed variants:', error);
+                    return;
+                }
+
+                // Store as "operation_variant" keys
+                // Only mark as failed if it's not also in passedVariants (safety check)
+                failedVariants.clear();
+                if (data) {
+                    data.forEach(score => {
+                        const key = `${score.operation}_${score.variant}`;
+                        // Only mark as failed if it's not also passed (shouldn't happen, but safety check)
+                        if (!passedVariants.has(key)) {
+                            failedVariants.add(key);
+                            console.log('❌ Added failed variant:', key);
+                        }
+                    });
+                }
+                console.log('❌ Failed variants loaded:', Array.from(failedVariants));
+                console.log('📊 Total failed variants:', failedVariants.size);
+            } catch (error) {
+                console.error('Error fetching failed variants:', error);
+                // Don't throw - just log and continue
             }
         }
 
@@ -2202,7 +2965,7 @@
                 event.preventDefault();
             }
             
-            const studentId = document.getElementById('inlineStudentId').value.trim();
+            const email = document.getElementById('inlineEmail').value.trim();
             const password = document.getElementById('inlinePassword').value;
             const errorEl = document.getElementById('loginError');
             const loginBtn = document.getElementById('inlineLoginBtn');
@@ -2218,19 +2981,19 @@
                 return false;
             }
             
-            if (studentId.length !== 8) {
-                errorEl.textContent = 'Student ID must be exactly 8 characters';
+            if (!email) {
+                errorEl.textContent = 'Email is required';
                 loginBtn.disabled = false;
                 loginBtn.textContent = 'Log In';
                 return false;
             }
             
+            let loginSuccessful = false;
             try {
-                const internalEmail = generateInternalEmail(studentId);
-                console.log('🔐 Attempting login with student_id:', studentId, '→ email:', internalEmail);
+                console.log('🔐 Attempting login with email:', email);
                 
                 const { data, error } = await supabase.auth.signInWithPassword({
-                    email: internalEmail,
+                    email: email,
                     password: password
                 });
                 
@@ -2239,48 +3002,123 @@
                 // Update currentUser immediately
                 const { data: { user } } = await supabase.auth.getUser();
                 currentUser = user;
-                console.log('✅ Login successful, currentUser set');
+                console.log('✅ Login successful, currentUser set:', currentUser?.id);
+                loginSuccessful = true;
                 
-                // Fetch user profile after successful login (don't wait if it fails)
-                try {
-                    currentUserProfile = await fetchUserProfile();
-                    console.log('✅ User profile fetched');
-                } catch (err) {
-                    console.warn('⚠️ Could not fetch user profile, continuing anyway:', err);
+                // Reset login button IMMEDIATELY (don't wait for anything)
+                if (loginBtn) {
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Log In';
+                    loginBtn.classList.add('hidden');
+                    console.log('✅ Login button reset and hidden immediately');
+                }
+                const logoutBtn = document.getElementById('inlineLogoutBtn');
+                if (logoutBtn) {
+                    logoutBtn.classList.remove('hidden');
+                    console.log('✅ Logout button shown');
                 }
                 
-                // Update UI - this will show the dashboard
-                try {
-                    await updateAuthUI();
-                    console.log('✅ updateAuthUI completed');
-                } catch (err) {
-                    console.error('❌ Error in updateAuthUI:', err);
-                    // Force dashboard to show even if updateAuthUI fails
-                    const dashboardSection = document.getElementById('dashboardSection');
-                    if (dashboardSection) {
-                        dashboardSection.classList.remove('hidden');
-                        dashboardSection.style.display = 'block';
-                        console.log('✅ Dashboard forced to show after updateAuthUI error');
-                    }
-                }
+                // Show success message briefly
+                errorEl.textContent = '';
+                errorEl.style.color = '#28a745';
+                errorEl.textContent = '✅ Login successful!';
+                setTimeout(() => {
+                    errorEl.textContent = '';
+                    errorEl.style.color = '';
+                }, 2000);
                 
-                // Force dashboard to show immediately as backup
+                // Show dashboard immediately
                 const dashboardSection = document.getElementById('dashboardSection');
                 if (dashboardSection) {
                     dashboardSection.classList.remove('hidden');
                     dashboardSection.style.display = 'block';
                     console.log('✅ Dashboard shown immediately after login');
-                } else {
-                    console.error('❌ dashboardSection not found in DOM!');
                 }
+                
+                // Fetch user profile in background (don't block UI)
+                fetchUserProfile().then(profile => {
+                    currentUserProfile = profile;
+                    if (profile) {
+                        console.log('✅ User profile fetched in background:', profile);
+                        // Update user display with formatted info
+                        updateUserDisplay(profile);
+                    } else {
+                        console.warn('⚠️ User profile not found in database');
+                    }
+                }).catch(err => {
+                    console.warn('⚠️ Could not fetch user profile, continuing anyway:', err);
+                });
+                
+                // Fetch passed and failed variants in background
+                // Fetch passed variants first, then failed variants (which depends on passedVariants)
+                fetchPassedVariants()
+                    .catch(err => {
+                        console.warn('⚠️ Could not fetch passed variants:', err);
+                    })
+                    .then(() => {
+                        // After passed variants are loaded, fetch failed variants
+                        return fetchFailedVariants().catch(err => {
+                            console.warn('⚠️ Could not fetch failed variants:', err);
+                        });
+                    })
+                    .then(() => {
+                        updateOperationCompletionStatus();
+                    });
                 
                 return false;
             } catch (err) {
-                console.error('Login error:', err);
+                console.error('❌ Login error:', err);
                 errorEl.textContent = err.message || 'Login failed. Please check your credentials.';
-                loginBtn.disabled = false;
-                loginBtn.textContent = 'Log In';
                 return false;
+            } finally {
+                // Only reset button if login failed (on success, it's already hidden)
+                if (!loginSuccessful && loginBtn) {
+                    loginBtn.disabled = false;
+                    loginBtn.textContent = 'Log In';
+                    console.log('✅ Login button reset in finally block (login failed)');
+                } else if (loginSuccessful && loginBtn) {
+                    // Double-check button is hidden on success
+                    if (!loginBtn.classList.contains('hidden')) {
+                        loginBtn.classList.add('hidden');
+                        console.log('✅ Login button force-hidden in finally block');
+                    }
+                }
+            }
+        }
+        
+        // Update user display with formatted information
+        function updateUserDisplay(profile) {
+            const userDisplay = document.getElementById('userDisplay');
+            if (!userDisplay) return;
+            
+            if (profile) {
+                const parts = [];
+                
+                // First name + Last name
+                const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ');
+                if (fullName) parts.push(fullName);
+                
+                // Class + Section
+                if (profile.class && profile.section) {
+                    parts.push(`${profile.class}${profile.section}`);
+                }
+                
+                // Roll number
+                if (profile.roll_number) {
+                    parts.push(profile.roll_number);
+                }
+                
+                if (parts.length > 0) {
+                    // Display all in one line with spaces
+                    userDisplay.textContent = parts.join(' ');
+                    userDisplay.classList.remove('hidden');
+                } else {
+                    userDisplay.textContent = `Logged in as: ${currentUser?.email || ''}`;
+                    userDisplay.classList.remove('hidden');
+                }
+            } else {
+                userDisplay.textContent = `Logged in as: ${currentUser?.email || ''}`;
+                userDisplay.classList.remove('hidden');
             }
         }
 
@@ -2289,7 +3127,7 @@
             console.log('🔄 updateAuthUI called, currentUser:', currentUser ? 'exists' : 'null');
             const inlineLoginBtn = document.getElementById('inlineLoginBtn');
             const inlineLogoutBtn = document.getElementById('inlineLogoutBtn');
-            const inlineStudentId = document.getElementById('inlineStudentId');
+            const inlineEmail = document.getElementById('inlineEmail');
             const inlinePassword = document.getElementById('inlinePassword');
             const userDisplay = document.getElementById('userDisplay');
             const loginError = document.getElementById('loginError');
@@ -2306,40 +3144,54 @@
                 
                 // Then fetch user data (non-blocking)
                 try {
-                    // Fetch user profile to get student_id (only if not already cached)
+                    // Fetch user profile (only if not already cached)
                     if (!currentUserProfile && currentUser) {
                         console.log('📥 Fetching user profile in updateAuthUI...');
                         currentUserProfile = await fetchUserProfile();
-                        console.log('✅ User profile fetched:', currentUserProfile?.student_id || 'no student_id');
+                        console.log('✅ User profile fetched:', currentUserProfile ? 'success' : 'not found');
                     } else if (!currentUser) {
                         console.log('⚠️ updateAuthUI: No currentUser, skipping profile fetch');
                     }
                     
-                    // Fetch passed variants
+                    // Fetch passed and failed variants (sequential to avoid race condition)
                     console.log('📥 Fetching passed variants...');
                     await fetchPassedVariants();
                     console.log('✅ Passed variants fetched');
+                    console.log('📥 Fetching failed variants...');
+                    await fetchFailedVariants();
+                    console.log('✅ Failed variants fetched');
+                    // Update operation completion status
+                    updateOperationCompletionStatus();
                 } catch (err) {
                     console.error('❌ Error fetching user data:', err);
                     // Continue anyway - dashboard is already shown
                 }
                 
                 // Update inline login UI - reset button state first
+                // CRITICAL: Always reset button state when logged in, even if it's stuck
                 if (inlineLoginBtn) {
-                    inlineLoginBtn.classList.add('hidden');
+                    // Force reset button state first
                     inlineLoginBtn.disabled = false;
                     inlineLoginBtn.textContent = 'Log In';
+                    // Then hide it
+                    inlineLoginBtn.classList.add('hidden');
+                    console.log('✅ Login button reset and hidden by updateAuthUI');
                 }
                 if (inlineLogoutBtn) inlineLogoutBtn.classList.remove('hidden');
-                if (inlineStudentId) inlineStudentId.disabled = true;
+                if (inlineEmail) inlineEmail.disabled = true;
                 if (inlinePassword) inlinePassword.disabled = true;
+                // Hide sign-up link when logged in
+                const signupLinkContainer = document.getElementById('signupLinkContainer');
+                if (signupLinkContainer) signupLinkContainer.style.display = 'none';
                 
-                // Show user info
-                const displayName = currentUserProfile?.student_id || currentUser.email || '';
-                if (userDisplay) {
-                    userDisplay.textContent = `Logged in as: ${displayName}`;
-                    userDisplay.classList.remove('hidden');
+                // Hide guest notice when logged in
+                const guestNotice = document.getElementById('guestNotice');
+                if (guestNotice) {
+                    guestNotice.classList.add('hidden');
                 }
+                
+                // Show user info with formatted display
+                updateUserDisplay(currentUserProfile);
                 if (loginError) loginError.textContent = '';
                 
                 // Dashboard should already be shown above, but ensure it's visible
@@ -2378,8 +3230,11 @@
                     inlineLoginBtn.textContent = 'Log In';
                 }
                 if (inlineLogoutBtn) inlineLogoutBtn.classList.add('hidden');
-                if (inlineStudentId) inlineStudentId.disabled = false;
+                if (inlineEmail) inlineEmail.disabled = false;
                 if (inlinePassword) inlinePassword.disabled = false;
+                // Show sign-up link when logged out
+                const signupLinkContainer = document.getElementById('signupLinkContainer');
+                if (signupLinkContainer) signupLinkContainer.style.display = 'block';
                 
                 if (userDisplay) {
                     userDisplay.textContent = '';
@@ -2388,14 +3243,47 @@
                 
                 currentUserProfile = null;
                 passedVariants.clear();
+                failedVariants.clear();
                 
-                // Hide dashboard when logged out
+                // Remove all visual indicators from variant cards
+                document.querySelectorAll('.variant-card').forEach(card => {
+                    card.classList.remove('passed', 'failed');
+                });
+                
+                // Remove completion status from operation cards
+                document.querySelectorAll('.operation-card').forEach(card => {
+                    card.classList.remove('completed');
+                });
+                
+                // Show dashboard (with login form) when logged out, and show operations too
                 if (dashboardSection) {
-                    dashboardSection.classList.add('hidden');
+                    dashboardSection.classList.remove('hidden');
+                    dashboardSection.style.display = 'block';
                 }
                 
-                // Clear variants
-                document.getElementById('variantsContainer').innerHTML = '';
+                // Show guest notice when logged out
+                const guestNotice = document.getElementById('guestNotice');
+                if (guestNotice) {
+                    guestNotice.classList.remove('hidden');
+                }
+                
+                // Show operations grid when logged out (students can practice without login)
+                const operationsGrid = document.querySelector('.operations-grid');
+                if (operationsGrid) {
+                    operationsGrid.style.display = 'grid';
+                }
+                
+                // Show "Choose an Operation" heading when logged out
+                const operationHeading = dashboardSection?.querySelector('h2');
+                if (operationHeading && operationHeading.textContent.includes('Choose an Operation')) {
+                    operationHeading.style.display = 'block';
+                }
+                
+                // Clear variants container when logged out (will be populated when operation is selected)
+                const variantsContainer = document.getElementById('variantsContainer');
+                if (variantsContainer) {
+                    variantsContainer.innerHTML = '';
+                }
                 selectedOperation = null;
             }
         }
@@ -2464,19 +3352,35 @@
                 const variant = opsVariants[variantKey];
                 const variantKeyFull = `${operation}_${variantKey}`;
                 const isPassed = passedVariants.has(variantKeyFull);
+                const isFailed = failedVariants.has(variantKeyFull);
                 
-                // Debug logging for passed variants
+                // Debug logging for passed/failed variants
                 if (isPassed) {
                     console.log(`✅ Variant ${variantKeyFull} is PASSED`);
+                } else if (isFailed) {
+                    console.log(`❌ Variant ${variantKeyFull} is FAILED (all attempts failed)`);
                 }
                 
                 const card = document.createElement('div');
-                card.className = `variant-card ${isPassed ? 'passed' : ''}`;
+                let cardClass = 'variant-card';
+                if (isPassed) {
+                    cardClass += ' passed';
+                } else if (isFailed) {
+                    cardClass += ' failed';
+                }
+                card.className = cardClass;
                 card.onclick = () => launchVariant(operation, variantKey);
+                
+                let statusText = 'Not started';
+                if (isPassed) {
+                    statusText = '✓ Passed';
+                } else if (isFailed) {
+                    statusText = '✗ All attempts failed';
+                }
                 
                 card.innerHTML = `
                     <div class="variant-name">${variant.name}</div>
-                    <div class="variant-status">${isPassed ? '✓ Passed' : 'Not started'}</div>
+                    <div class="variant-status">${statusText}</div>
                 `;
                 
                 container.appendChild(card);
@@ -2514,11 +3418,11 @@
             signupFields.style.display = 'none';
             
             // Add required to login fields, remove from signup fields
-            document.getElementById('authStudentId').required = true;
+            document.getElementById('authEmail').required = true;
             document.getElementById('authPassword').required = true;
             
             // Remove required from signup fields to prevent validation errors
-            document.getElementById('signupStudentId').required = false;
+            document.getElementById('signupEmail').required = false;
             document.getElementById('signupFirstName').required = false;
             document.getElementById('signupGender').required = false;
             document.getElementById('signupSchoolId').required = false;
@@ -2529,8 +3433,12 @@
             document.getElementById('signupPasswordConfirm').required = false;
             
             // Clear form fields
-            document.getElementById('authStudentId').value = '';
+            document.getElementById('authEmail').value = '';
             document.getElementById('authPassword').value = '';
+            
+            // Show forgot password link in login mode
+            const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+            if (forgotPasswordLink) forgotPasswordLink.style.display = 'block';
             
             document.getElementById('authModal').style.display = 'flex';
         }
@@ -2551,11 +3459,11 @@
             signupFields.style.display = 'block';
             
             // Remove required from login fields to prevent validation errors
-            document.getElementById('authStudentId').required = false;
+            document.getElementById('authEmail').required = false;
             document.getElementById('authPassword').required = false;
             
             // Add required to signup fields
-            document.getElementById('signupStudentId').required = true;
+            document.getElementById('signupEmail').required = true;
             document.getElementById('signupFirstName').required = true;
             document.getElementById('signupGender').required = true;
             document.getElementById('signupSchoolId').required = true;
@@ -2566,7 +3474,7 @@
             document.getElementById('signupPasswordConfirm').required = true;
             
             // Clear all form fields
-            document.getElementById('signupStudentId').value = '';
+            document.getElementById('signupEmail').value = '';
             document.getElementById('signupFirstName').value = '';
             document.getElementById('signupLastName').value = '';
             document.getElementById('signupGender').value = '';
@@ -2576,6 +3484,10 @@
             document.getElementById('signupRollNumber').value = '';
             document.getElementById('signupPassword').value = '';
             document.getElementById('signupPasswordConfirm').value = '';
+            
+            // Hide forgot password link in signup mode
+            const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+            if (forgotPasswordLink) forgotPasswordLink.style.display = 'none';
             
             document.getElementById('authModal').style.display = 'flex';
         }
@@ -2598,6 +3510,205 @@
             }
         }
 
+        // Show forgot password modal
+        function showForgotPasswordModal() {
+            closeAuthModal(); // Close auth modal if open
+            const modal = document.getElementById('forgotPasswordModal');
+            const requestForm = document.getElementById('forgotPasswordRequestForm');
+            const resetForm = document.getElementById('forgotPasswordResetForm');
+            const errorEl = document.getElementById('forgotPasswordError');
+            const successEl = document.getElementById('forgotPasswordSuccess');
+            
+            if (!modal) {
+                console.error('❌ Forgot password modal not found!');
+                return;
+            }
+            
+            // Reset forms
+            requestForm.style.display = 'block';
+            resetForm.style.display = 'none';
+            if (errorEl) errorEl.textContent = '';
+            if (successEl) {
+                successEl.textContent = '';
+                successEl.style.display = 'none';
+            }
+            const emailInput = document.getElementById('forgotPasswordEmail');
+            if (emailInput) emailInput.value = '';
+            
+            // Check if this is a password reset confirmation (from email link)
+            // Check both hash and query parameters
+            let type = null;
+            let accessToken = null;
+            
+            if (window.location.hash) {
+                const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                type = hashParams.get('type') || type;
+                accessToken = hashParams.get('access_token') || accessToken;
+            }
+            
+            if (window.location.search) {
+                const queryParams = new URLSearchParams(window.location.search);
+                type = queryParams.get('type') || type;
+                accessToken = queryParams.get('access_token') || accessToken;
+            }
+            
+            if (type === 'recovery' && accessToken) {
+                // User clicked password reset link in email
+                requestForm.style.display = 'none';
+                resetForm.style.display = 'block';
+                const titleEl = document.getElementById('forgotPasswordModalTitle');
+                if (titleEl) titleEl.textContent = 'Set New Password';
+            }
+            
+            modal.style.display = 'flex';
+        }
+
+        // Close forgot password modal
+        function closeForgotPasswordModal() {
+            const modal = document.getElementById('forgotPasswordModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Handle forgot password request
+        async function handleForgotPassword(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('forgotPasswordEmail').value.trim();
+            const errorEl = document.getElementById('forgotPasswordError');
+            const successEl = document.getElementById('forgotPasswordSuccess');
+            const submitBtn = document.getElementById('forgotPasswordSubmitBtn');
+            
+            errorEl.textContent = '';
+            successEl.textContent = '';
+            successEl.style.display = 'none';
+            
+            if (!email) {
+                errorEl.textContent = 'Please enter your email address';
+                return false;
+            }
+            
+            if (!supabase) {
+                errorEl.textContent = 'Authentication service not available.';
+                return false;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Sending...';
+            
+            try {
+                const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${PASSWORD_RESET_REDIRECT_URL}#type=recovery`
+                });
+                
+                if (error) throw error;
+                
+                // Success - show message
+                successEl.textContent = `Password reset link sent to ${email}. Please check your email (and spam folder) and click the link to reset your password.`;
+                successEl.style.color = '#28a745';
+                successEl.style.display = 'block';
+                document.getElementById('forgotPasswordForm').style.display = 'none';
+                
+            } catch (err) {
+                console.error('❌ Password reset error:', err);
+                errorEl.textContent = err.message || 'Failed to send password reset email. Please try again.';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Send Reset Link';
+            }
+            
+            return false;
+        }
+
+        // Handle password reset (when user sets new password)
+        async function handleResetPassword(event) {
+            event.preventDefault();
+            
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmNewPassword').value;
+            const errorEl = document.getElementById('resetPasswordError');
+            const submitBtn = document.getElementById('resetPasswordSubmitBtn');
+            
+            errorEl.textContent = '';
+            
+            if (!newPassword || newPassword.length < 6) {
+                errorEl.textContent = 'Password must be at least 6 characters long';
+                return false;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                errorEl.textContent = 'Passwords do not match';
+                return false;
+            }
+            
+            if (!supabase) {
+                errorEl.textContent = 'Authentication service not available.';
+                return false;
+            }
+            
+            // Verify user has a valid session (from password reset token)
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            console.log('🔍 Password reset - Session check:', { 
+                hasSession: !!session, 
+                sessionError: sessionError?.message,
+                userId: session?.user?.id 
+            });
+            
+            if (sessionError) {
+                console.error('❌ Session error:', sessionError);
+                errorEl.textContent = `Session error: ${sessionError.message}. Please request a new password reset.`;
+                return false;
+            }
+            
+            if (!session) {
+                console.warn('⚠️ No session found for password reset');
+                errorEl.textContent = 'Invalid or expired reset link. The link may have expired or been used already. Please request a new password reset.';
+                return false;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Updating...';
+            
+            try {
+                const { error } = await supabase.auth.updateUser({
+                    password: newPassword
+                });
+                
+                if (error) throw error;
+                
+                // Success - show message and redirect
+                errorEl.textContent = '';
+                errorEl.style.color = '#28a745';
+                errorEl.textContent = 'Password updated successfully! Redirecting to login...';
+                
+                // Sign out the user (they were only authenticated via recovery token)
+                await supabase.auth.signOut();
+                currentUser = null;
+                currentUserProfile = null;
+                
+                // Clean up URL hash
+                window.history.replaceState(null, '', window.location.pathname + window.location.search);
+                
+                // Close modal and show login after a delay
+                setTimeout(() => {
+                    closeForgotPasswordModal();
+                    showLoginModal();
+                    updateAuthUI();
+                }, 2000);
+                
+            } catch (err) {
+                console.error('❌ Password update error:', err);
+                errorEl.style.color = '#dc3545';
+                errorEl.textContent = err.message || 'Failed to update password. Please try again.';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Update Password';
+            }
+            
+            return false;
+        }
+
         // Toggle between login and signup
         function toggleAuthMode(event) {
             event.preventDefault();
@@ -2618,29 +3729,37 @@
             errorEl.textContent = '';
             form.classList.add('loading');
             submitBtn.disabled = true;
+            
+            // Safety timeout - reset form if it takes too long
+            const safetyTimeout = setTimeout(() => {
+                console.warn('⚠️ Auth operation taking too long, resetting form...');
+                form.classList.remove('loading');
+                submitBtn.disabled = false;
+                showAuthError('Operation timed out. Please try again.');
+            }, 30000); // 30 second timeout
 
             if (!supabase) {
                 showAuthError('Authentication service not available. Please configure Supabase credentials.');
                 form.classList.remove('loading');
                 submitBtn.disabled = false;
+                clearTimeout(safetyTimeout);
                 return;
             }
 
             try {
                 if (isLoginMode) {
-                    // Login: Get student_id and convert to internal email
-                    const studentId = document.getElementById('authStudentId').value.trim();
+                    // Login: Get email directly
+                    const email = document.getElementById('authEmail').value.trim();
                     const password = document.getElementById('authPassword').value;
                     
-                    if (studentId.length !== 8) {
-                        throw new Error('Student ID must be exactly 8 characters');
+                    if (!email) {
+                        throw new Error('Email is required');
                     }
                     
-                    const internalEmail = generateInternalEmail(studentId);
-                    console.log('🔐 Attempting login with student_id:', studentId, '→ email:', internalEmail);
+                    console.log('🔐 Attempting login with email:', email);
                     
                     const { data, error } = await supabase.auth.signInWithPassword({
-                        email: internalEmail,
+                        email: email,
                         password: password
                     });
 
@@ -2651,7 +3770,7 @@
                     // Auth state change listener will handle UI update
                 } else {
                     // Sign up: Get all student fields
-                    const studentId = document.getElementById('signupStudentId').value.trim();
+                    const email = document.getElementById('signupEmail').value.trim();
                     const firstName = document.getElementById('signupFirstName').value.trim();
                     const lastName = document.getElementById('signupLastName').value.trim();
                     const gender = document.getElementById('signupGender').value;
@@ -2663,8 +3782,8 @@
                     const passwordConfirm = document.getElementById('signupPasswordConfirm').value;
                     
                     // Validation
-                    if (studentId.length !== 8) {
-                        throw new Error('Student ID must be exactly 8 characters');
+                    if (!email) {
+                        throw new Error('Email is required');
                     }
                     if (password.length < 6) {
                         throw new Error('Password must be at least 6 characters');
@@ -2679,26 +3798,115 @@
                         throw new Error('Gender is required');
                     }
                     
-                    // Generate internal email
-                    const internalEmail = generateInternalEmail(studentId);
-                    console.log('📝 Attempting signup with student_id:', studentId, '→ email:', internalEmail);
+                    console.log('📝 Attempting signup with email:', email);
                     
-                    // Sign up with Supabase (using internal email)
+                    // Sign up with Supabase (using email directly)
+                    console.log('📝 Calling supabase.auth.signUp...');
                     const { data, error } = await supabase.auth.signUp({
-                        email: internalEmail,
+                        email: email,
                         password: password,
                         options: {
                             emailRedirectTo: `${SITE_URL}`,
                             data: {
-                                student_id: studentId,
                                 first_name: firstName,
                                 last_name: lastName
                             }
                         }
                     });
+                    console.log('📝 supabase.auth.signUp returned');
 
                     if (error) {
                         console.error('❌ Signup error:', error);
+                        
+                        // Special handling: If user already exists but has no profile, create the profile
+                        if (error.message && error.message.includes('already registered')) {
+                            console.log('ℹ️ User already exists, checking if profile exists...');
+                            
+                            // Try to sign in first to get the user
+                            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+                                email: email,
+                                password: password
+                            });
+                            
+                            if (signInError) {
+                                // Can't sign in - password might be wrong or user doesn't exist
+                                throw new Error('User already registered. If this is your account, please log in instead. If you forgot your password, contact your administrator.');
+                            }
+                            
+                            // User signed in successfully, check if profile exists
+                            const existingUser = signInData.user;
+                            console.log('✅ Signed in existing user, checking for profile...');
+                            
+                            const { data: existingProfile, error: profileCheckError } = await supabase
+                                .from('user_profiles')
+                                .select('*')
+                                .eq('user_id', existingUser.id)
+                                .single();
+                            
+                            if (profileCheckError && profileCheckError.code === 'PGRST116') {
+                                // Profile doesn't exist - create it
+                                console.log('📝 Profile not found, creating profile for existing user...');
+                                
+                                const { error: profileCreateError } = await supabase
+                                    .from('user_profiles')
+                                    .insert([{
+                                        user_id: existingUser.id,
+                                        email: email,
+                                        first_name: firstName,
+                                        last_name: lastName || null,
+                                        gender: gender,
+                                        school_id: schoolId,
+                                        class: classNum,
+                                        section: section,
+                                        roll_number: rollNumber
+                                    }]);
+                                
+                                if (profileCreateError) {
+                                    console.error('❌ Error creating profile for existing user:', profileCreateError);
+                                    throw new Error(`User already registered, but failed to create profile: ${profileCreateError.message}. Please contact your administrator.`);
+                                }
+                                
+                                // Profile created successfully
+                                console.log('✅ Profile created for existing user');
+                                currentUser = existingUser;
+                                currentUserProfile = {
+                                    user_id: existingUser.id,
+                                    email: email,
+                                    first_name: firstName,
+                                    last_name: lastName || null,
+                                    gender: gender,
+                                    school_id: schoolId,
+                                    class: classNum,
+                                    section: section,
+                                    roll_number: rollNumber
+                                };
+                                
+                                // Show success message and update UI
+                                errorEl.textContent = 'Profile created successfully! You are now logged in.';
+                                errorEl.style.color = '#28a745';
+                                form.classList.remove('loading');
+                                submitBtn.disabled = false;
+                                
+                                // Update auth UI in background
+                                updateAuthUI().catch(err => {
+                                    console.error('❌ Error in updateAuthUI after profile creation:', err);
+                                });
+                                
+                                setTimeout(() => {
+                                    closeAuthModal();
+                                }, 2000);
+                                
+                                return; // Exit early, don't throw error
+                            } else if (existingProfile) {
+                                // Profile already exists
+                                throw new Error('User already registered with a complete profile. Please log in instead.');
+                            } else {
+                                // Some other error checking profile
+                                throw new Error(`User already registered, but couldn't check profile: ${profileCheckError?.message || 'Unknown error'}. Please contact your administrator.`);
+                            }
+                        }
+                        
+                        // For other errors, throw normally
                         throw error;
                     }
                     
@@ -2709,13 +3917,13 @@
                     
                     // Create user profile in user_profiles table
                     if (data.user) {
+                        console.log('📝 Creating user profile in database...');
                         try {
                             const { error: profileError } = await supabase
                                 .from('user_profiles')
                                 .insert([{
                                     user_id: data.user.id,
-                                    student_id: studentId,
-                                    email: internalEmail,
+                                    email: email,
                                     first_name: firstName,
                                     last_name: lastName || null,
                                     gender: gender,
@@ -2727,13 +3935,20 @@
                             
                             if (profileError) {
                                 console.error('❌ Error creating user profile:', profileError);
+                                console.error('   Profile error code:', profileError.code);
+                                console.error('   Profile error message:', profileError.message);
+                                console.error('   Profile error details:', profileError.details);
+                                console.error('   Profile error hint:', profileError.hint);
                                 // Don't throw - user is created, profile can be added later
                             } else {
                                 console.log('✅ User profile created successfully');
                             }
                         } catch (profileErr) {
-                            console.error('❌ Error creating user profile:', profileErr);
+                            console.error('❌ Error creating user profile (catch):', profileErr);
                         }
+                        console.log('📝 User profile creation attempt completed');
+                    } else {
+                        console.warn('⚠️ No user in signup response, skipping profile creation');
                     }
                     
                     // Check if email confirmation is required
@@ -2742,16 +3957,37 @@
                         console.log('✅ Email confirmation required - check your inbox');
                         errorEl.textContent = 'Signup successful! Please check your email (and spam folder) to confirm your account.';
                         errorEl.style.color = '#28a745';
+                        form.classList.remove('loading');
+                        submitBtn.disabled = false;
                         setTimeout(() => {
                             closeAuthModal();
                         }, 5000);
                     } else if (data.user && data.session) {
                         // Auto-logged in (email confirmation is disabled)
                         console.log('✅ Auto-confirmed - email confirmation is disabled in Supabase');
-                        // Fetch user profile
-                        currentUserProfile = await fetchUserProfile();
+                        // Update currentUser immediately
+                        currentUser = data.user;
+                        console.log('✅ currentUser set from signup response');
+                        
+                        // Fetch user profile (don't wait if it times out)
+                        fetchUserProfile().then(profile => {
+                            currentUserProfile = profile;
+                            console.log('✅ User profile fetched after signup:', profile ? 'success' : 'not found');
+                        }).catch(err => {
+                            console.warn('⚠️ Could not fetch user profile after signup, continuing anyway:', err);
+                        });
+                        
+                        // Update UI immediately
                         errorEl.textContent = 'Signup successful! You are now logged in.';
                         errorEl.style.color = '#28a745';
+                        form.classList.remove('loading');
+                        submitBtn.disabled = false;
+                        
+                        // Update auth UI in background
+                        updateAuthUI().catch(err => {
+                            console.error('❌ Error in updateAuthUI after signup:', err);
+                        });
+                        
                         setTimeout(() => {
                             closeAuthModal();
                         }, 2000);
@@ -2760,16 +3996,22 @@
                         console.warn('⚠️ Unexpected signup state:', data);
                         errorEl.textContent = 'Signup completed, but unexpected state. Please try logging in.';
                         errorEl.style.color = '#ffc107';
+                        form.classList.remove('loading');
+                        submitBtn.disabled = false;
                         setTimeout(() => {
                             closeAuthModal();
                         }, 3000);
                     }
                 }
             } catch (err) {
-                console.error('Authentication error:', err);
+                console.error('❌ Authentication error:', err);
+                console.error('   Error details:', JSON.stringify(err, null, 2));
                 showAuthError(err.message || (isLoginMode ? 'Login failed. Please check your credentials.' : 'Signup failed. Please try again.'));
                 form.classList.remove('loading');
                 submitBtn.disabled = false;
+            } finally {
+                // Always clear the safety timeout
+                clearTimeout(safetyTimeout);
             }
         }
 
@@ -2787,9 +4029,15 @@
                 if (error) {
                     console.error('Logout error:', error);
                 } else {
+                    // Clear user state
+                    currentUser = null;
+                    currentUserProfile = null;
+                    
                     // Clear form fields
-                    document.getElementById('inlineStudentId').value = '';
+                    document.getElementById('inlineEmail').value = '';
                     document.getElementById('inlinePassword').value = '';
+                    
+                    // Update UI (this will clear variants and visual indicators)
                     await updateAuthUI();
                 }
             }
@@ -2800,8 +4048,19 @@
         // ============================================================================
         // Save session score to Supabase
         async function saveScore() {
+            console.log('💾 saveScore() called');
+            console.log('💾 currentUser:', currentUser ? { id: currentUser.id, email: currentUser.email } : 'null');
+            console.log('💾 supabase:', supabase ? 'initialized' : 'null');
+            
             if (!currentUser || !supabase) {
-                console.log('User not logged in or Supabase not initialized. Score not saved.');
+                console.error('❌ User not logged in or Supabase not initialized. Score not saved.');
+                console.error('   currentUser:', currentUser);
+                console.error('   supabase:', supabase);
+                return false;
+            }
+
+            if (!currentSession) {
+                console.error('❌ currentSession is null or undefined. Cannot save score.');
                 return false;
             }
 
@@ -2825,17 +4084,35 @@
                     completed_at: new Date().toISOString()
                 };
 
+                console.log('💾 Attempting to save session data:', {
+                    user_id: sessionData.user_id,
+                    operation: sessionData.operation,
+                    variant: sessionData.variant,
+                    correct_count: sessionData.correct_count,
+                    wrong_count: sessionData.wrong_count,
+                    total_questions: sessionData.total_questions,
+                    passed: sessionData.passed
+                });
+
                 const { data, error } = await supabase
                     .from('user_scores')
                     .insert([sessionData])
                     .select();
 
-                if (error) throw error;
+                if (error) {
+                    console.error('❌ Supabase insert error:', error);
+                    console.error('   Error code:', error.code);
+                    console.error('   Error message:', error.message);
+                    console.error('   Error details:', error.details);
+                    console.error('   Error hint:', error.hint);
+                    throw error;
+                }
 
-                console.log('Score saved successfully:', data);
+                console.log('✅ Score saved successfully:', data);
                 return true;
             } catch (error) {
-                console.error('Error saving score:', error);
+                console.error('❌ Error saving score:', error);
+                console.error('   Full error object:', JSON.stringify(error, null, 2));
                 return false;
             }
         }
@@ -2915,30 +4192,105 @@
         (function() {
             const originalEndSession = endSession;
             window.endSession = function() {
+                console.log('🔄 endSession wrapper called');
                 // Call the original endSession function
                 originalEndSession.call(this);
                 // Save score if user is logged in
+                console.log('🔄 Checking if user is logged in for score saving...');
+                console.log('🔄 currentUser:', currentUser ? { id: currentUser.id, email: currentUser.email } : 'null');
                 if (currentUser) {
+                    console.log('🔄 User is logged in, calling saveScore()...');
                     saveScore().then(success => {
                         if (success) {
-                            console.log('Session data saved to server');
-                            // Refresh passed variants to update dashboard
-                            fetchPassedVariants().then(() => {
-                                // If we're on dashboard and have selected operation, refresh variants
-                                if (selectedOperation && !document.getElementById('dashboardSection').classList.contains('hidden')) {
-                                    loadVariantsForOperation(selectedOperation);
-                                }
-                            });
+                            console.log('✅ Session data saved to server');
+                            // Refresh passed and failed variants to update dashboard (sequential to avoid race condition)
+                            fetchPassedVariants()
+                                .then(() => fetchFailedVariants())
+                                .then(() => {
+                                    // Update operation completion status
+                                    updateOperationCompletionStatus();
+                                    // If we're on dashboard and have selected operation, refresh variants
+                                    if (selectedOperation && !document.getElementById('dashboardSection').classList.contains('hidden')) {
+                                        loadVariantsForOperation(selectedOperation);
+                                    }
+                                })
+                                .catch(err => {
+                                    console.warn('⚠️ Error refreshing variants:', err);
+                                });
+                        } else {
+                            console.error('❌ Failed to save session data to server');
                         }
+                    }).catch(error => {
+                        console.error('❌ Error in saveScore promise:', error);
                     });
+                } else {
+                    console.warn('⚠️ User not logged in, score will not be saved');
                 }
             };
         })();
 
+        // Check for password reset IMMEDIATELY (before DOMContentLoaded)
+        // Check both hash (#) and query parameters (?)
+        (function checkPasswordResetImmediate() {
+            let type = null;
+            let accessToken = null;
+            
+            // Check hash parameters
+            if (window.location.hash) {
+                const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                type = hashParams.get('type') || type;
+                accessToken = hashParams.get('access_token') || accessToken;
+            }
+            
+            // Check query parameters (some redirects use ? instead of #)
+            if (window.location.search) {
+                const queryParams = new URLSearchParams(window.location.search);
+                type = queryParams.get('type') || type;
+                accessToken = queryParams.get('access_token') || accessToken;
+            }
+            
+            if (type === 'recovery' && accessToken) {
+                // Set flag to show modal when DOM is ready
+                window._passwordResetDetected = true;
+            }
+        })();
+
         // Initialize everything when page loads
         window.addEventListener('DOMContentLoaded', () => {
-            // Handle email confirmation callback first
-            handleEmailConfirmation();
+            // Check for password reset link - check both hash and query params
+            let type = null;
+            let accessToken = null;
+            
+            if (window.location.hash) {
+                const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                type = hashParams.get('type') || type;
+                accessToken = hashParams.get('access_token') || accessToken;
+            }
+            
+            if (window.location.search) {
+                const queryParams = new URLSearchParams(window.location.search);
+                type = queryParams.get('type') || type;
+                accessToken = queryParams.get('access_token') || accessToken;
+            }
+            
+            // IMMEDIATELY show password reset form if recovery link detected
+            if ((type === 'recovery' && accessToken) || window._passwordResetDetected) {
+                // Show modal immediately, don't wait for Supabase
+                setTimeout(() => {
+                    try {
+                        showForgotPasswordModal();
+                    } catch (err) {
+                        console.error('❌ Error showing password reset modal:', err);
+                    }
+                }, 300);
+                // Store flag to show modal after Supabase initializes (as backup)
+                window._showPasswordReset = true;
+            }
+            
+            // Handle email confirmation callback (for signup only - password reset handled in initSupabase)
+            if (type === 'signup') {
+                handleEmailConfirmation();
+            }
             
             // Wait for Supabase library to load
             function tryInitSupabase(attempts = 0) {
@@ -2965,6 +4317,13 @@
         document.getElementById('authModal')?.addEventListener('click', (e) => {
             if (e.target.id === 'authModal') {
                 closeAuthModal();
+            }
+        });
+
+        // Close forgot password modal when clicking outside
+        document.getElementById('forgotPasswordModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'forgotPasswordModal') {
+                closeForgotPasswordModal();
             }
         });
     </script>
