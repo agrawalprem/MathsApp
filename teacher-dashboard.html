@@ -1,4 +1,17 @@
 <!DOCTYPE html>
+<!--
+    REQUIREMENTS:
+    - Teacher dashboard for viewing student progress across all variants
+    - Displays progress table with students as rows and variants as columns
+    - Shows pass/fail status for each student-variant combination
+    - Supports Excel export functionality
+    - Requires teacher authentication
+    
+    REFERENCED BY:
+    - teacher-dashboard.js: loadDashboard(), buildProgressTable(), exportToExcel()
+    - teacher-dashboard.css (all styles)
+    - Supabase: Fetches student data and progress from database
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -12,6 +25,15 @@
 </head>
 <body>
     <div class="container">
+        <!--
+            REQUIREMENTS:
+            - Header with title and user info
+            - Shows teacher name and logout button
+            
+            REFERENCED BY:
+            - teacher-dashboard.js: loadDashboard() (sets teacherName)
+            - teacher-dashboard.css (.header, .user-info)
+        -->
         <header class="header">
             <h1>Teacher Dashboard - Student Progress</h1>
             <div class="user-info">
@@ -20,12 +42,39 @@
             </div>
         </header>
 
+        <!--
+            REQUIREMENTS:
+            - Loading message shown while fetching data
+            - Hidden when data is loaded
+            
+            REFERENCED BY:
+            - teacher-dashboard.js: showLoading() (shows/hides)
+            - teacher-dashboard.css (.loading-message)
+        -->
         <div id="loadingMessage" class="loading-message">
             Loading student data...
         </div>
 
+        <!--
+            REQUIREMENTS:
+            - Error message displayed when data fetch fails
+            - Hidden by default, shown by showError()
+            
+            REFERENCED BY:
+            - teacher-dashboard.js: showError() (adds/removes 'hidden' class)
+            - teacher-dashboard.css (.error-message, .hidden)
+        -->
         <div id="errorMessage" class="error-message hidden"></div>
 
+        <!--
+            REQUIREMENTS:
+            - Dashboard controls with export button and statistics
+            - Hidden by default, shown when data is loaded
+            
+            REFERENCED BY:
+            - teacher-dashboard.js: loadDashboard() (removes 'hidden' class, sets studentCount and variantCount)
+            - teacher-dashboard.css (.dashboard-controls, .stats)
+        -->
         <div id="dashboardControls" class="dashboard-controls hidden">
             <button id="exportBtn" class="btn btn-primary" onclick="exportToExcel()">
                 Export to Excel
@@ -36,6 +85,16 @@
             </div>
         </div>
 
+        <!--
+            REQUIREMENTS:
+            - Grid container for progress table
+            - Contains scrollable table with students and variants
+            - Hidden by default, shown when data is loaded
+            
+            REFERENCED BY:
+            - teacher-dashboard.js: loadDashboard() (removes 'hidden' class), buildProgressTable() (populates table)
+            - teacher-dashboard.css (.dashboard-grid-container, .grid-wrapper, .progress-table)
+        -->
         <div id="dashboardGrid" class="dashboard-grid-container hidden">
             <div class="grid-wrapper">
                 <table id="progressTable" class="progress-table">

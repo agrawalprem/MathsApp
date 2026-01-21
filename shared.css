@@ -1,0 +1,177 @@
+/* ============================================================================
+   SHARED MODULE - Global/Base Styles
+   ============================================================================ */
+
+/* Global Reset */
+/* CALLED BY: All HTML files - universal selector (applies to all elements) */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Body Styles */
+/* CALLED BY: index.html, student-dashboard.html, question.html, summary.html - <body> element */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    min-height: 100dvh; /* Use dynamic viewport height for mobile */
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* Changed from center to flex-start for better mobile behavior */
+    padding: 20px;
+    /* Prevent layout shift when keyboard appears on mobile */
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Container Styles */
+/* CALLED BY: index.html, student-dashboard.html, question.html, summary.html - <div class="container"> */
+.container {
+    background: white;
+    border-radius: 20px;
+    padding: 40px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 600px;
+    width: 100%;
+    margin: auto;
+    /* Prevent container from shifting when keyboard appears */
+    position: relative;
+}
+
+/* Common Button Styles */
+/* CALLED BY: index.html, student-dashboard.html, question.html, summary.html - All buttons with class="btn" */
+.btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    width: 100%;
+    font-weight: 600;
+}
+
+/* CALLED BY: All HTML files - hover state on .btn */
+.btn:hover {
+    transform: translateY(-2px);
+}
+
+/* CALLED BY: All HTML files - disabled state on .btn */
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Utility Classes */
+/* CALLED BY: index.html - Elements with class="hidden" initially, index.js - handleRegistration(), handleLoginForm(), handleForgotPasswordForm(), handleResetPasswordForm() (adds 'loading' class which may use hidden). Note: question.css and teacher-dashboard.css have their own .hidden definitions with !important for page-specific overrides. */
+.hidden {
+    display: none;
+}
+
+/* Remove spinner arrows from ALL number inputs */
+/* CALLED BY: index.html - #regSchoolId, #regClass, #regRollNumber, question.html - #answerInput (removes spinner arrows from number inputs) */
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* CALLED BY: index.html - #regSchoolId, #regClass, #regRollNumber, question.html - #answerInput (removes Firefox spinner) */
+input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+/* Mobile-specific styles */
+/* CALLED BY: All HTML files - responsive breakpoint for tablets and smaller screens */
+@media (max-width: 768px) {
+    /* CALLED BY: All HTML files - body element on smaller screens */
+    body {
+        align-items: flex-start;
+        padding: 10px;
+        min-height: -webkit-fill-available; /* Better mobile support */
+    }
+    
+    /* CALLED BY: All HTML files - .container on smaller screens */
+    .container {
+        margin-top: 0;
+        padding: 20px 15px;
+    }
+}
+
+/* Extra small mobile devices */
+/* CALLED BY: All HTML files - responsive breakpoint for mobile devices */
+@media (max-width: 480px) {
+    /* CALLED BY: All HTML files - body element on mobile screens */
+    body {
+        padding: 5px;
+    }
+    
+    /* CALLED BY: All HTML files - .container on mobile screens */
+    .container {
+        padding: 15px 10px;
+        border-radius: 15px;
+    }
+}
+
+/* ============================================================================
+   COMMON HEADER STYLES - Used by student-dashboard, question, and summary pages
+   ============================================================================ */
+
+/* CALLED BY: student-dashboard.html, question.html, summary.html - <div class="dashboard-header"> */
+.dashboard-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 30px;
+    gap: 10px;
+}
+
+/* CALLED BY: student-dashboard.html, question.html, summary.html - <h1 class="dashboard-title">Learning Maths in Baby Steps</h1> */
+.dashboard-title {
+    font-size: 24px;
+    color: #333;
+    margin: 0;
+    text-align: center;
+}
+
+/* CALLED BY: student-dashboard.html, question.html, summary.html - <div class="user-info-bar"> */
+.user-info-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 14px;
+    color: #555;
+    width: 100%;
+}
+
+/* CALLED BY: student-dashboard.html, question.html, summary.html - <span> elements inside .user-info-bar */
+.user-info-bar span {
+    white-space: nowrap;
+}
+
+/* CALLED BY: student-dashboard.html, question.html, summary.html - <button class="btn btn-back-small" onclick="..."> */
+.btn-back-small {
+    padding: 2px 6px;
+    font-size: 10px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: background 0.3s;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+/* CALLED BY: student-dashboard.html, question.html, summary.html - hover state on .btn-back-small */
+.btn-back-small:hover {
+    background: #5a6268;
+}

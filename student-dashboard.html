@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Learning Maths in Baby Steps</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <link rel="stylesheet" href="shared.css">
+    <link rel="stylesheet" href="student-dashboard.css">
+    <script src="shared.js"></script>
+    <script src="shared_db.js"></script>
+    <script src="student-dashboard.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Student Dashboard -->
+        <div id="studentDashboard" class="student-dashboard">
+            <div class="dashboard-header">
+                <h1 class="dashboard-title">Learning Maths in Baby Steps</h1>
+                <div class="user-info-bar">
+                    <span id="userNameDisplay">Name: </span>
+                    <span id="userClassDisplay">Class: </span>
+                    <span id="userRollDisplay">Roll Number: </span>
+                    <button class="btn btn-back-small" onclick="goBackToRegistration()">Go Back</button>
+                </div>
+            </div>
+            
+            <div class="operations-grid">
+                <div class="operation-card" onclick="selectOperation('addition')">
+                    <div class="operation-symbol">+</div>
+                    <div class="operation-name">Addition</div>
+                </div>
+                <div class="operation-card" onclick="selectOperation('subtraction')">
+                    <div class="operation-symbol">−</div>
+                    <div class="operation-name">Subtraction</div>
+                </div>
+                <div class="operation-card" onclick="selectOperation('multiplication')">
+                    <div class="operation-symbol">×</div>
+                    <div class="operation-name">Multiplication</div>
+                </div>
+                <div class="operation-card" onclick="selectOperation('division')">
+                    <div class="operation-symbol">÷</div>
+                    <div class="operation-name">Division</div>
+                </div>
+            </div>
+            
+            <div id="variantsContainer" class="variants-container"></div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize state
+        let selectedOperation = null;
+        window.passedVariants = new Set();
+        window.failedVariants = new Set();
+        const passedVariants = window.passedVariants;
+        const failedVariants = window.failedVariants;
+        
+        const learningSequence = {
+            addition: ['1A0', '1A1', '1A2', '1A3', '1A', '1B', '1C', '1D', '1', '1M1', '1M2'],
+            subtraction: ['2A', '2B', '2C', '2D', '2', '2M1', '2M2', '2M3'],
+            multiplication: ['3A0', '3A1', '3A2S', '3A2', '3A3S', '3A3', '3A', '3B4S', '3B4', '3B5S', '3B5', '3B6S', '3B6', '3B', '3C7S', '3C7', '3C8S', '3C8', '3C9S', '3C9', '3C', '3', '3M1', '3M2'],
+            division: ['4A1', '4A2', '4A3', '4A', '4B4', '4B5', '4B6', '4B', '4C7', '4C8', '4C9', '4C', '4', '4M1', '4M2']
+        };
+        window.learningSequence = learningSequence;
+        window.passedVariants = passedVariants;
+        window.failedVariants = failedVariants;
+        window.selectedOperation = selectedOperation;
+
+        function updateStudentDashboardHeader() {
+            if (currentUserProfile) {
+                const fullName = [currentUserProfile.first_name, currentUserProfile.last_name].filter(Boolean).join(' ');
+                const classSection = currentUserProfile.class && currentUserProfile.section 
+                    ? `${currentUserProfile.class}${currentUserProfile.section}` 
+                    : '';
+                const rollNumber = currentUserProfile.roll_number || '';
+                
+                document.getElementById('userNameDisplay').textContent = fullName ? `Name: ${fullName}` : '';
+                document.getElementById('userClassDisplay').textContent = classSection ? `Class: ${classSection}` : '';
+                document.getElementById('userRollDisplay').textContent = rollNumber ? `Roll Number: ${rollNumber}` : '';
+            }
+        }
+
+        function goBackToRegistration() {
+            window.location.href = 'index.html';
+        }
+
+        // Override launchVariant to navigate to question page
+        const originalLaunchVariant = window.launchVariant;
+        window.launchVariant = function(operation, variant) {
+            // Store operation and variant in sessionStorage
+            sessionStorage.setItem('quizOperation', operation);
+            sessionStorage.setItem('quizVariant', variant);
+            // Navigate to question page
+            window.location.href = 'question.html';
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            // Initialize Supabase
+            function tryInitSupabase(attempts = 0) {
+                if (window.supabase && window.supabase.createClient) {
+                    initSupabase();
+                } else if (attempts < 5) {
+                    setTimeout(() => tryInitSupabase(attempts + 1), 1000);
+                } else {
+                    console.error('❌ Supabase library failed to load');
+                }
+            }
+            
+            tryInitSupabase();
+
+            // Wait for Supabase to initialize, then update UI and load variants
+            setTimeout(() => {
+                // Update header
+                updateStudentDashboardHeader();
+                
+                // Select Addition by default and load variants
+                window.selectedOperation = 'addition';
+                const additionCard = document.querySelector('.operation-card[onclick*="addition"]');
+                if (additionCard) {
+                    additionCard.classList.add('selected');
+                }
+                if (typeof loadVariantsForOperation === 'function') {
+                    loadVariantsForOperation('addition');
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

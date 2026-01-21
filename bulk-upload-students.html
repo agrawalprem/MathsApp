@@ -1,4 +1,16 @@
 <!DOCTYPE html>
+<!--
+    REQUIREMENTS:
+    - Admin tool for bulk uploading students via CSV
+    - Supports auto-generated passwords, default password, or student ID as password
+    - Creates users in Supabase Auth and user_profiles table
+    - Provides CSV template download and password file download
+    
+    REFERENCED BY:
+    - Inline JavaScript: uploadStudents(), downloadTemplate(), downloadPasswords()
+    - Supabase: Creates auth users and user profiles
+    - No external CSS/JS modules (self-contained)
+-->
 <html lang="en">
 <head>
     <meta charset="UTF-8">

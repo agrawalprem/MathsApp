@@ -1,0 +1,95 @@
+/* ============================================================================
+   SUMMARY PAGE - Summary-specific Styles
+   ============================================================================ */
+
+/* CALLED BY: summary.html - <div id="summarySection" class="summary-section"> */
+.summary-section {
+    margin-top: 30px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+/* CALLED BY: summary.js - resetSession() (adds 'hidden' class to hide section) */
+.summary-section.hidden {
+    display: none !important;
+    visibility: hidden;
+}
+
+/* CALLED BY: summary.js - showSummary() (removes 'hidden' class to show section) */
+.summary-section:not(.hidden) {
+    display: block;
+}
+
+/* CALLED BY: summary.html - <h2>Session Summary</h2> inside .summary-section */
+.summary-section h2 {
+    color: #333;
+    margin-bottom: 15px;
+    text-align: center;
+}
+
+/* CALLED BY: summary.html - <div class="summary-stats" id="summaryStats">, summary.js - showSummary() (sets innerHTML with stats) */
+.summary-stats {
+    margin-bottom: 20px;
+}
+
+/* CALLED BY: summary.js - showSummary() (creates <p> elements inside .summary-stats) */
+.summary-stats p {
+    margin: 8px 0;
+    font-size: 16px;
+    color: #555;
+}
+
+/* CALLED BY: summary.html - <div class="pass-fail" id="passFail">, summary.js - showSummary() (sets className to 'pass-fail pass' or 'pass-fail fail') */
+.pass-fail {
+    text-align: center;
+    font-size: 24px;
+    font-weight: 700;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 20px 0;
+}
+
+/* CALLED BY: summary.js - showSummary() (adds 'pass' class when score >= 70) */
+.pass {
+    background: #d4edda;
+    color: #155724;
+}
+
+/* CALLED BY: summary.js - showSummary() (adds 'fail' class when score < 70) */
+.fail {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+/* CALLED BY: summary.html - <div class="question-details" id="questionDetails">, summary.js - showSummary() (appends question items) */
+.question-details {
+    margin-top: 20px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+/* CALLED BY: summary.js - showSummary() (creates <div class="question-item"> for each question result) */
+.question-item {
+    padding: 10px;
+    margin: 8px 0;
+    background: white;
+    border-radius: 6px;
+    border-left: 4px solid #667eea;
+}
+
+/* CALLED BY: summary.js - showSummary() (adds 'wrong' class when question was answered incorrectly) */
+.question-item.wrong {
+    border-left-color: #dc3545;
+    color: #dc3545;
+}
+
+/* CALLED BY: summary.js - showSummary() (applies to <strong> elements inside .question-item.wrong) */
+.question-item.wrong strong {
+    color: #dc3545;
+}
+
+/* CALLED BY: summary.js - showSummary() (adds 'correct' class when question was answered correctly) */
+.question-item.correct {
+    border-left-color: #28a745;
+}

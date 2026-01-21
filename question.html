@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Question - Learning Maths in Baby Steps</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
+    <link rel="stylesheet" href="shared.css">
+    <link rel="stylesheet" href="question.css">
+    <script src="shared.js"></script>
+    <script src="shared_db.js"></script>
+    <script src="summary.js"></script>
+    <script src="question.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Question Answer Page -->
+        <div id="questionSection" class="question-container">
+            <div class="dashboard-header">
+                <h1 class="dashboard-title">Learning Maths in Baby Steps</h1>
+                <div class="user-info-bar">
+                    <span id="questionUserNameDisplay">Name: </span>
+                    <span id="questionUserClassDisplay">Class: </span>
+                    <span id="questionUserRollDisplay">Roll Number: </span>
+                    <button class="btn btn-back-small" onclick="goBackToDashboard()">Go Back</button>
+                </div>
+            </div>
+            
+            <div class="question-block">
+                <div class="timer hidden" id="timer">Time: 0.0s</div>
+                <div class="question-line" id="line1"></div>
+                <div class="question-line" id="line2"></div>
+                <div class="question-line" id="answerLine">
+                    <input type="number" id="answerInput" class="answer-input" placeholder="?" autocomplete="off">
+                    <div id="answerDisplay" class="answer-display hidden" tabindex="0">
+                        <input type="text" id="hiddenInput" class="hidden-input" autocomplete="off">
+                    </div>
+                    <table id="multidigitTable" class="multidigit-table hidden"></table>
+                </div>
+                <div class="correct-answer" id="line4"></div>
+            </div>
+            
+            <div class="quiz-controls hidden" id="quizControls">
+                <button class="btn btn-quiz" id="onHoldBtn" onclick="handleOnHold()">On Hold</button>
+                <button class="btn btn-quiz" id="tryAgainBtn" onclick="handleTryAgain()">Try Again</button>
+                <button class="btn btn-quiz" id="nextQuestionBtn" onclick="handleNextQuestion()">Next Question</button>
+                <button class="btn btn-quiz" id="nextAssignmentBtn" onclick="handleNextAssignment()">Next Assignment</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            // Initialize Supabase
+            function tryInitSupabase(attempts = 0) {
+                if (window.supabase && window.supabase.createClient) {
+                    initSupabase();
+                } else if (attempts < 5) {
+                    setTimeout(() => tryInitSupabase(attempts + 1), 1000);
+                } else {
+                    console.error('❌ Supabase library failed to load');
+                }
+            }
+            
+            tryInitSupabase();
+
+            // Get operation and variant from sessionStorage
+            const operation = sessionStorage.getItem('quizOperation');
+            const variant = sessionStorage.getItem('quizVariant');
+            
+            if (operation && variant) {
+                // Update header
+                setTimeout(() => {
+                    if (typeof updateQuestionPageHeader === 'function') {
+                        updateQuestionPageHeader();
+                    }
+                    // Start the quiz session
+                    if (typeof startSession === 'function') {
+                        startSession(operation, variant);
+                    }
+                }, 500);
+            } else {
+                // No operation/variant, redirect to dashboard
+                console.warn('No operation/variant found, redirecting to dashboard');
+                window.location.href = 'student-dashboard.html';
+            }
+        });
+    </script>
+</body>
+</html>

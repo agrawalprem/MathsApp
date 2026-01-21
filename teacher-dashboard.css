@@ -2,12 +2,14 @@
    TEACHER DASHBOARD - Styles
    ============================================================================ */
 
+/* CALLED BY: teacher-dashboard.html - universal selector (applies to all elements) */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
+/* CALLED BY: teacher-dashboard.html - <body> element */
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -15,6 +17,7 @@ body {
     padding: 20px;
 }
 
+/* CALLED BY: teacher-dashboard.html - <div class="container"> */
 .container {
     max-width: 95%;
     margin: 0 auto;
@@ -24,6 +27,7 @@ body {
     overflow: hidden;
 }
 
+/* CALLED BY: teacher-dashboard.html - <header class="header"> */
 .header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
@@ -35,17 +39,20 @@ body {
     gap: 15px;
 }
 
+/* CALLED BY: teacher-dashboard.html - <h1>Teacher Dashboard - Student Progress</h1> inside .header */
 .header h1 {
     font-size: 24px;
     font-weight: 600;
 }
 
+/* CALLED BY: teacher-dashboard.html - <div class="user-info"> */
 .user-info {
     display: flex;
     align-items: center;
     gap: 15px;
 }
 
+/* CALLED BY: teacher-dashboard.html - <button id="exportBtn" class="btn btn-primary">, <button id="logoutBtn" class="btn btn-secondary"> */
 .btn {
     padding: 10px 20px;
     border: none;
@@ -56,41 +63,49 @@ body {
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
+/* CALLED BY: teacher-dashboard.html - hover state on .btn */
 .btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
+/* CALLED BY: teacher-dashboard.html - <button id="exportBtn" class="btn btn-primary"> */
 .btn-primary {
     background: #28a745;
     color: white;
 }
 
+/* CALLED BY: teacher-dashboard.html - <button id="logoutBtn" class="btn btn-secondary"> */
 .btn-secondary {
     background: rgba(255, 255, 255, 0.2);
     color: white;
 }
 
+/* CALLED BY: teacher-dashboard.html - <div id="loadingMessage" class="loading-message">, <div id="errorMessage" class="error-message hidden"> */
 .loading-message, .error-message {
     padding: 20px 30px;
     text-align: center;
     font-size: 16px;
 }
 
+/* CALLED BY: teacher-dashboard.html - <div id="loadingMessage" class="loading-message">, teacher-dashboard.js - showLoading() (sets style.display) */
 .loading-message {
     color: #667eea;
 }
 
+/* CALLED BY: teacher-dashboard.html - <div id="errorMessage" class="error-message hidden">, teacher-dashboard.js - showError() (adds/removes 'hidden' class, sets textContent) */
 .error-message {
     background: #f8d7da;
     color: #721c24;
     border: 1px solid #f5c6cb;
 }
 
+/* CALLED BY: teacher-dashboard.html - class="hidden" on errorMessage, dashboardControls, dashboardGrid, teacher-dashboard.js - loadDashboard() (removes 'hidden' class from dashboardControls, dashboardGrid), showError() (adds/removes 'hidden' class on errorMessage) */
 .hidden {
     display: none !important;
 }
 
+/* CALLED BY: teacher-dashboard.html - <div id="dashboardControls" class="dashboard-controls hidden">, teacher-dashboard.js - loadDashboard() (removes 'hidden' class) */
 .dashboard-controls {
     padding: 20px 30px;
     display: flex;
@@ -101,6 +116,7 @@ body {
     gap: 15px;
 }
 
+/* CALLED BY: teacher-dashboard.html - <div class="stats">, teacher-dashboard.js - loadDashboard() (sets textContent on studentCount and variantCount) */
 .stats {
     display: flex;
     gap: 20px;
@@ -108,21 +124,25 @@ body {
     font-size: 14px;
 }
 
+/* CALLED BY: teacher-dashboard.html - <strong> elements inside .stats */
 .stats strong {
     color: #333;
 }
 
+/* CALLED BY: teacher-dashboard.html - <div id="dashboardGrid" class="dashboard-grid-container hidden">, teacher-dashboard.js - loadDashboard() (removes 'hidden' class) */
 .dashboard-grid-container {
     padding: 20px;
     overflow: auto;
     max-height: calc(100vh - 250px);
 }
 
+/* CALLED BY: teacher-dashboard.html - <div class="grid-wrapper"> */
 .grid-wrapper {
     overflow-x: auto;
     overflow-y: auto;
 }
 
+/* CALLED BY: teacher-dashboard.html - <table id="progressTable" class="progress-table">, teacher-dashboard.js - buildProgressTable() (creates table structure) */
 .progress-table {
     width: 100%;
     border-collapse: collapse;
@@ -130,6 +150,7 @@ body {
     min-width: 800px;
 }
 
+/* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (creates <th> elements in header row) */
 .progress-table th {
     background: #f8f9fa;
     padding: 12px 8px;
@@ -142,6 +163,7 @@ body {
     white-space: nowrap;
 }
 
+/* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (adds 'fixed-column' class to header cells for Name, Roll, Class, Section columns) */
 .progress-table th.fixed-column {
     background: #e9ecef;
     position: sticky;
@@ -149,6 +171,7 @@ body {
     z-index: 11;
 }
 
+/* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (creates <td> elements in table body) */
 .progress-table td {
     padding: 10px 8px;
     text-align: center;
@@ -156,6 +179,7 @@ body {
     white-space: nowrap;
 }
 
+/* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (adds 'fixed-column' class to name, roll, class, section cells in each row) */
 .progress-table td.fixed-column {
     background: #f8f9fa;
     position: sticky;
@@ -164,14 +188,17 @@ body {
     font-weight: 500;
 }
 
+/* CALLED BY: teacher-dashboard.html - hover state on <tr> elements in tbody */
 .progress-table tbody tr:hover {
     background: #f1f3f5;
 }
 
+/* CALLED BY: teacher-dashboard.html - hover state on <tr> elements, applies to .fixed-column cells */
 .progress-table tbody tr:hover td.fixed-column {
     background: #e9ecef;
 }
 
+/* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (adds 'status-pass' class to variant cells when student has passed) */
 .status-pass {
     background: #d4edda;
     color: #155724;
@@ -179,6 +206,7 @@ body {
     font-size: 16px;
 }
 
+/* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (adds 'status-fail' class to variant cells when student has failed) */
 .status-fail {
     background: #f8d7da;
     color: #721c24;
@@ -186,45 +214,55 @@ body {
     font-size: 16px;
 }
 
+/* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (adds 'status-empty' class to variant cells when student has no data) */
 .status-empty {
     background: #ffffff;
 }
 
 /* Scrollbar styling */
+/* CALLED BY: teacher-dashboard.html - <div class="grid-wrapper"> (custom scrollbar styling for webkit browsers) */
 .grid-wrapper::-webkit-scrollbar {
     height: 10px;
     width: 10px;
 }
 
+/* CALLED BY: teacher-dashboard.html - scrollbar track in .grid-wrapper */
 .grid-wrapper::-webkit-scrollbar-track {
     background: #f1f1f1;
 }
 
+/* CALLED BY: teacher-dashboard.html - scrollbar thumb in .grid-wrapper */
 .grid-wrapper::-webkit-scrollbar-thumb {
     background: #888;
     border-radius: 5px;
 }
 
+/* CALLED BY: teacher-dashboard.html - hover state on scrollbar thumb in .grid-wrapper */
 .grid-wrapper::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
 
 /* Responsive */
+/* CALLED BY: teacher-dashboard.html - responsive breakpoint for tablets and smaller screens */
 @media (max-width: 768px) {
+    /* CALLED BY: teacher-dashboard.html - .header on smaller screens */
     .header {
         flex-direction: column;
         align-items: flex-start;
     }
 
+    /* CALLED BY: teacher-dashboard.html - .dashboard-controls on smaller screens */
     .dashboard-controls {
         flex-direction: column;
         align-items: stretch;
     }
 
+    /* CALLED BY: teacher-dashboard.html - .progress-table on smaller screens */
     .progress-table {
         font-size: 11px;
     }
 
+    /* CALLED BY: teacher-dashboard.html - .progress-table th and td on smaller screens */
     .progress-table th,
     .progress-table td {
         padding: 8px 4px;

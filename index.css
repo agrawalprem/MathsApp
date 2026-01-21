@@ -1,0 +1,110 @@
+/* ============================================================================
+   INDEX PAGE - Registration/Authentication Styles
+   ============================================================================ */
+
+/* Registration Page Layout */
+/* CALLED BY: index.html - <div id="registrationPage" class="registration-page"> */
+.registration-page {
+    text-align: center;
+}
+
+/* CALLED BY: index.html - <h1 class="page-title">Learning Maths in Baby Steps</h1> */
+.page-title {
+    color: #333;
+    margin-bottom: 30px;
+    font-size: 28px;
+    text-align: center;
+}
+
+/* CALLED BY: index.html - <div class="auth-buttons-grid"> */
+.auth-buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* CALLED BY: index.html - <button class="btn btn-auth" onclick="showAnonymousUser()">, showRegistration(), showLogin(), showForgotPassword() */
+.btn-auth {
+    padding: 12px 20px;
+    font-size: 16px;
+}
+
+/* CALLED BY: index.html - <div id="authContentArea" class="auth-content-area">, index.js - showAnonymousUser(), showRegistration(), showLogin(), showForgotPassword() (sets contentArea.style.display) */
+.auth-content-area {
+    min-height: 300px;
+    margin-top: 30px;
+    display: none;
+}
+
+/* CALLED BY: index.js - showAnonymousUser(), showRegistration(), showLogin(), showForgotPassword() (creates <div class="auth-form-container">) */
+.auth-form-container {
+    max-width: 500px;
+    margin: 0 auto;
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* CALLED BY: index.js - showRegistration(), showLogin(), showForgotPassword() (creates <h3> inside auth-form-container) */
+.auth-form-container h3 {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+/* Authentication Form Styles */
+/* CALLED BY: index.js - showRegistration() (creates <form id="registrationForm" class="auth-form">), showLogin() (creates <form id="loginForm" class="auth-form">), showForgotPassword() (creates <form id="forgotPasswordForm" class="auth-form"> and <form id="resetPasswordForm" class="auth-form">) */
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+/* CALLED BY: index.js - showRegistration(), showLogin(), showForgotPassword() (creates <input> and <select> elements inside .auth-form) */
+.auth-form input,
+.auth-form select {
+    padding: 12px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    background-color: white;
+    transition: border-color 0.3s ease;
+}
+
+/* CALLED BY: index.js - showRegistration(), showLogin(), showForgotPassword() (applies to <input> and <select> elements on focus) */
+.auth-form input:focus,
+.auth-form select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* CALLED BY: index.js - showRegistration() (creates <select id="regUserType"> and <select id="regGender">) */
+.auth-form select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 40px;
+}
+
+/* CALLED BY: index.js - showRegistration() (creates <div id="regError" class="auth-error">), showLogin() (creates <div id="loginError" class="auth-error">), showForgotPassword() (creates <div id="forgotError" class="auth-error"> and <div id="resetError" class="auth-error">), handleRegistration(), handleLoginForm(), handleForgotPasswordForm(), handleResetPasswordForm() (sets errorEl.textContent) */
+.auth-error {
+    color: #dc3545;
+    font-size: 14px;
+    margin-top: 10px;
+    min-height: 20px;
+}
+
+/* Loading State */
+/* CALLED BY: index.js - handleRegistration(), handleLoginForm(), handleForgotPasswordForm(), handleResetPasswordForm() (adds 'loading' class to form elements) */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}

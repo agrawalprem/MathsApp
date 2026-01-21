@@ -1,0 +1,170 @@
+/* ============================================================================
+   STUDENT DASHBOARD - Dashboard-specific Styles
+   ============================================================================ */
+
+/* CALLED BY: student-dashboard.html - <div id="studentDashboard" class="student-dashboard">, student-dashboard.js - updateAuthUI() (sets studentDashboard.style.display) */
+.student-dashboard {
+    margin-top: 20px;
+}
+
+/* CALLED BY: student-dashboard.html - <div class="operations-grid"> */
+.operations-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+/* CALLED BY: student-dashboard.html - <div class="operation-card" onclick="selectOperation('addition')">, student-dashboard.js - selectOperation() (adds/removes 'selected' class), updateOperationCompletionStatus() (adds/removes 'completed' class) */
+.operation-card {
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+/* CALLED BY: student-dashboard.html - hover state on .operation-card */
+.operation-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    border-color: #667eea;
+}
+
+/* CALLED BY: student-dashboard.js - selectOperation() (adds 'selected' class to clicked card) */
+.operation-card.selected {
+    border-color: #667eea;
+    background: #f0f4ff;
+}
+
+/* CALLED BY: student-dashboard.js - updateOperationCompletionStatus() (adds 'completed' class when all variants passed) */
+.operation-card.completed {
+    background: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+/* CALLED BY: student-dashboard.html - hover state on .operation-card.completed */
+.operation-card.completed:hover {
+    background: #c3e6cb;
+}
+
+/* CALLED BY: student-dashboard.html - <div class="operation-symbol">+</div> */
+.operation-symbol {
+    font-size: 32px;
+    font-weight: bold;
+    color: #667eea;
+    margin-bottom: 5px;
+}
+
+/* CALLED BY: student-dashboard.html - <div class="operation-name">Addition</div> */
+.operation-name {
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+}
+
+/* CALLED BY: student-dashboard.html - <div id="variantsContainer" class="variants-container"></div>, student-dashboard.js - loadVariantsForOperation() (appends variant cards) */
+.variants-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+}
+
+/* CALLED BY: student-dashboard.js - loadVariantsForOperation() (creates <div class="variant-card">), updateAuthUI() (removes 'passed'/'failed' classes) */
+.variant-card {
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+/* CALLED BY: student-dashboard.js - hover state on .variant-card */
+.variant-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    border-color: #667eea;
+}
+
+/* CALLED BY: student-dashboard.js - loadVariantsForOperation() (adds 'passed' class when variant is in passedVariants Set) */
+.variant-card.passed {
+    background: #d4edda;
+    border-color: #28a745;
+    color: #155724;
+}
+
+/* CALLED BY: student-dashboard.js - hover state on .variant-card.passed */
+.variant-card.passed:hover {
+    background: #c3e6cb;
+}
+
+/* CALLED BY: student-dashboard.js - loadVariantsForOperation() (adds 'failed' class when variant is in failedVariants Set) */
+.variant-card.failed {
+    background: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+/* CALLED BY: student-dashboard.js - hover state on .variant-card.failed */
+.variant-card.failed:hover {
+    background: #f5c6cb;
+}
+
+/* CALLED BY: student-dashboard.js - loadVariantsForOperation() (creates <div class="variant-name">) */
+.variant-name {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+/* CALLED BY: student-dashboard.js - loadVariantsForOperation() (creates <div class="variant-status">) */
+.variant-status {
+    font-size: 12px;
+    color: #666;
+}
+
+/* CALLED BY: student-dashboard.js - loadVariantsForOperation() (applies to .variant-status inside .variant-card.passed) */
+.variant-card.passed .variant-status {
+    color: #155724;
+    font-weight: 600;
+}
+
+/* CALLED BY: student-dashboard.js - loadVariantsForOperation() (applies to .variant-status inside .variant-card.failed) */
+.variant-card.failed .variant-status {
+    color: #721c24;
+    font-weight: 600;
+}
+
+/* Responsive Design */
+/* CALLED BY: student-dashboard.html - responsive breakpoint for tablets and smaller screens */
+@media (max-width: 768px) {
+    /* CALLED BY: student-dashboard.html - .operations-grid on smaller screens */
+    .operations-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    /* CALLED BY: student-dashboard.html - .variants-container on smaller screens */
+    .variants-container {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+}
+
+/* CALLED BY: student-dashboard.html - responsive breakpoint for mobile devices */
+@media (max-width: 480px) {
+    /* CALLED BY: student-dashboard.html - .operations-grid on mobile screens */
+    .operations-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* CALLED BY: shared.css - .dashboard-header on mobile screens (applies to student-dashboard.html) */
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

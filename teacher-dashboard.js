@@ -23,13 +23,17 @@ const learningSequence = {
 };
 
 // Initialize Supabase
+// CALLED BY: teacher-dashboard.js - initDashboard() (initializes Supabase client)
 function initSupabase() {
+    if (window.debugLog) window.debugLog('initSupabase(teacher-dashboard)');
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     console.log('✅ Supabase initialized');
 }
 
 // Check authentication on page load
+// CALLED BY: teacher-dashboard.html - DOMContentLoaded listener (initializes dashboard on page load)
 async function initDashboard() {
+    if (window.debugLog) window.debugLog('initDashboard');
     initSupabase();
     
     // Check for existing session
@@ -44,7 +48,9 @@ async function initDashboard() {
 }
 
 // Load teacher dashboard data
+// CALLED BY: teacher-dashboard.js - initDashboard() (loads dashboard data after authentication check)
 async function loadTeacherDashboard() {
+    if (window.debugLog) window.debugLog('loadTeacherDashboard');
     try {
         showLoading(true);
         showError('');
@@ -151,7 +157,9 @@ async function loadTeacherDashboard() {
 }
 
 // Build the dashboard grid
+// CALLED BY: teacher-dashboard.js - loadTeacherDashboard() (builds the progress table after loading data)
 function buildDashboardGrid() {
+    if (window.debugLog) window.debugLog('buildDashboardGrid');
     const tableHead = document.getElementById('tableHead');
     const tableBody = document.getElementById('tableBody');
 
@@ -231,7 +239,9 @@ function buildDashboardGrid() {
 }
 
 // Get pass/fail status for a variant
+// CALLED BY: teacher-dashboard.js - buildDashboardGrid() (gets status for each variant cell in the table)
 function getVariantStatus(userId, operation, variant) {
+    if (window.debugLog) window.debugLog('getVariantStatus', `(${operation}, ${variant})`);
     const scores = studentScores.filter(s => 
         s.user_id === userId && 
         s.operation === operation && 
@@ -248,7 +258,9 @@ function getVariantStatus(userId, operation, variant) {
 }
 
 // Export to Excel
+// CALLED BY: teacher-dashboard.html - <button onclick="exportToExcel()">Export to Excel</button>
 async function exportToExcel() {
+    if (window.debugLog) window.debugLog('exportToExcel');
     try {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Student Progress');
@@ -363,7 +375,9 @@ async function exportToExcel() {
 }
 
 // Handle logout
+// CALLED BY: teacher-dashboard.html - <button onclick="handleLogout()">Logout</button>
 async function handleLogout() {
+    if (window.debugLog) window.debugLog('handleLogout');
     if (supabase) {
         await supabase.auth.signOut();
     }
@@ -371,11 +385,15 @@ async function handleLogout() {
 }
 
 // Utility functions
+// CALLED BY: teacher-dashboard.js - loadTeacherDashboard() (shows/hides loading message)
 function showLoading(show) {
+    if (window.debugLog) window.debugLog('showLoading', `(show=${show})`);
     document.getElementById('loadingMessage').style.display = show ? 'block' : 'none';
 }
 
+// CALLED BY: teacher-dashboard.js - loadTeacherDashboard() (displays error messages), teacher-dashboard.js - buildDashboardGrid() (displays errors)
 function showError(message) {
+    if (window.debugLog) window.debugLog('showError');
     const errorEl = document.getElementById('errorMessage');
     if (message) {
         errorEl.textContent = message;
