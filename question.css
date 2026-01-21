@@ -1,0 +1,144 @@
+/* ============================================================================
+   QUESTION PAGE - Quiz/Question-specific Styles
+   ============================================================================ */
+
+/* CALLED BY: question.html - <div id="questionSection" class="question-container">, question.js - displayQuestion() (scrolls container on mobile) */
+.question-container {
+    margin-top: 20px;
+}
+
+/* CALLED BY: question.html - <div class="question-block"> */
+.question-block {
+    background: white;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    padding: 30px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* CALLED BY: question.html - <div class="question-line" id="line1">, <div class="question-line" id="line2">, question.js - displayQuestion() (sets textContent, adds/removes 'hidden' class) */
+.question-line {
+    font-size: 24px;
+    margin: 10px 0;
+    font-weight: 500;
+    color: #333;
+}
+
+/* CALLED BY: question.html - <input type="number" id="answerInput" class="answer-input">, question.js - setupNormalInput() (shows input, adds event listeners), setupRightToLeftInput() (hides input) */
+.answer-input {
+    font-size: 24px;
+    padding: 10px;
+    border: 2px solid #667eea;
+    border-radius: 8px;
+    text-align: center;
+    width: 100px;
+    margin: 0 10px;
+}
+
+/* CALLED BY: question.html - focus state on .answer-input */
+.answer-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* CALLED BY: question.html - <div id="answerDisplay" class="answer-display hidden">, question.js - setupNormalInput() (hides answerDisplay), setupRightToLeftInput() (hides answerDisplay) */
+.answer-display {
+    display: inline-block;
+    font-size: 24px;
+    padding: 10px;
+    border: 2px solid #667eea;
+    border-radius: 8px;
+    min-width: 100px;
+    margin: 0 10px;
+    background: #f8f9fa;
+}
+
+/* CALLED BY: question.html - <input type="text" id="hiddenInput" class="hidden-input"> */
+.hidden-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* CALLED BY: question.html - <table id="multidigitTable" class="multidigit-table hidden">, question.js - setupRightToLeftInput() (creates table structure, removes 'hidden' class), setupNormalInput() (adds 'hidden' class) */
+.multidigit-table {
+    margin: 20px auto;
+    border-collapse: collapse;
+    width: auto;
+}
+
+/* CALLED BY: question.js - setupRightToLeftInput() (creates <td> elements in table) */
+.multidigit-table td {
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: center;
+    min-width: 50px;
+    font-size: 20px;
+    min-height: 44px; /* keep all rows tall enough even when empty */
+    height: 44px;
+    vertical-align: middle;
+}
+
+/* Add a thick dividing line after the second row */
+.multidigit-table tr:nth-child(2) td {
+    border-bottom: 3px solid #667eea;
+}
+
+/* CALLED BY: question.js - setupRightToLeftInput() (adds 'answer-cell' class to answer input cells) */
+.multidigit-table td.answer-cell {
+    background: #f0f4ff;
+    border-color: #667eea;
+}
+
+/* CALLED BY: question.js - setupRightToLeftInput() (creates <input> elements inside .answer-cell) */
+.multidigit-table td.answer-cell input {
+    border: none;
+    background: transparent;
+    text-align: center;
+    font-size: 20px;
+    width: 100%;
+    outline: none;
+    height: 100%;
+    line-height: 1.2;
+}
+
+/* CALLED BY: question.html - <div class="timer hidden" id="timer">, question.js - startTimer() (adds 'hidden' class, sets display: none) */
+.timer {
+    text-align: right;
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 20px;
+}
+
+/* CALLED BY: question.html - <div class="correct-answer" id="line4">, question.js - checkAnswer() (sets textContent to show correct answer when wrong) */
+.correct-answer {
+    font-size: 18px;
+    color: #28a745;
+    margin-top: 15px;
+    font-weight: 500;
+}
+
+/* CALLED BY: question.html - <div class="quiz-controls hidden" id="quizControls">, question.js - displayQuestion() (removes 'hidden' class for multi-digit variants, adds 'hidden' class for standard variants), startSession() (adds 'hidden' class initially) */
+.quiz-controls {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 20px;
+    justify-items: stretch;
+}
+
+/* CALLED BY: question.html - <button class="btn btn-quiz" id="onHoldBtn">, <button class="btn btn-quiz" id="tryAgainBtn">, <button class="btn btn-quiz" id="nextQuestionBtn">, <button class="btn btn-quiz" id="nextAssignmentBtn"> */
+.btn-quiz {
+    padding: 8px 16px;
+    font-size: 14px;
+    min-width: 120px;
+    width: 100%; /* fill grid cell */
+}
+
+/* CALLED BY: question.html - class="hidden" on timer, answerDisplay, multidigitTable, quizControls, question.js - displayQuestion() (adds/removes 'hidden' class on line1, line2, quizControls), setupNormalInput() (adds 'hidden' class to answerDisplay, multidigitTable), setupRightToLeftInput() (adds 'hidden' class to input, answerDisplay, removes from multidigitTable), startTimer() (adds 'hidden' class to timer), startSession() (adds 'hidden' class to quizControls). Note: Uses !important to override any conflicting styles on question page. */
+.hidden {
+    display: none !important;
+    visibility: hidden;
+}
