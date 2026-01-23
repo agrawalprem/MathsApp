@@ -20,9 +20,60 @@
             <div class="auth-buttons-grid">
                 <button class="btn btn-auth" onclick="showAnonymousUser()">Anonymous User</button>
                 <button class="btn btn-auth" onclick="showRegistration()">Registration</button>
-                <button class="btn btn-auth" onclick="showLogin()">Login</button>
+                <div class="auth-combined">
+                    <button class="btn btn-auth" onclick="showLogin()" id="loginBtnTop">Login</button>
+                    <button class="btn btn-auth hidden" onclick="handleLogout()" id="logoutBtnTop">Logout</button>
+                </div>
                 <button class="btn btn-auth" onclick="showForgotPassword()">Forgot Password</button>
-                <button class="btn btn-auth hidden" onclick="handleLogout()" id="logoutBtnTop">Logout</button>
+            </div>
+            
+            <!-- Teaching Method Information -->
+            <div class="teaching-method-info">
+                <div class="welcome-text">
+                    <p>Welcome to this new method of teaching children the fundamentals of arithmetic. The object of this method is to make children fluent in</p>
+                </div>
+                
+                <div class="operations-row">
+                    <div class="operation-box">Single-digit Addition</div>
+                    <div class="operation-box">Single-digit Subtraction</div>
+                    <div class="operation-box">Single-digit Multiplication</div>
+                    <div class="operation-box">Single-digit Division</div>
+                </div>
+                
+                <div class="pedagogical-text">
+                    <p>The emphasis is on practice and perfection. Both speed and accuracy are important. Each child learns at her own pace and the progress of each child is tracked. Apart from single digit operations, children also learn the art of mental calculation in</p>
+                </div>
+                
+                <div class="operations-row">
+                    <div class="operation-box">Multi-digit Addition</div>
+                    <div class="operation-box">Multi-digit Subtraction</div>
+                    <div class="operation-box">Multi-digit Multiplication by 1-digit</div>
+                    <div class="operation-box">Multi-digit<br>Division<br>by 1-digit</div>
+                </div>
+                
+                <div class="techniques-list">
+                    <ul>
+                        <li>Multi-digit Addition and multiplication are done without writing carry.</li>
+                        <li>Multi-digit subtraction is done without writing borrowing.</li>
+                        <li>Multi-digit division is done without writing remainder.</li>
+                    </ul>
+                </div>
+                
+                <div class="progression-arrow">
+                    <div class="math-box math-box-left">I hate Maths</div>
+                    <div class="arrow-container">
+                        <svg width="60" height="40" viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M 5 15 L 45 15 L 45 8 L 55 20 L 45 32 L 45 25 L 5 25 Z" fill="#156082"/>
+                        </svg>
+                    </div>
+                    <div class="math-box math-box-right">I love Maths</div>
+                </div>
+                
+                <div class="contact-info">
+                    <span class="contact-name">Prem Agrawal</span>
+                    <a href="mailto:agrawal.prem@gmail.com" class="contact-email">agrawal.prem@gmail.com</a>
+                    <span class="contact-phone">+91 9822847682</span>
+                </div>
             </div>
             
             <div id="authContentArea" class="auth-content-area">

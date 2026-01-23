@@ -198,6 +198,13 @@ body {
     background: #e9ecef;
 }
 
+/* Ensure active status cells maintain yellow background even on hover */
+.progress-table tbody tr:hover td.status-active-correct,
+.progress-table tbody tr:hover td.status-active-wrong,
+.progress-table tbody tr:hover td.status-active-unknown {
+    background: #FFD700;
+}
+
 /* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (adds 'status-pass' class to variant cells when student has passed) */
 .status-pass {
     background: #d4edda;
@@ -217,6 +224,58 @@ body {
 /* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (adds 'status-empty' class to variant cells when student has no data) */
 .status-empty {
     background: #ffffff;
+}
+
+/* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (adds 'status-active-correct' class when student is actively working and last question was correct) */
+.status-active-correct {
+    background: #FFD700; /* Yellow background */
+    color: #155724; /* Green text for correct answers */
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (adds 'status-active-wrong' class when student is actively working and last question was wrong) */
+.status-active-wrong {
+    background: #FFD700; /* Yellow background */
+    color: #721c24; /* Red text for wrong answers */
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (adds 'status-active-unknown' class when student is actively working but question status is unknown) */
+.status-active-unknown {
+    background: #FFD700; /* Yellow background */
+    color: #333; /* Dark gray text for unknown status */
+    font-weight: 600;
+    font-size: 14px;
+}
+
+/* CALLED BY: teacher-dashboard.html - .operation-toggle-buttons (container for collapse/expand buttons) */
+.operation-toggle-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+/* CALLED BY: teacher-dashboard.html - .btn-toggle (collapse/expand buttons for operations) */
+.btn-toggle {
+    padding: 6px 12px;
+    font-size: 13px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-toggle:hover {
+    background: #5a6268;
+}
+
+/* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (adds 'hidden-column' class to hide variant columns) */
+.hidden-column {
+    display: none !important;
 }
 
 /* Scrollbar styling */

@@ -1,0 +1,30 @@
+# Documentation files
+*.md
+*.docx
+*.xlsx
+
+# SQL scripts
+*.sql
+
+# Verification scripts
+verification/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Node modules (if any)
+node_modules/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.log
+*.bak

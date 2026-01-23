@@ -770,6 +770,7 @@ function askNextQuestion() {
 
     currentSession.askedQuestions.add(questionKey);
     displayQuestion(question);
+    updateProgressTracker();
     startTimer();
 }
 
@@ -808,13 +809,9 @@ function displayQuestion(question) {
     // Show/hide quiz controls based on variant type (only for multi-digit)
     const quizControls = document.getElementById('quizControls');
     if (quizControls) {
-        if (isMultiDigit) {
-            quizControls.classList.remove('hidden');
-            quizControls.style.display = 'flex';
-        } else {
-            quizControls.classList.add('hidden');
-            quizControls.style.display = 'none';
-        }
+        // Keep buttons hidden initially for all variants (will be shown only on wrong answer for multi-digit)
+        quizControls.classList.add('hidden');
+        quizControls.style.display = 'none';
     }
     
     if (isMultiDigit) {
@@ -1446,6 +1443,18 @@ function checkAnswer(question, userAnswer) {
         isCorrect: isCorrect
     });
 
+    // Update active session tracking (question number is 1-based for display)
+    if (typeof window.updateActiveSession === 'function') {
+        const questionNo = currentSession.questionIndex + 1; // Convert 0-based to 1-based
+        window.updateActiveSession(
+            operation,
+            currentSession.variant,
+            questionNo,
+            isCorrect,
+            currentSession.questions.length
+        );
+    }
+
     // Disable input (both normal, right-to-left display, and table)
     const input = document.getElementById('answerInput');
     const answerDisplay = document.getElementById('answerDisplay');
@@ -1468,11 +1477,13 @@ function checkAnswer(question, userAnswer) {
     // If wrong or no answer, speak and wait for speech to complete (skip for multi-digit variants)
     const variantConfig = variants[operation][currentSession.variant];
     if (!isCorrect && variantConfig.rightToLeft) {
-        // Multi-digit variant: answer already shown in row 4, wait 6 seconds, then move to next question
-        setTimeout(() => {
-            currentSession.questionIndex++;
-            askNextQuestion();
-        }, 6000);
+        // Multi-digit variant: answer already shown in row 4, show buttons and wait for user action
+        const quizControls = document.getElementById('quizControls');
+        if (quizControls) {
+            quizControls.classList.remove('hidden');
+            quizControls.style.display = 'flex';
+        }
+        // Don't auto-advance - wait for user to click a button (Try Again, Next Question, or Next Assignment)
     } else if (!isCorrect) {
         // Standard variant: speak and wait for speech to complete
         speakQuestionAndAnswer(question, correctAnswer).then(() => {
@@ -1584,7 +1595,39 @@ function updateQuestionPageHeader() {
     if (userRollDisplay) userRollDisplay.textContent = 'Roll Number: NA';
 }
 
-// CALLED BY: question.html - <button onclick="goBackToDashboard()">Go Back</button>
+/**
+ * REQUIREMENTS:
+ * - Update progress tracker to show current question number / total questions
+ * - Update both progress text and progress bar
+ * - Calculate percentage for progress bar width
+ * - No return value
+ * 
+ * CALLED BY: question.js - askNextQuestion() (after question is displayed)
+ */
+function updateProgressTracker() {
+    if (window.debugLog) window.debugLog('updateProgressTracker');
+    if (!currentSession || !currentSession.questions) {
+        return;
+    }
+    
+    const currentQuestion = currentSession.questionIndex + 1; // 1-based for display
+    const totalQuestions = currentSession.questions.length;
+    const percentage = totalQuestions > 0 ? (currentQuestion / totalQuestions) * 100 : 0;
+    
+    // Update progress text
+    const progressText = document.getElementById('progressText');
+    if (progressText) {
+        progressText.textContent = `${currentQuestion} / ${totalQuestions}`;
+    }
+    
+    // Update progress bar
+    const progressBar = document.getElementById('progressBar');
+    if (progressBar) {
+        progressBar.style.width = `${percentage}%`;
+    }
+}
+
+// CALLED BY: question.html - <button onclick="goBackToDashboard()">Dashboard</button>
 function goBackToDashboard() {
     if (window.debugLog) window.debugLog('goBackToDashboard');
     window.location.href = 'student-dashboard.html';
@@ -1620,10 +1663,25 @@ function handleResume() {
 // CALLED BY: question.html - <button onclick="handleTryAgain()">Try Again</button>
 function handleTryAgain() {
     if (window.debugLog) window.debugLog('handleTryAgain');
-    if (typeof askNextQuestion === 'function' && currentSession) {
+    
+    // Hide buttons
+    const quizControls = document.getElementById('quizControls');
+    if (quizControls) {
+        quizControls.classList.add('hidden');
+        quizControls.style.display = 'none';
+    }
+    
+    if (currentSession) {
+        // Store current question before incrementing
         const currentQuestion = currentSession.questions[currentSession.questionIndex];
+        
+        // Increment questionIndex (counts as next question)
+        currentSession.questionIndex++;
+        
+        // Display the same question again
         if (currentQuestion) {
             displayQuestion(currentQuestion);
+            startTimer();
         }
     }
 }
@@ -1631,6 +1689,21 @@ function handleTryAgain() {
 // CALLED BY: question.html - <button onclick="handleNextQuestion()">Next Question</button>
 function handleNextQuestion() {
     if (window.debugLog) window.debugLog('handleNextQuestion');
+    
+    // Hide buttons
+    const quizControls = document.getElementById('quizControls');
+    if (quizControls) {
+        quizControls.classList.add('hidden');
+        quizControls.style.display = 'none';
+    }
+    
+    // Increment questionIndex and move to next question
+    // Note: askNextQuestion() will increment questionIndex, so we increment here first
+    if (currentSession) {
+        currentSession.questionIndex++;
+    }
+    
+    // Call askNextQuestion (will display next question)
     if (typeof askNextQuestion === 'function') {
         askNextQuestion();
     }
@@ -1648,6 +1721,7 @@ window.continueSession = continueSession;
 window.showTerminationModal = showTerminationModal;
 window.updateQuestionPageHeader = updateQuestionPageHeader;
 window.goBackToDashboard = goBackToDashboard;
+window.updateProgressTracker = updateProgressTracker;
 window.handleOnHold = handleOnHold;
 window.handleResume = handleResume;
 window.handleTryAgain = handleTryAgain;

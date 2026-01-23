@@ -21,7 +21,7 @@
                     <span id="summaryUserNameDisplay">Name: </span>
                     <span id="summaryUserClassDisplay">Class: </span>
                     <span id="summaryUserRollDisplay">Roll Number: </span>
-                    <button class="btn btn-back-small" onclick="resetSession()">Go Back</button>
+                    <button class="btn btn-back-small" onclick="window.location.href = 'student-dashboard.html'">Dashboard</button>
                 </div>
             </div>
             
@@ -65,15 +65,6 @@
             }
         }
 
-        // Override resetSession to navigate to dashboard
-        const originalResetSession = window.resetSession;
-        window.resetSession = function() {
-            if (originalResetSession) {
-                originalResetSession();
-            }
-            // Navigate to dashboard
-            window.location.href = 'student-dashboard.html';
-        };
 
         window.addEventListener('DOMContentLoaded', () => {
             // Initialize Supabase

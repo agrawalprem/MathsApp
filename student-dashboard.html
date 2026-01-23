@@ -21,7 +21,8 @@
                     <span id="userNameDisplay">Name: </span>
                     <span id="userClassDisplay">Class: </span>
                     <span id="userRollDisplay">Roll Number: </span>
-                    <button class="btn btn-back-small" onclick="goBackToRegistration()">Go Back</button>
+                    <button id="teacherDashboardBtn" class="btn btn-back-small hidden" onclick="window.location.href = 'teacher-dashboard.html'">Teacher Dashboard</button>
+                    <button class="btn btn-back-small" onclick="handleLogout()">Logout</button>
                 </div>
             </div>
             
@@ -81,9 +82,6 @@
             }
         }
 
-        function goBackToRegistration() {
-            window.location.href = 'index.html';
-        }
 
         // Override launchVariant to navigate to question page
         const originalLaunchVariant = window.launchVariant;
@@ -96,6 +94,13 @@
         };
 
         window.addEventListener('DOMContentLoaded', () => {
+            // Set selected operation early so updateAuthUI() can use it
+            window.selectedOperation = 'addition';
+            const additionCard = document.querySelector('.operation-card[onclick*="addition"]');
+            if (additionCard) {
+                additionCard.classList.add('selected');
+            }
+            
             // Initialize Supabase
             function tryInitSupabase(attempts = 0) {
                 if (window.supabase && window.supabase.createClient) {
@@ -109,21 +114,21 @@
             
             tryInitSupabase();
 
-            // Wait for Supabase to initialize, then update UI and load variants
+            // Fallback: If updateAuthUI() hasn't loaded variants after 3 seconds, load them directly
+            // This ensures variants always load even if updateAuthUI() is delayed or fails
             setTimeout(() => {
-                // Update header
-                updateStudentDashboardHeader();
+                const variantsContainer = document.getElementById('variantsContainer');
+                const isLoading = variantsContainer && (
+                    variantsContainer.innerHTML.includes('Loading variants...') ||
+                    variantsContainer.innerHTML.trim() === ''
+                );
                 
-                // Select Addition by default and load variants
-                window.selectedOperation = 'addition';
-                const additionCard = document.querySelector('.operation-card[onclick*="addition"]');
-                if (additionCard) {
-                    additionCard.classList.add('selected');
+                // If still loading or empty, and loadVariantsForOperation is available, load variants
+                if (isLoading && typeof loadVariantsForOperation === 'function' && window.selectedOperation) {
+                    console.log('⏳ Fallback: Loading variants directly (updateAuthUI may not have completed)');
+                    loadVariantsForOperation(window.selectedOperation);
                 }
-                if (typeof loadVariantsForOperation === 'function') {
-                    loadVariantsForOperation('addition');
-                }
-            }, 1000);
+            }, 3000);
         });
     </script>
 </body>

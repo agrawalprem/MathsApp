@@ -104,6 +104,16 @@ async function updateAuthUI(skipPageSwitch = false) {
                 console.warn('Unable to cache user profile for quiz header', e);
             }
             
+            // Show/hide Teacher Dashboard button based on user type
+            const teacherDashboardBtn = document.getElementById('teacherDashboardBtn');
+            if (teacherDashboardBtn) {
+                if (currentUserProfile && currentUserProfile.user_type === 'Teacher') {
+                    teacherDashboardBtn.classList.remove('hidden');
+                } else {
+                    teacherDashboardBtn.classList.add('hidden');
+                }
+            }
+            
             await fetchPassedVariants();
             await fetchFailedVariants();
             updateOperationCompletionStatus();
@@ -120,6 +130,12 @@ async function updateAuthUI(skipPageSwitch = false) {
         currentUserProfile = null;
         window.passedVariants.clear();
         window.failedVariants.clear();
+        
+        // Hide Teacher Dashboard button when logged out
+        const teacherDashboardBtn = document.getElementById('teacherDashboardBtn');
+        if (teacherDashboardBtn) {
+            teacherDashboardBtn.classList.add('hidden');
+        }
         
         document.querySelectorAll('.variant-card').forEach(card => {
             card.classList.remove('passed', 'failed');
@@ -203,6 +219,9 @@ async function loadVariantsForOperation(operation) {
 
     container.innerHTML = '';
     
+    // Fetch all variant scores for this operation
+    const allScores = await window.fetchAllVariantScores();
+    
     sortedKeys.forEach(variantKey => {
         const variant = opsVariants[variantKey];
         const variantKeyFull = `${operation}_${variantKey}`;
@@ -221,9 +240,18 @@ async function loadVariantsForOperation(operation) {
         
         let statusText = 'Not started';
         if (isPassed) {
-            statusText = '✓ Passed';
+            // Get minimum average_time from all passed attempts
+            const variantData = allScores[variantKeyFull];
+            if (variantData && variantData.minTime != null) {
+                statusText = `✓ ${variantData.minTime.toFixed(1)}s`;
+            } else {
+                statusText = '✓ Passed';
+            }
         } else if (isFailed) {
-            statusText = '✗ All attempts failed';
+            // Get failed attempt count
+            const variantData = allScores[variantKeyFull];
+            const attemptCount = variantData?.failedCount || 0;
+            statusText = `✗ ${attemptCount} attempt${attemptCount !== 1 ? 's' : ''}`;
         }
         
         card.innerHTML = `
@@ -245,9 +273,21 @@ function launchVariant(operation, variant) {
     window.location.href = 'question.html';
 }
 
-// CALLED BY: student-dashboard.html - <button onclick="goBackToRegistration()">Go Back</button>
-function goBackToRegistration() {
-    if (window.debugLog) window.debugLog('goBackToRegistration');
+// Handle logout
+// CALLED BY: student-dashboard.html - <button onclick="handleLogout()">Logout</button>
+async function handleLogout() {
+    if (window.debugLog) window.debugLog('handleLogout');
+    // Clear active session tracking
+    if (typeof window.clearActiveSession === 'function') {
+        await window.clearActiveSession();
+    }
+    // Clear session timeout
+    if (typeof window.clearSessionTimeout === 'function') {
+        window.clearSessionTimeout();
+    }
+    if (supabase) {
+        await supabase.auth.signOut();
+    }
     window.location.href = 'index.html';
 }
 
@@ -260,4 +300,4 @@ window.updateAuthUI = updateAuthUI;
 window.selectOperation = selectOperation;
 window.loadVariantsForOperation = loadVariantsForOperation;
 window.launchVariant = launchVariant;
-window.goBackToRegistration = goBackToRegistration;
+window.handleLogout = handleLogout;

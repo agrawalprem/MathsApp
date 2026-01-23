@@ -22,6 +22,8 @@
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
     <!-- Supabase Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Shared database module (initializes Supabase) -->
+    <script src="shared_db.js"></script>
 </head>
 <body>
     <div class="container">
@@ -37,8 +39,8 @@
         <header class="header">
             <h1>Teacher Dashboard - Student Progress</h1>
             <div class="user-info">
-                <span id="teacherName"></span>
-                <button id="logoutBtn" class="btn btn-secondary" onclick="handleLogout()">Log Out</button>
+                <button id="studentDashboardBtn" class="btn btn-secondary">Student Dashboard</button>
+                <button id="logoutBtn" class="btn btn-secondary">Log Out</button>
             </div>
         </header>
 
@@ -79,6 +81,12 @@
             <button id="exportBtn" class="btn btn-primary" onclick="exportToExcel()">
                 Export to Excel
             </button>
+            <div class="operation-toggle-buttons">
+                <button class="btn btn-toggle" data-operation="1" onclick="toggleOperation(1)">▼ 1</button>
+                <button class="btn btn-toggle" data-operation="2" onclick="toggleOperation(2)">▼ 2</button>
+                <button class="btn btn-toggle" data-operation="3" onclick="toggleOperation(3)">▼ 3</button>
+                <button class="btn btn-toggle" data-operation="4" onclick="toggleOperation(4)">▼ 4</button>
+            </div>
             <div class="stats">
                 <span>Total Students: <strong id="studentCount">0</strong></span>
                 <span>Total Variants: <strong id="variantCount">0</strong></span>

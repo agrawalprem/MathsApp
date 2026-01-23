@@ -137,6 +137,38 @@
     width: 100%; /* fill grid cell */
 }
 
+/* CALLED BY: question.html - <div class="progress-tracker">, question.js - updateProgressTracker() (updates progress text and bar) */
+.progress-tracker {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* CALLED BY: question.html - <div class="progress-text" id="progressText">, question.js - updateProgressTracker() (sets textContent) */
+.progress-text {
+    font-size: 16px;
+    font-weight: 600;
+    color: #667eea;
+    margin-bottom: 8px;
+}
+
+/* CALLED BY: question.html - <div class="progress-bar-container"> */
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+/* CALLED BY: question.html - <div class="progress-bar" id="progressBar">, question.js - updateProgressTracker() (sets width style) */
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
 /* CALLED BY: question.html - class="hidden" on timer, answerDisplay, multidigitTable, quizControls, question.js - displayQuestion() (adds/removes 'hidden' class on line1, line2, quizControls), setupNormalInput() (adds 'hidden' class to answerDisplay, multidigitTable), setupRightToLeftInput() (adds 'hidden' class to input, answerDisplay, removes from multidigitTable), startTimer() (adds 'hidden' class to timer), startSession() (adds 'hidden' class to quizControls). Note: Uses !important to override any conflicting styles on question page. */
 .hidden {
     display: none !important;

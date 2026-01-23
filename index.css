@@ -19,8 +19,8 @@
 /* CALLED BY: index.html - <div class="auth-buttons-grid"> */
 .auth-buttons-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 15px;
+    grid-template-columns: repeat(4, minmax(120px, 1fr));
+    gap: 8px;
     margin-bottom: 30px;
     max-width: 600px;
     margin-left: auto;
@@ -29,8 +29,16 @@
 
 /* CALLED BY: index.html - <button class="btn btn-auth" onclick="showAnonymousUser()">, showRegistration(), showLogin(), showForgotPassword() */
 .btn-auth {
-    padding: 12px 20px;
-    font-size: 16px;
+    padding: 6px 12px;
+    font-size: 13px;
+    width: 100%;
+}
+
+/* Wrapper for Login/Logout sharing the same grid cell */
+.auth-combined {
+    display: flex;
+    gap: 0;
+    justify-content: center;
 }
 
 /* CALLED BY: index.html - <div id="authContentArea" class="auth-content-area">, index.js - showAnonymousUser(), showRegistration(), showLogin(), showForgotPassword() (sets contentArea.style.display) */
@@ -107,4 +115,173 @@
 .loading {
     opacity: 0.6;
     pointer-events: none;
+}
+
+/* Teaching Method Information Section */
+/* CALLED BY: index.html - <div class="teaching-method-info"> */
+.teaching-method-info {
+    max-width: 900px;
+    margin: 0 auto 40px;
+    padding: 30px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* CALLED BY: index.html - <div class="welcome-text"> */
+.welcome-text {
+    margin-bottom: 12px;
+    font-size: 14px;
+    line-height: 1.3;
+    color: #333;
+    text-align: justify;
+}
+
+/* CALLED BY: index.html - <div class="operations-row"> */
+.operations-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 15px 0;
+}
+
+/* CALLED BY: index.html - <div class="operation-box"> */
+.operation-box {
+    background: #156082; /* Dark teal color */
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-align: center;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60px;
+}
+
+/* CALLED BY: index.html - <div class="pedagogical-text"> */
+.pedagogical-text {
+    margin: 12px 0;
+    font-size: 14px;
+    line-height: 1.3;
+    color: #333;
+    text-align: justify;
+}
+
+/* CALLED BY: index.html - <div class="techniques-list"> */
+.techniques-list {
+    margin: 12px 0;
+    text-align: left;
+}
+
+.techniques-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    text-align: left;
+}
+
+.techniques-list li {
+    padding: 4px 0;
+    padding-left: 25px;
+    position: relative;
+    font-size: 14px;
+    color: #333;
+    line-height: 1.3;
+    text-align: left;
+}
+
+.techniques-list li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    top: -2px;
+    color: #333;
+    font-size: 20px;
+    font-weight: bold;
+    line-height: 1.3;
+}
+
+/* CALLED BY: index.html - <div class="progression-arrow"> */
+.progression-arrow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 15px 0;
+    gap: 15px;
+}
+
+.math-box {
+    background: #156082; /* Dark teal color */
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    min-width: 120px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.arrow-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.arrow-container svg {
+    display: block;
+}
+
+/* CALLED BY: index.html - <div class="contact-info"> */
+.contact-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.contact-name,
+.contact-phone {
+    color: #333;
+    font-size: 15px;
+}
+
+.contact-email {
+    color: #0066cc;
+    text-decoration: none;
+    font-size: 15px;
+}
+
+.contact-email:hover {
+    text-decoration: underline;
+}
+
+/* Responsive design for teaching method info */
+@media (max-width: 768px) {
+    .operations-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .contact-info {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .progression-arrow {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .arrow-container svg {
+        transform: rotate(90deg);
+    }
 }

@@ -1,14 +1,10 @@
 // ============================================================================
 // TEACHER DASHBOARD - JavaScript Logic
 // ============================================================================
+// NOTE: Supabase and currentUser are initialized by shared_db.js (loaded in teacher-dashboard.html)
+// Use the global currentUser from shared_db.js instead of declaring a new one
 
-// Supabase configuration (update with your credentials)
-const SUPABASE_URL = 'https://hgromnervuwqmskdenmb.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhncm9tbmVydnV3cW1za2Rlbm1iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwNTExMDgsImV4cCI6MjA4MzYyNzEwOH0.AYWM-6xGhVWnn61ctxj6fClW7KLEp98dlmrd3e5IqJ8';
-let supabase;
-
-// Current user and data
-let currentUser = null;
+// Teacher dashboard specific data
 let teacherProfile = null;
 let students = [];
 let studentScores = [];
@@ -22,22 +18,79 @@ const learningSequence = {
     division: ['4A1', '4A2', '4A3', '4A', '4B4', '4B5', '4B6', '4B', '4C7', '4C8', '4C9', '4C', '4', '4M1', '4M2']
 };
 
-// Initialize Supabase
-// CALLED BY: teacher-dashboard.js - initDashboard() (initializes Supabase client)
-function initSupabase() {
-    if (window.debugLog) window.debugLog('initSupabase(teacher-dashboard)');
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    console.log('✅ Supabase initialized');
-}
+// Collapse state for operation groups (false = expanded/visible, true = collapsed/hidden)
+let collapsedOperations = {
+    '1': false,  // Operation 1 (Addition): hide 1A0-1D
+    '2': false,  // Operation 2 (Subtraction): hide 2A-2D
+    '3': false,  // Operation 3 (Multiplication): hide 3A0-3C
+    '4': false   // Operation 4 (Division): hide 4A1-4C9
+};
 
 // Check authentication on page load
 // CALLED BY: teacher-dashboard.html - DOMContentLoaded listener (initializes dashboard on page load)
 async function initDashboard() {
     if (window.debugLog) window.debugLog('initDashboard');
-    initSupabase();
     
+    // Wait for Supabase library to load and initialize
+    if (!window.supabase || !window.supabase.createClient) {
+        // Wait for Supabase library to load
+        let attempts = 0;
+        while ((!window.supabase || !window.supabase.createClient) && attempts < 10) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+            attempts++;
+        }
+        if (!window.supabase || !window.supabase.createClient) {
+            throw new Error('Supabase library failed to load');
+        }
+    }
+    
+    // Initialize Supabase if not already initialized
+    // Use window.supabase or global supabase - check if it exists and has the auth property
+    let supabaseClient = typeof supabase !== 'undefined' ? supabase : (typeof window.supabase !== 'undefined' ? window.supabase : null);
+    
+    if (!supabaseClient || !supabaseClient.auth) {
+        if (typeof window.initSupabase === 'function') {
+            await window.initSupabase();
+        } else {
+            // Wait for shared_db.js to expose initSupabase
+            let attempts = 0;
+            while (typeof window.initSupabase !== 'function' && attempts < 10) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+                attempts++;
+            }
+            if (typeof window.initSupabase === 'function') {
+                await window.initSupabase();
+            } else {
+                throw new Error('shared_db.js not loaded or initSupabase not available');
+            }
+        }
+        
+        // Wait for supabase to be fully initialized (check for auth property)
+        let attempts = 0;
+        while (attempts < 20) {
+            // Try both global supabase and window.supabase
+            supabaseClient = typeof supabase !== 'undefined' ? supabase : (typeof window.supabase !== 'undefined' ? window.supabase : null);
+            if (supabaseClient && supabaseClient.auth) {
+                break;
+            }
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+    }
+    
+    // Verify supabase is now initialized with auth property
+    if (!supabaseClient || !supabaseClient.auth) {
+        console.error('❌ Supabase initialization failed.');
+        console.error('   typeof supabase:', typeof supabase);
+        console.error('   supabase value:', supabase);
+        console.error('   typeof window.supabase:', typeof window.supabase);
+        console.error('   window.supabase value:', window.supabase);
+        throw new Error('Supabase initialization failed - auth property not available');
+    }
+    
+    // Use supabaseClient for the rest of this function
     // Check for existing session
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await supabaseClient.auth.getSession();
     if (session) {
         currentUser = session.user;
         await loadTeacherDashboard();
@@ -77,7 +130,6 @@ async function loadTeacherDashboard() {
         }
 
         teacherProfile = profileData;
-        document.getElementById('teacherName').textContent = `Welcome, ${profileData.first_name || profileData.email}`;
         console.log(`✅ Teacher profile loaded: Class ${profileData.class}, Section ${profileData.section}`);
 
         // Fetch all students in teacher's class and section
@@ -131,6 +183,20 @@ async function loadTeacherDashboard() {
         studentScores = scoresData || [];
         console.log(`✅ Found ${studentScores.length} score records`);
 
+        // Fetch active sessions for all students
+        const { data: activeSessionsData, error: activeSessionsError } = await supabase
+            .from('active_sessions')
+            .select('*')
+            .in('user_id', studentUserIds);
+
+        if (activeSessionsError) {
+            console.warn('⚠️ Error fetching active sessions:', activeSessionsError);
+        }
+
+        // Store active sessions in global variable
+        window.activeSessions = activeSessionsData || [];
+        console.log(`✅ Found ${window.activeSessions.length} active sessions`);
+
         // Build flattened variant list for columns
         allVariants = [];
         Object.keys(learningSequence).forEach(operation => {
@@ -149,11 +215,37 @@ async function loadTeacherDashboard() {
         document.getElementById('dashboardControls').classList.remove('hidden');
         document.getElementById('dashboardGrid').classList.remove('hidden');
 
+        // Start polling for active sessions updates every 5 seconds
+        startActiveSessionsPolling();
+
     } catch (error) {
         console.error('❌ Error loading dashboard:', error);
         showError(error.message);
         showLoading(false);
     }
+}
+
+// Check if a variant should be hidden based on collapse state
+// CALLED BY: teacher-dashboard.js - buildDashboardGrid(), updateColumnVisibility() (determines column visibility)
+function shouldHideVariant(operation, variant) {
+    const opNum = operation === 'addition' ? '1' : 
+                  operation === 'subtraction' ? '2' :
+                  operation === 'multiplication' ? '3' :
+                  operation === 'division' ? '4' : null;
+    
+    if (!opNum || !collapsedOperations[opNum]) return false;
+    
+    // Check if variant matches collapse pattern for this operation
+    if (opNum === '1') {
+        return ['1A0', '1A1', '1A2', '1A3', '1A', '1B', '1C', '1D'].includes(variant);
+    } else if (opNum === '2') {
+        return ['2A', '2B', '2C', '2D'].includes(variant);
+    } else if (opNum === '3') {
+        return variant.startsWith('3A') || variant.startsWith('3B') || variant.startsWith('3C');
+    } else if (opNum === '4') {
+        return variant.startsWith('4A') || variant.startsWith('4B') || variant.startsWith('4C');
+    }
+    return false;
 }
 
 // Build the dashboard grid
@@ -170,7 +262,7 @@ function buildDashboardGrid() {
     // Build header row
     const headerRow = document.createElement('tr');
     const headerColumns = [
-        'Student Name', 'Roll #', 'Class', 'Section'
+        'Student', 'Class', 'Roll No.'
     ];
     
     headerColumns.forEach(col => {
@@ -185,6 +277,12 @@ function buildDashboardGrid() {
         const th = document.createElement('th');
         th.textContent = variant;
         th.title = `${operation} - ${variant}`;
+        th.className = 'variant-column';
+        th.dataset.operation = operation;
+        th.dataset.variant = variant;
+        if (shouldHideVariant(operation, variant)) {
+            th.classList.add('hidden-column');
+        }
         headerRow.appendChild(th);
     });
 
@@ -200,35 +298,52 @@ function buildDashboardGrid() {
         nameCell.className = 'fixed-column';
         row.appendChild(nameCell);
 
+        const classCell = document.createElement('td');
+        // Combine class and section (e.g., "5A")
+        const classSection = (student.class || '') + (student.section || '');
+        classCell.textContent = classSection || '';
+        classCell.className = 'fixed-column';
+        row.appendChild(classCell);
+
         const rollCell = document.createElement('td');
         rollCell.textContent = student.roll_number || '';
         rollCell.className = 'fixed-column';
         row.appendChild(rollCell);
-
-        const classCell = document.createElement('td');
-        classCell.textContent = student.class || '';
-        classCell.className = 'fixed-column';
-        row.appendChild(classCell);
-
-        const sectionCell = document.createElement('td');
-        sectionCell.textContent = student.section || '';
-        sectionCell.className = 'fixed-column';
-        row.appendChild(sectionCell);
 
         // Variant status columns
         allVariants.forEach(({ operation, variant }) => {
             const cell = document.createElement('td');
             const status = getVariantStatus(student.user_id, operation, variant);
             
-            if (status === 'pass') {
-                cell.textContent = '✓';
+            if (status && typeof status === 'object' && status.type === 'active') {
+                // Active session - show question number with color
+                cell.textContent = status.questionNo || '0';
+                cell.className = status.isCorrect === true ? 'status-active-correct' : 
+                                 status.isCorrect === false ? 'status-active-wrong' : 
+                                 'status-active-unknown';
+            } else if (status && status.type === 'pass') {
+                // Display minimum average_time for passed variants
+                if (status.minTime != null) {
+                    cell.textContent = `${status.minTime.toFixed(1)}s`;
+                } else {
+                    cell.textContent = '✓';
+                }
                 cell.className = 'status-pass';
-            } else if (status === 'fail') {
-                cell.textContent = '✗';
+            } else if (status && status.type === 'fail') {
+                // Display attempt count for failed variants
+                const count = status.attemptCount || 0;
+                cell.textContent = count > 0 ? `${count}` : '✗';
                 cell.className = 'status-fail';
             } else {
                 cell.textContent = '';
                 cell.className = 'status-empty';
+            }
+            
+            cell.className += ' variant-column';
+            cell.dataset.operation = operation;
+            cell.dataset.variant = variant;
+            if (shouldHideVariant(operation, variant)) {
+                cell.classList.add('hidden-column');
             }
             
             row.appendChild(cell);
@@ -238,23 +353,80 @@ function buildDashboardGrid() {
     });
 }
 
-// Get pass/fail status for a variant
+// Get pass/fail status for a variant (or active session info)
 // CALLED BY: teacher-dashboard.js - buildDashboardGrid() (gets status for each variant cell in the table)
 function getVariantStatus(userId, operation, variant) {
     if (window.debugLog) window.debugLog('getVariantStatus', `(${operation}, ${variant})`);
-    const scores = studentScores.filter(s => 
-        s.user_id === userId && 
-        s.operation === operation && 
-        s.variant === variant
-    );
+    
+    try {
+        // FIRST: Check for active session - active sessions take priority over completed scores
+        // because they show what the student is currently working on
+        const activeSessions = window.activeSessions || [];
+        const activeSession = activeSessions.find(s => 
+            s && s.user_id === userId && 
+            s.operation === operation && 
+            s.variant === variant
+        );
+        
+        if (activeSession) {
+            // Return active session info (sky blue background, colored text)
+            // This shows even if there are completed scores, because student is actively working
+            return {
+                type: 'active',
+                questionNo: activeSession.last_question_no_completed,
+                isCorrect: activeSession.last_question_correct_wrong
+            };
+        }
+        
+        // SECOND: Only if no active session, check completed scores
+        // Ensure studentScores is defined and is an array
+        if (!studentScores || !Array.isArray(studentScores)) {
+            console.warn('⚠️ studentScores is not defined or not an array, using empty array');
+            studentScores = [];
+        }
+        
+        const scores = studentScores.filter(s => 
+            s && s.user_id === userId && 
+            s.operation === operation && 
+            s.variant === variant
+        );
 
-    if (scores.length === 0) {
-        return null; // Not attempted
+        if (scores.length > 0) {
+            // Data is committed to database - show pass/fail status
+            // Check if any score has passed = true
+            const hasPassed = scores.some(s => s.passed === true || s.passed === 'true' || s.passed === 1 || s.passed === '1');
+            
+            if (hasPassed) {
+                // Find minimum average_time from all passed attempts
+                const passedScores = scores.filter(s => 
+                    s.passed === true || s.passed === 'true' || s.passed === 1 || s.passed === '1'
+                );
+                const averageTimes = passedScores
+                    .map(s => s.average_time)
+                    .filter(t => t != null && !isNaN(t))
+                    .map(t => parseFloat(t));
+                const minTime = averageTimes.length > 0 ? Math.min(...averageTimes) : null;
+                return {
+                    type: 'pass',
+                    minTime: minTime
+                };
+            } else {
+                // Count failed attempts
+                const failedScores = scores.filter(s => 
+                    s.passed === false || s.passed === 'false' || s.passed === 0 || s.passed === '0'
+                );
+                return {
+                    type: 'fail',
+                    attemptCount: failedScores.length
+                };
+            }
+        }
+        
+        return null; // Not attempted (no active session and no completed scores)
+    } catch (error) {
+        console.error('❌ Error in getVariantStatus:', error);
+        return null;
     }
-
-    // Check if any score has passed = true
-    const hasPassed = scores.some(s => s.passed === true);
-    return hasPassed ? 'pass' : 'fail';
 }
 
 // Export to Excel
@@ -266,7 +438,7 @@ async function exportToExcel() {
         const worksheet = workbook.addWorksheet('Student Progress');
 
         // Add header row
-        const headerRow = ['Student Name', 'Roll #', 'Class', 'Section'];
+        const headerRow = ['Student', 'Class', 'Roll No.'];
         allVariants.forEach(({ operation, variant }) => {
             headerRow.push(variant);
         });
@@ -298,24 +470,45 @@ async function exportToExcel() {
         students.forEach(student => {
             const row = [
                 `${student.first_name || ''} ${student.last_name || ''}`.trim() || student.email,
-                student.roll_number || '',
-                student.class || '',
-                student.section || ''
+                (student.class || '') + (student.section || ''), // Combined class+section
+                student.roll_number || ''
             ];
 
             allVariants.forEach(({ operation, variant }) => {
                 const status = getVariantStatus(student.user_id, operation, variant);
-                row.push(status === 'pass' ? '✓' : status === 'fail' ? '✗' : '');
+                if (status && typeof status === 'object' && status.type === 'active') {
+                    row.push(`Q${status.questionNo}${status.isCorrect ? '✓' : '✗'}`);
+                } else if (status && typeof status === 'object' && status.type === 'pass') {
+                    // Export minimum average_time for passed variants
+                    if (status.minTime != null) {
+                        row.push(`${status.minTime.toFixed(1)}s`);
+                    } else {
+                        row.push('✓');
+                    }
+                } else if (status && typeof status === 'object' && status.type === 'fail') {
+                    // Export attempt count for failed variants
+                    const count = status.attemptCount || 0;
+                    row.push(count > 0 ? `${count}` : '✗');
+                } else {
+                    row.push('');
+                }
             });
 
             const dataRow = worksheet.addRow(row);
 
             // Style status cells
             allVariants.forEach((_, index) => {
-                const cell = dataRow.getCell(5 + index); // Start after fixed columns
+                const cell = dataRow.getCell(4 + index); // Start after fixed columns (Student, Class, Roll No.)
                 const status = getVariantStatus(student.user_id, allVariants[index].operation, allVariants[index].variant);
                 
-                if (status === 'pass') {
+                if (status && typeof status === 'object' && status.type === 'active') {
+                    // Active session - green for correct, red for wrong
+                    cell.fill = {
+                        type: 'pattern',
+                        pattern: 'solid',
+                        fgColor: { argb: status.isCorrect === true ? 'FF90EE90' : 'FFFFB6C6' }
+                    };
+                } else if (status === 'pass') {
                     cell.fill = {
                         type: 'pattern',
                         pattern: 'solid',
@@ -340,19 +533,18 @@ async function exportToExcel() {
         });
 
         // Set column widths
-        worksheet.getColumn(1).width = 25; // Name
-        worksheet.getColumn(2).width = 10; // Roll #
-        worksheet.getColumn(3).width = 10; // Class
-        worksheet.getColumn(4).width = 10; // Section
-        for (let i = 5; i <= 4 + allVariants.length; i++) {
+        worksheet.getColumn(1).width = 25; // Student
+        worksheet.getColumn(2).width = 10; // Class
+        worksheet.getColumn(3).width = 12; // Roll No.
+        for (let i = 4; i <= 3 + allVariants.length; i++) {
             worksheet.getColumn(i).width = 8; // Variant columns
         }
 
-        // Freeze header row and first 4 columns
+        // Freeze header row and first 3 columns
         worksheet.views = [{
             state: 'frozen',
             ySplit: 1,
-            xSplit: 4
+            xSplit: 3
         }];
 
         // Generate Excel file and download
@@ -378,6 +570,10 @@ async function exportToExcel() {
 // CALLED BY: teacher-dashboard.html - <button onclick="handleLogout()">Logout</button>
 async function handleLogout() {
     if (window.debugLog) window.debugLog('handleLogout');
+    // Clear active session tracking
+    if (typeof window.clearActiveSession === 'function') {
+        await window.clearActiveSession();
+    }
     if (supabase) {
         await supabase.auth.signOut();
     }
@@ -403,5 +599,190 @@ function showError(message) {
     }
 }
 
+// Poll active sessions every 5 seconds
+// CALLED BY: teacher-dashboard.js - loadTeacherDashboard() (starts polling after initial load)
+let activeSessionsPollInterval = null;
+
+function startActiveSessionsPolling() {
+    if (window.debugLog) window.debugLog('startActiveSessionsPolling');
+    // Clear any existing interval
+    if (activeSessionsPollInterval) {
+        clearInterval(activeSessionsPollInterval);
+    }
+    
+    // Poll every 5 seconds
+    activeSessionsPollInterval = setInterval(async () => {
+        if (!supabase || !teacherProfile) return;
+        
+        try {
+            // Get student user IDs
+            const studentUserIds = students.map(s => s.user_id);
+            if (studentUserIds.length === 0) return;
+            
+            // Fetch active sessions
+            const { data: activeSessionsData, error: activeSessionsError } = await supabase
+                .from('active_sessions')
+                .select('*')
+                .in('user_id', studentUserIds);
+            
+            if (activeSessionsError) {
+                console.warn('⚠️ Error polling active sessions:', activeSessionsError);
+                return;
+            }
+            
+            // Update global active sessions
+            const oldActiveSessions = window.activeSessions || [];
+            window.activeSessions = activeSessionsData || [];
+            
+            // Check if any cells need updating
+            const hasChanges = JSON.stringify(oldActiveSessions) !== JSON.stringify(window.activeSessions);
+            
+            if (hasChanges) {
+                // Update only affected cells instead of rebuilding entire table
+                updateActiveSessionCells();
+            }
+        } catch (error) {
+            console.error('❌ Error in active sessions polling:', error);
+        }
+    }, 5000); // 5 seconds
+}
+
+// Update only cells that have active sessions (efficient DOM update)
+// CALLED BY: teacher-dashboard.js - startActiveSessionsPolling() (when active sessions change)
+function updateActiveSessionCells() {
+    if (window.debugLog) window.debugLog('updateActiveSessionCells');
+    const tableBody = document.getElementById('tableBody');
+    if (!tableBody) return;
+    
+    const rows = tableBody.querySelectorAll('tr');
+    const activeSessions = window.activeSessions || [];
+    
+    rows.forEach((row, rowIndex) => {
+        if (rowIndex >= students.length) return;
+        const student = students[rowIndex];
+        
+        // Get variant cells (skip first 3 fixed columns: name, class, roll no)
+        const cells = row.querySelectorAll('td');
+        allVariants.forEach(({ operation, variant }, variantIndex) => {
+            const cellIndex = 3 + variantIndex; // First 3 are fixed columns
+            const cell = cells[cellIndex];
+            if (!cell) return;
+            
+            const status = getVariantStatus(student.user_id, operation, variant);
+            
+            // Update cell content and class (preserve variant-column class)
+            const baseClass = 'variant-column';
+            
+            // Skip if column is hidden
+            if (shouldHideVariant(operation, variant)) {
+                return;
+            }
+            if (status && typeof status === 'object' && status.type === 'active') {
+                cell.textContent = status.questionNo || '0';
+                cell.className = baseClass + ' ' + (status.isCorrect === true ? 'status-active-correct' : 
+                                 status.isCorrect === false ? 'status-active-wrong' : 
+                                 'status-active-unknown');
+            } else if (status && typeof status === 'object' && status.type === 'pass') {
+                // Display minimum average_time for passed variants
+                if (status.minTime != null) {
+                    cell.textContent = `${status.minTime.toFixed(1)}s`;
+                } else {
+                    cell.textContent = '✓';
+                }
+                cell.className = baseClass + ' status-pass';
+            } else if (status && typeof status === 'object' && status.type === 'fail') {
+                // Display attempt count for failed variants
+                const count = status.attemptCount || 0;
+                cell.textContent = count > 0 ? `${count}` : '✗';
+                cell.className = baseClass + ' status-fail';
+            } else {
+                cell.textContent = '';
+                cell.className = baseClass + ' status-empty';
+            }
+            
+            // Ensure dataset attributes are set (operation and variant already declared in forEach)
+            cell.dataset.operation = operation;
+            cell.dataset.variant = variant;
+            
+            // Update visibility based on collapse state
+            if (shouldHideVariant(operation, variant)) {
+                cell.classList.add('hidden-column');
+            } else {
+                cell.classList.remove('hidden-column');
+            }
+        });
+    });
+}
+
+// Toggle operation group collapse/expand
+// CALLED BY: teacher-dashboard.html - toggle buttons onclick
+function toggleOperation(opNum) {
+    if (window.debugLog) window.debugLog('toggleOperation', `(${opNum})`);
+    // Toggle collapse state
+    collapsedOperations[opNum] = !collapsedOperations[opNum];
+    
+    // Update button text and icon
+    const button = document.querySelector(`.btn-toggle[data-operation="${opNum}"]`);
+    if (button) {
+        button.textContent = collapsedOperations[opNum] ? `▶ ${opNum}` : `▼ ${opNum}`;
+    }
+    
+    // Update column visibility
+    updateColumnVisibility();
+}
+
+// Update column visibility based on collapse state
+// CALLED BY: teacher-dashboard.js - toggleOperation() (when button is clicked)
+function updateColumnVisibility() {
+    if (window.debugLog) window.debugLog('updateColumnVisibility');
+    const tableHead = document.getElementById('tableHead');
+    const tableBody = document.getElementById('tableBody');
+    
+    if (!tableHead || !tableBody) return;
+    
+    // Update header cells
+    const headerCells = tableHead.querySelectorAll('th.variant-column');
+    headerCells.forEach(th => {
+        const operation = th.dataset.operation;
+        const variant = th.dataset.variant;
+        if (shouldHideVariant(operation, variant)) {
+            th.classList.add('hidden-column');
+        } else {
+            th.classList.remove('hidden-column');
+        }
+    });
+    
+    // Update data cells
+    const dataRows = tableBody.querySelectorAll('tr');
+    dataRows.forEach(row => {
+        const cells = row.querySelectorAll('td.variant-column');
+        cells.forEach(cell => {
+            const operation = cell.dataset.operation;
+            const variant = cell.dataset.variant;
+            if (shouldHideVariant(operation, variant)) {
+                cell.classList.add('hidden-column');
+            } else {
+                cell.classList.remove('hidden-column');
+            }
+        });
+    });
+}
+
 // Initialize on page load
-document.addEventListener('DOMContentLoaded', initDashboard);
+document.addEventListener('DOMContentLoaded', () => {
+    initDashboard();
+    
+    // Set up student dashboard button event listener
+    const studentDashboardBtn = document.getElementById('studentDashboardBtn');
+    if (studentDashboardBtn) {
+        studentDashboardBtn.addEventListener('click', () => {
+            window.location.href = 'student-dashboard.html';
+        });
+    }
+    
+    // Set up logout button event listener
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleLogout);
+    }
+});

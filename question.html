@@ -22,11 +22,17 @@
                     <span id="questionUserNameDisplay">Name: </span>
                     <span id="questionUserClassDisplay">Class: </span>
                     <span id="questionUserRollDisplay">Roll Number: </span>
-                    <button class="btn btn-back-small" onclick="goBackToDashboard()">Go Back</button>
+                    <button class="btn btn-back-small" onclick="goBackToDashboard()">Dashboard</button>
                 </div>
             </div>
             
             <div class="question-block">
+                <div class="progress-tracker">
+                    <div class="progress-text" id="progressText">0 / 0</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                </div>
                 <div class="timer hidden" id="timer">Time: 0.0s</div>
                 <div class="question-line" id="line1"></div>
                 <div class="question-line" id="line2"></div>
