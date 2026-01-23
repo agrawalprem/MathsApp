@@ -239,20 +239,20 @@ window.debugLog = function debugLog(functionName, extra = '') {
 // Makes the install prompt available on all pages
 // Usage: Run showInstallPrompt() in the console when installPrompt is available
 
-let installPrompt = null;
+window.installPrompt = null;
 
 window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
-    installPrompt = e;
+    window.installPrompt = e;
     console.log('✓ Install prompt available! Run: showInstallPrompt()');
 });
 
 window.showInstallPrompt = async function() {
-    if (installPrompt) {
-        installPrompt.prompt();
-        const { outcome } = await installPrompt.userChoice;
+    if (window.installPrompt) {
+        window.installPrompt.prompt();
+        const { outcome } = await window.installPrompt.userChoice;
         console.log('User choice:', outcome);
-        installPrompt = null;
+        window.installPrompt = null;
     } else {
         console.log('Install prompt not available. The event may have been consumed or the app is already installed.');
     }
