@@ -2,6 +2,7 @@
   "name": "Learning Maths in Baby Steps",
   "short_name": "Maths App",
   "description": "A progressive web app for teaching children arithmetic fundamentals with practice and perfection",
+  "id": "/",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

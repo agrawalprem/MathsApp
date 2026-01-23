@@ -19,12 +19,81 @@
                 navigator.serviceWorker.register('/sw.js')
                     .then((registration) => {
                         console.log('Service Worker registered:', registration.scope);
+                        // Check for updates
+                        registration.addEventListener('updatefound', () => {
+                            console.log('Service Worker update found');
+                        });
                     })
                     .catch((error) => {
-                        console.log('Service Worker registration failed:', error);
+                        console.error('Service Worker registration failed:', error);
                     });
             });
         }
+
+        // Diagnostic function to check PWA installability
+        window.checkPWAInstallability = async function() {
+            console.log('=== PWA Installability Check ===');
+            
+            // Check manifest
+            try {
+                const manifestResponse = await fetch('/manifest.json');
+                const manifest = await manifestResponse.json();
+                console.log('✓ Manifest found:', manifest);
+                
+                // Check icons
+                for (const icon of manifest.icons || []) {
+                    try {
+                        const iconResponse = await fetch(icon.src);
+                        if (iconResponse.ok) {
+                            console.log(`✓ Icon accessible: ${icon.src} (${icon.sizes})`);
+                        } else {
+                            console.error(`✗ Icon not accessible: ${icon.src} - Status: ${iconResponse.status}`);
+                        }
+                    } catch (error) {
+                        console.error(`✗ Icon error: ${icon.src}`, error);
+                    }
+                }
+            } catch (error) {
+                console.error('✗ Manifest error:', error);
+            }
+            
+            // Check service worker
+            if ('serviceWorker' in navigator) {
+                try {
+                    const registration = await navigator.serviceWorker.ready;
+                    console.log('✓ Service Worker ready:', registration.scope);
+                    console.log('✓ Service Worker active:', registration.active ? 'Yes' : 'No');
+                } catch (error) {
+                    console.error('✗ Service Worker not ready:', error);
+                }
+            } else {
+                console.error('✗ Service Workers not supported');
+            }
+            
+            // Check HTTPS
+            console.log('✓ HTTPS:', window.location.protocol === 'https:' ? 'Yes' : 'No');
+            
+            // Check if install prompt is available
+            let deferredPrompt = null;
+            window.addEventListener('beforeinstallprompt', (e) => {
+                deferredPrompt = e;
+                console.log('✓ beforeinstallprompt event fired!');
+                console.log('You can now call: window.triggerInstall()');
+            });
+            
+            window.triggerInstall = async function() {
+                if (deferredPrompt) {
+                    deferredPrompt.prompt();
+                    const { outcome } = await deferredPrompt.userChoice;
+                    console.log('User choice:', outcome);
+                    deferredPrompt = null;
+                } else {
+                    console.log('Install prompt not available. Try refreshing the page.');
+                }
+            };
+            
+            console.log('=== End Check ===');
+        };
     </script>
 </head>
 <body>
