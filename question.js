@@ -926,6 +926,7 @@ function setupNormalInput(question, requiredDigits) {
     const answerDisplay = document.getElementById('answerDisplay');
     const input = document.getElementById('answerInput');
     const multidigitTable = document.getElementById('multidigitTable');
+    const isMobile = window.innerWidth <= 768;
     
     answerDisplay.classList.add('hidden');
     multidigitTable.classList.add('hidden');
@@ -936,30 +937,64 @@ function setupNormalInput(question, requiredDigits) {
     input.style.backgroundColor = 'white';
     input.style.transition = '';
     
-    // Remove previous event listeners by cloning
-    const newInput = input.cloneNode(true);
-    input.parentNode.replaceChild(newInput, input);
-    
-    newInput.addEventListener('input', function() {
-        const userAnswer = this.value;
-        if (userAnswer.length >= requiredDigits) {
-            const parsed = parseInt(userAnswer);
-            checkAnswer(question, isNaN(parsed) ? null : parsed);
+    // On mobile, avoid cloning to keep keyboard open - just update event listeners
+    if (isMobile) {
+        // Check if input was focused (keyboard was open)
+        const wasFocused = document.activeElement === input;
+        
+        // Remove old event listeners by cloning the input
+        const newInput = input.cloneNode(true);
+        input.parentNode.replaceChild(newInput, input);
+        
+        newInput.addEventListener('input', function() {
+            const userAnswer = this.value;
+            if (userAnswer.length >= requiredDigits) {
+                const parsed = parseInt(userAnswer);
+                checkAnswer(question, isNaN(parsed) ? null : parsed);
+            }
+        });
+        
+        // Immediately restore focus on mobile to keep keyboard open
+        if (wasFocused) {
+            // Use multiple methods to ensure focus is restored
+            requestAnimationFrame(() => {
+                newInput.focus();
+                // Also try after a tiny delay as backup
+                setTimeout(() => {
+                    if (document.activeElement !== newInput) {
+                        newInput.focus();
+                    }
+                }, 5);
+            });
+        } else {
+            // If not focused, focus it to open keyboard
+            setTimeout(() => {
+                newInput.focus();
+            }, 10);
         }
-    });
+    } else {
+        // Desktop: clone and replace as before
+        const newInput = input.cloneNode(true);
+        input.parentNode.replaceChild(newInput, input);
+        
+        newInput.addEventListener('input', function() {
+            const userAnswer = this.value;
+            if (userAnswer.length >= requiredDigits) {
+                const parsed = parseInt(userAnswer);
+                checkAnswer(question, isNaN(parsed) ? null : parsed);
+            }
+        });
 
-    // Focus on the new input after it's added to DOM
-    // Prevent aggressive auto-scroll on mobile when keyboard appears
-    setTimeout(() => {
-        newInput.focus();
-        // Don't select text on mobile as it can cause issues
-        if (window.innerWidth > 768) {
+        // Focus on the new input after it's added to DOM
+        setTimeout(() => {
+            newInput.focus();
             newInput.select();
-        }
-    }, 50);
+        }, 50);
+    }
     
     // Minimize scroll jump when keyboard appears on mobile
-    newInput.addEventListener('focus', function() {
+    const finalInput = isMobile ? document.getElementById('answerInput') : input;
+    finalInput.addEventListener('focus', function() {
         // Let sticky positioning handle keeping question visible
         // Only make minimal scroll adjustment if input is completely hidden
         setTimeout(() => {
@@ -1388,12 +1423,25 @@ function checkAnswer(question, userAnswer) {
     }
 
     // Disable input (both normal, multidigit input, and other input methods)
+    // For single-digit on mobile, keep input enabled to maintain keyboard
     const input = document.getElementById('answerInput');
     const answerDisplay = document.getElementById('answerDisplay');
     const multidigitTable = document.getElementById('multidigitTable');
     const multidigitInput = document.getElementById('multidigitAnswerInput');
+    const isMobile = window.innerWidth <= 768;
+    
+    // Get variant config (will be used later in the function)
+    const variantConfig = variants[operation][currentSession.variant];
+    
+    // For single-digit on mobile, don't disable - just clear value to keep keyboard open
     if (input && !input.classList.contains('hidden')) {
-        input.disabled = true;
+        if (isMobile && !variantConfig.rightToLeft) {
+            // Keep enabled on mobile for single-digit to maintain keyboard
+            input.value = '';
+            input.style.backgroundColor = 'white';
+        } else {
+            input.disabled = true;
+        }
     }
     if (answerDisplay && !answerDisplay.classList.contains('hidden')) {
         answerDisplay.setAttribute('tabindex', '-1');
@@ -1404,7 +1452,7 @@ function checkAnswer(question, userAnswer) {
     }
 
     // If wrong or no answer, speak and wait for speech to complete (skip for multi-digit variants)
-    const variantConfig = variants[operation][currentSession.variant];
+    // variantConfig already declared above
     if (!isCorrect && variantConfig.rightToLeft) {
         // Multi-digit variant: answer already shown in row 4, show buttons and wait for user action
         const quizControls = document.getElementById('quizControls');
