@@ -974,7 +974,85 @@ function setupRightToLeftInput(question, requiredDigits) {
     const answerDisplay = document.getElementById('answerDisplay');
     const input = document.getElementById('answerInput');
     const multidigitTable = document.getElementById('multidigitTable');
+    const mobileInput = document.getElementById('mobileAnswerInput');
+    const isMobile = window.innerWidth <= 768;
     
+    // On mobile, use single input field; on desktop, use table
+    if (isMobile && mobileInput) {
+        // Mobile: Hide table, show mobile input
+        input.classList.add('hidden');
+        answerDisplay.classList.add('hidden');
+        multidigitTable.classList.add('hidden');
+        mobileInput.classList.remove('hidden');
+        
+        // Clear previous state
+        mobileInput.value = '';
+        mobileInput.maxLength = requiredDigits;
+        
+        // Store question and required digits for mobile input handler
+        mobileInput._question = question;
+        mobileInput._requiredDigits = requiredDigits;
+        mobileInput._enteredDigits = [];
+        
+        // Focus the input after a short delay
+        setTimeout(() => {
+            mobileInput.focus();
+        }, 300);
+        
+        // Set up mobile input handler
+        const handleMobileInput = (e) => {
+            const value = e.target.value;
+            // Only allow digits
+            const digits = value.replace(/\D/g, '').split('').slice(0, requiredDigits);
+            e.target.value = digits.join('');
+            
+            // Store entered digits (left to right as typed)
+            mobileInput._enteredDigits = digits;
+            
+            // Auto-submit when all digits are entered (after a short delay)
+            if (digits.length === requiredDigits) {
+                setTimeout(() => {
+                    if (mobileInput._enteredDigits && mobileInput._enteredDigits.length === requiredDigits) {
+                        const answerStr = mobileInput._enteredDigits.join('');
+                        const userAnswer = parseInt(answerStr, 10);
+                        checkAnswer(question, userAnswer);
+                    }
+                }, 500);
+            }
+        };
+        
+        // Remove old listeners and add new one
+        mobileInput.removeEventListener('input', mobileInput._inputHandler);
+        mobileInput._inputHandler = handleMobileInput;
+        mobileInput.addEventListener('input', handleMobileInput);
+        
+        // Handle Enter key to submit
+        mobileInput.removeEventListener('keydown', mobileInput._keydownHandler);
+        mobileInput._keydownHandler = (e) => {
+            if (e.key === 'Enter') {
+                const digits = mobileInput._enteredDigits || [];
+                if (digits.length === requiredDigits) {
+                    const answerStr = digits.join('');
+                    const userAnswer = parseInt(answerStr, 10);
+                    checkAnswer(question, userAnswer);
+                }
+            }
+        };
+        mobileInput.addEventListener('keydown', mobileInput._keydownHandler);
+        
+        // Store reference for checkAnswer
+        multidigitTable._mobileInput = mobileInput;
+        
+        // Helper function to update visual display
+        function updateMobileAnswerDisplay() {
+            // Could add visual feedback here if needed
+        }
+        mobileInput._updateDisplay = updateMobileAnswerDisplay;
+        
+        return; // Exit early for mobile
+    }
+    
+    // Desktop: Use table as before
     // Simply hide the input field
     input.classList.add('hidden');
     answerDisplay.classList.add('hidden');
@@ -1394,6 +1472,27 @@ function checkAnswer(question, userAnswer) {
         timerInterval = null;
     }
 
+    // Check if mobile input is being used and userAnswer not provided
+    const mobileInput = document.getElementById('mobileAnswerInput');
+    const isMobile = window.innerWidth <= 768;
+    if (isMobile && mobileInput && !mobileInput.classList.contains('hidden') && (userAnswer === undefined || userAnswer === null)) {
+        // Get answer from mobile input
+        const enteredDigits = mobileInput._enteredDigits || [];
+        if (enteredDigits.length > 0) {
+            // Convert digits array to number (digits are stored left to right as typed)
+            const answerStr = enteredDigits.join('');
+            userAnswer = parseInt(answerStr, 10);
+        } else {
+            userAnswer = null;
+        }
+    }
+    
+    // Disable mobile input if it was used
+    if (mobileInput && !mobileInput.classList.contains('hidden')) {
+        mobileInput.disabled = true;
+        mobileInput.blur();
+    }
+
     const timeTaken = Math.round(timeElapsed * 10) / 10;
     const correctAnswer = question.answer;
     const isCorrect = userAnswer !== null && userAnswer === correctAnswer;
@@ -1455,7 +1554,7 @@ function checkAnswer(question, userAnswer) {
         );
     }
 
-    // Disable input (both normal, right-to-left display, and table)
+    // Disable input (both normal, right-to-left display, table, and mobile input)
     const input = document.getElementById('answerInput');
     const answerDisplay = document.getElementById('answerDisplay');
     const multidigitTable = document.getElementById('multidigitTable');
@@ -1473,6 +1572,7 @@ function checkAnswer(question, userAnswer) {
             cell.style.pointerEvents = 'none';
         });
     }
+    // Mobile input is already disabled above
 
     // If wrong or no answer, speak and wait for speech to complete (skip for multi-digit variants)
     const variantConfig = variants[operation][currentSession.variant];

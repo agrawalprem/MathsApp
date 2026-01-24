@@ -62,6 +62,35 @@
     pointer-events: none;
 }
 
+/* CALLED BY: question.html - <input type="tel" id="mobileAnswerInput" class="mobile-answer-input">, question.js - setupRightToLeftInput() (shows on mobile) */
+.mobile-answer-input {
+    display: block;
+    width: 100%;
+    max-width: 400px;
+    margin: 20px auto;
+    padding: 15px;
+    font-size: 28px;
+    text-align: center;
+    border: 3px solid #667eea;
+    border-radius: 10px;
+    background: #f0f4ff;
+    outline: none;
+    box-sizing: border-box;
+}
+
+.mobile-answer-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+    background: #ffffff;
+}
+
+/* Hide on desktop */
+@media (min-width: 769px) {
+    .mobile-answer-input {
+        display: none !important;
+    }
+}
+
 /* CALLED BY: question.html - <table id="multidigitTable" class="multidigit-table hidden">, question.js - setupRightToLeftInput() (creates table structure, removes 'hidden' class), setupNormalInput() (adds 'hidden' class) */
 .multidigit-table {
     margin: 20px auto;
