@@ -52,7 +52,10 @@
                 <div class="timer hidden" id="timer">Time: 0.0s</div>
                 <div class="question-line" id="line1"></div>
                 <div class="question-line" id="line2"></div>
-                <div class="question-line" id="answerLine">
+                <div class="math-divider" id="mathDivider"></div>
+                <div class="question-line answer-line" id="answerLine">
+                    <div id="answerCellsContainer" class="answer-cells-container hidden"></div>
+                    <div class="question-line correct-answer-line hidden" id="correctAnswerLine"></div>
                     <input type="number" id="answerInput" class="answer-input" placeholder="?" autocomplete="off">
                     <div id="answerDisplay" class="answer-display hidden" tabindex="0">
                         <input type="text" id="hiddenInput" class="hidden-input" autocomplete="off">
