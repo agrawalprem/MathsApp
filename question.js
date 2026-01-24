@@ -831,8 +831,8 @@ function displayQuestion(question) {
         // Format numbers with spacing between digits and right-align
         const firstStr = question.first.toString();
         const secondStr = question.second.toString();
-        line1.textContent = firstStr.split('').join(' '); // Add space between digits
-        line2.textContent = `${opSymbol} ${secondStr.split('').join(' ')}`; // Add space between digits
+        line1.textContent = firstStr; // CSS letter-spacing will handle spacing
+        line2.textContent = `${opSymbol} ${secondStr}`; // CSS letter-spacing will handle spacing
         // Add mobile-question class for styling (works for both mobile and desktop now)
         line1.classList.add('mobile-question');
         line2.classList.add('mobile-question');
@@ -998,193 +998,187 @@ function setupNormalInput(question, requiredDigits) {
 function setupRightToLeftInput(question, requiredDigits) {
     if (window.debugLog) window.debugLog('setupRightToLeftInput');
     console.log('🔵 setupRightToLeftInput called with:', { question, requiredDigits });
+    
     const answerDisplay = document.getElementById('answerDisplay');
     const input = document.getElementById('answerInput');
     const multidigitTable = document.getElementById('multidigitTable');
     const mobileInput = document.getElementById('mobileAnswerInput');
     const answerCellsContainer = document.getElementById('answerCellsContainer');
-    const isMobile = window.innerWidth <= 768;
+    const line1 = document.getElementById('line1');
+    const line2 = document.getElementById('line2');
+    const mathDivider = document.getElementById('mathDivider');
+    const correctAnswerLine = document.getElementById('correctAnswerLine');
     
     // Hide other input methods
     input.classList.add('hidden');
     answerDisplay.classList.add('hidden');
     multidigitTable.classList.add('hidden');
+    answerCellsContainer.classList.add('hidden');
     
-    // Create answer cells container (visible for both mobile and desktop)
-    if (!answerCellsContainer) {
-        console.error('❌ answerCellsContainer element not found!');
-        return;
+    // The 4-field vertical layout is already set up by displayQuestion()
+    // Line 1: First number (Question 1) - already formatted with spaces
+    // Line 2: Operation and second number (Question 2) - already formatted with spaces
+    // Line 3: User answer input (we create below)
+    // Line 4: Correct answer (shown when wrong)
+    
+    // Show divider
+    if (mathDivider) {
+        mathDivider.classList.remove('hidden');
     }
     
-    answerCellsContainer.classList.remove('hidden');
-    answerCellsContainer.innerHTML = ''; // Clear previous cells
+    // Create a wrapper div styled exactly like question lines
+    const answerWrapper = document.createElement('div');
+    answerWrapper.className = 'question-line mobile-question';
+    answerWrapper.id = 'multidigitAnswerWrapper';
+    answerWrapper.style.position = 'relative';
     
-    // Create answer cells (right to left, so rightmost cell is first in array)
-    const answerCells = [];
-    for (let i = 0; i < requiredDigits; i++) {
-        const cell = document.createElement('div');
-        cell.className = 'answer-cell';
-        cell.dataset.position = i; // Position from right (0 = rightmost)
-        answerCells.push(cell);
-        answerCellsContainer.appendChild(cell);
+    // Create a simple input field for user answer - styled exactly like question lines
+    const answerInput = document.createElement('input');
+    answerInput.type = 'text';
+    answerInput.inputMode = 'numeric';
+    answerInput.pattern = '[0-9]*';
+    answerInput.className = 'multidigit-answer-input';
+    answerInput.id = 'multidigitAnswerInput';
+    // Style to match question lines exactly - inherit from mobile-question class
+    // All styling (including letter-spacing) is handled by CSS classes
+    answerInput.style.padding = '0';
+    answerInput.style.margin = '0';
+    answerInput.style.border = 'none';
+    answerInput.style.borderRadius = '0';
+    answerInput.style.background = 'transparent';
+    answerInput.style.outline = 'none';
+    answerInput.style.width = '100%';
+    answerInput.placeholder = '';
+    answerInput.autocomplete = 'off';
+    answerInput.maxLength = requiredDigits;
+    
+    // Put input inside wrapper
+    answerWrapper.appendChild(answerInput);
+    
+    // Clear any existing multidigit answer input
+    const existingWrapper = document.getElementById('multidigitAnswerWrapper');
+    if (existingWrapper) {
+        existingWrapper.remove();
+    }
+    const existingInput = document.getElementById('multidigitAnswerInput');
+    if (existingInput) {
+        existingInput.remove();
     }
     
-    // Store current position (starts at rightmost = 0)
-    let currentPosition = 0;
-    const enteredDigits = new Array(requiredDigits).fill('');
-    
-    // Show mobile input for keyboard (hidden but functional)
-    if (isMobile && mobileInput) {
-        mobileInput.classList.remove('hidden');
-        mobileInput.value = '';
-        mobileInput.maxLength = requiredDigits;
-        mobileInput.style.position = 'absolute';
-        mobileInput.style.opacity = '0';
-        mobileInput.style.width = '1px';
-        mobileInput.style.height = '1px';
-        mobileInput.style.left = '-9999px'; // Move off-screen but keep focusable
-        mobileInput.style.pointerEvents = 'auto'; // Allow focus for keyboard
-        mobileInput.style.zIndex = '-1'; // Behind everything
-    } else {
-        if (mobileInput) mobileInput.classList.add('hidden');
+    // Insert the wrapper (with input inside) after the divider
+    if (mathDivider && mathDivider.parentNode) {
+        mathDivider.parentNode.insertBefore(answerWrapper, mathDivider.nextSibling);
     }
     
-    // Update visual display based on entered digits
-    const updateDisplay = () => {
-        // Fill cells from right to left (display rightmost digit in first cell)
-        for (let i = 0; i < requiredDigits; i++) {
-            const cell = answerCells[i];
-            // Display digits in reverse order (rightmost first)
-            // enteredDigits stores: [leftmost, ..., rightmost]
-            // Cells display: [rightmost, ..., leftmost]
-            const displayIndex = requiredDigits - 1 - i;
-            const digit = enteredDigits[displayIndex] || '';
-            cell.textContent = digit;
-            if (digit) {
-                cell.classList.add('filled');
-            } else {
-                cell.classList.remove('filled');
-            }
-            // Update active cell (currentPosition is index in enteredDigits, reverse for display)
-            const activeDisplayIndex = requiredDigits - 1 - currentPosition;
-            if (i === activeDisplayIndex && currentPosition < requiredDigits) {
-                cell.classList.add('active');
-            } else {
-                cell.classList.remove('active');
-            }
-        }
+    // Hide correct answer line initially
+    if (correctAnswerLine) {
+        correctAnswerLine.classList.add('hidden');
+    }
+    
+    // Handle input manually to ensure cursor stays on left and digits flow right-to-left
+    // Direction is handled by CSS (text-align: right), no need to set dir attribute
+    
+    // Function to get raw value (no spaces needed - CSS letter-spacing handles visual spacing)
+    const getRawValue = (value) => {
+        return value.replace(/\D/g, '');
     };
     
-    // Handle input from mobile keyboard or desktop keyboard
-    const handleDigitInput = (digit) => {
-        if (currentPosition < requiredDigits && /^\d$/.test(digit)) {
-            enteredDigits[currentPosition] = digit;
-            currentPosition++;
-            updateDisplay();
+    answerInput.addEventListener('keydown', function(e) {
+        const rawValue = getRawValue(this.value);
+        const cursorPos = this.selectionStart;
+        
+        // Handle digit input - always insert at position 0 (leftmost)
+        if (/^\d$/.test(e.key) && rawValue.length < requiredDigits) {
+            e.preventDefault();
+            
+            // Insert digit at the beginning (position 0) - this makes digits flow right-to-left
+            const newRawValue = e.key + rawValue;
+            // CSS letter-spacing will handle visual spacing
+            this.value = newRawValue;
+            
+            // Keep cursor at position 0 (left side)
+            setTimeout(() => {
+                this.setSelectionRange(0, 0);
+            }, 0);
             
             // Auto-submit when all digits entered
-            if (currentPosition >= requiredDigits) {
-                setTimeout(() => {
-                    const answerStr = enteredDigits.join('');
-                    const userAnswer = parseInt(answerStr, 10);
+            if (newRawValue.length >= requiredDigits) {
+                const userAnswer = parseInt(newRawValue, 10);
+                if (!isNaN(userAnswer)) {
+                    setTimeout(() => {
+                        checkAnswer(question, userAnswer);
+                    }, 300);
+                }
+            }
+        }
+        // Handle Backspace - delete from the left (position 0)
+        else if (e.key === 'Backspace' && rawValue.length > 0) {
+            e.preventDefault();
+            const newRawValue = rawValue.slice(1); // Remove first character
+            this.value = newRawValue;
+            setTimeout(() => {
+                this.setSelectionRange(0, 0);
+            }, 0);
+        }
+        // Handle Delete - same as Backspace for our use case
+        else if (e.key === 'Delete' && rawValue.length > 0) {
+            e.preventDefault();
+            const newRawValue = rawValue.slice(1);
+            this.value = newRawValue;
+            setTimeout(() => {
+                this.setSelectionRange(0, 0);
+            }, 0);
+        }
+        // Handle Enter
+        else if (e.key === 'Enter') {
+            const value = getRawValue(this.value);
+            if (value.length > 0) {
+                const userAnswer = parseInt(value, 10);
+                if (!isNaN(userAnswer)) {
                     checkAnswer(question, userAnswer);
-                }, 500);
+                }
             }
         }
-    };
-    
-    const handleBackspace = () => {
-        if (currentPosition > 0) {
-            currentPosition--;
-            enteredDigits[currentPosition] = '';
-            updateDisplay();
+        // Prevent arrow keys and other navigation - keep cursor at left
+        else if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+            e.preventDefault();
+            setTimeout(() => {
+                this.setSelectionRange(0, 0);
+            }, 0);
         }
-    };
+    });
     
-    // Mobile: Use hidden input to capture keyboard input
-    if (isMobile && mobileInput) {
-        mobileInput.addEventListener('input', (e) => {
-            const value = e.target.value;
-            const newDigit = value.slice(-1); // Get last character
-            if (newDigit && /^\d$/.test(newDigit)) {
-                handleDigitInput(newDigit);
-                // Keep input empty to allow continuous input
-                e.target.value = '';
-            }
-        });
-        
-        mobileInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Backspace' || e.key === 'Delete') {
-                e.preventDefault();
-                handleBackspace();
-                mobileInput.value = '';
-            } else if (e.key === 'Enter' && currentPosition === requiredDigits) {
-                const answerStr = enteredDigits.join('');
-                const userAnswer = parseInt(answerStr, 10);
-                checkAnswer(question, userAnswer);
-            }
-        });
-        
-        // Focus mobile input to trigger keyboard
+    // Handle input event to clean non-digits
+    answerInput.addEventListener('input', function() {
+        const rawValue = getRawValue(this.value);
+        if (this.value !== rawValue) {
+            this.value = rawValue;
+        }
+        // Always keep cursor at position 0 (left)
         setTimeout(() => {
-            mobileInput.focus();
-        }, 300);
-        
-        // Also allow tapping on answer cells to focus input (mobile keyboard fallback)
-        answerCellsContainer.addEventListener('click', () => {
-            if (isMobile && mobileInput && currentPosition < requiredDigits) {
-                mobileInput.focus();
-            }
-        });
-    } else {
-        // Desktop: Use keyboard events on answer cells
-        document.addEventListener('keydown', (e) => {
-            if (/^\d$/.test(e.key)) {
-                e.preventDefault();
-                handleDigitInput(e.key);
-            } else if (e.key === 'Backspace' || e.key === 'Delete') {
-                e.preventDefault();
-                handleBackspace();
-            } else if (e.key === 'Enter' && currentPosition === requiredDigits) {
-                const answerStr = enteredDigits.join('');
-                const userAnswer = parseInt(answerStr, 10);
-                checkAnswer(question, userAnswer);
-            }
-        });
-        
-        // Focus first cell on desktop
+            this.setSelectionRange(0, 0);
+        }, 0);
+    });
+    
+    // Handle click - always move cursor to left (position 0)
+    answerInput.addEventListener('click', function() {
         setTimeout(() => {
-            answerCells[0].focus();
-        }, 100);
-    }
+            this.setSelectionRange(0, 0);
+        }, 0);
+    });
     
-    // Click on cells to set position (desktop)
-    if (!isMobile) {
-        answerCells.forEach((cell, index) => {
-            cell.addEventListener('click', () => {
-                currentPosition = index;
-                updateDisplay();
-            });
-        });
-    }
+    // Focus the input field with cursor at position 0 (left)
+    setTimeout(() => {
+        answerInput.focus();
+        answerInput.setSelectionRange(0, 0);
+    }, 100);
     
-    // Initialize display
-    updateDisplay();
-    
-    // Store references for checkAnswer
+    // Store reference for cleanup
     if (answerCellsContainer) {
-        answerCellsContainer._answerCells = answerCells;
-        answerCellsContainer._enteredDigits = enteredDigits;
-        answerCellsContainer._mobileInput = mobileInput;
-    }
-    // Also store on multidigitTable for backward compatibility
-    if (multidigitTable) {
-        multidigitTable._answerCells = answerCells;
-        multidigitTable._enteredDigits = enteredDigits;
-        multidigitTable._mobileInput = mobileInput;
+        answerCellsContainer._multidigitInput = answerInput;
     }
     
-    console.log('✅ Answer cells setup complete. Cells should be visible below question.');
+    console.log('✅ Simple 4-field layout setup complete.');
 }
 
 /**
@@ -1311,39 +1305,19 @@ function checkAnswer(question, userAnswer) {
         timerInterval = null;
     }
 
-    // Get answer from answer cells if userAnswer not provided
-    const answerCellsContainer = document.getElementById('answerCellsContainer');
-    if ((userAnswer === undefined || userAnswer === null) && answerCellsContainer && !answerCellsContainer.classList.contains('hidden')) {
-        // Get entered digits from stored array (they're stored left to right, which is correct)
-        if (answerCellsContainer._enteredDigits) {
-            const digits = answerCellsContainer._enteredDigits.filter(d => d);
-            if (digits.length > 0) {
-                const answerStr = digits.join('');
-                userAnswer = parseInt(answerStr, 10);
+    // Get answer from multidigit input field if userAnswer not provided
+    if (userAnswer === undefined || userAnswer === null) {
+        const multidigitInput = document.getElementById('multidigitAnswerInput');
+        if (multidigitInput && !multidigitInput.classList.contains('hidden')) {
+            // Remove spaces and non-digits to get raw number
+            const value = multidigitInput.value.replace(/\s/g, '').replace(/\D/g, '');
+            if (value.length > 0) {
+                userAnswer = parseInt(value, 10);
+                if (isNaN(userAnswer)) {
+                    userAnswer = null;
+                }
             } else {
                 userAnswer = null;
-            }
-        } else {
-            // Fallback: try multidigitTable for backward compatibility
-            const multidigitTable = document.getElementById('multidigitTable');
-            if (multidigitTable && multidigitTable._enteredDigits) {
-                const digits = multidigitTable._enteredDigits.filter(d => d);
-                if (digits.length > 0) {
-                    const answerStr = digits.join('');
-                    userAnswer = parseInt(answerStr, 10);
-                } else {
-                    userAnswer = null;
-                }
-            } else {
-                // Last resort: read from cells (cells display right to left, so reverse)
-                const answerCells = Array.from(answerCellsContainer.querySelectorAll('.answer-cell'));
-                const digits = answerCells.map(cell => cell.textContent.trim()).filter(d => d).reverse();
-                if (digits.length > 0) {
-                    const answerStr = digits.join('');
-                    userAnswer = parseInt(answerStr, 10);
-                } else {
-                    userAnswer = null;
-                }
             }
         }
     }
@@ -1369,16 +1343,15 @@ function checkAnswer(question, userAnswer) {
         currentSession.correctCount++;
     } else {
         currentSession.wrongCount++;
-        // For multi-digit variants, show correct answer in fourth line
-        const answerCellsContainer = document.getElementById('answerCellsContainer');
+        // For multi-digit variants, show correct answer in correctAnswerLine
+        const multidigitInput = document.getElementById('multidigitAnswerInput');
         const correctAnswerLine = document.getElementById('correctAnswerLine');
-        if (answerCellsContainer && !answerCellsContainer.classList.contains('hidden')) {
-            // Show correct answer in fourth line (left to right, spaced)
+        if (multidigitInput && !multidigitInput.classList.contains('hidden')) {
+            // Show correct answer in fourth line (CSS letter-spacing handles spacing)
             if (correctAnswerLine) {
                 const answerStr = correctAnswer.toString();
-                const answerDigits = answerStr.split('');
-                // Display in left-to-right order with spacing
-                correctAnswerLine.textContent = answerDigits.join(' ');
+                // CSS letter-spacing will handle visual spacing
+                correctAnswerLine.textContent = answerStr;
                 correctAnswerLine.classList.remove('hidden');
             }
         } else {
@@ -1414,10 +1387,11 @@ function checkAnswer(question, userAnswer) {
         );
     }
 
-    // Disable input (both normal, right-to-left display, table, and mobile input)
+    // Disable input (both normal, multidigit input, and other input methods)
     const input = document.getElementById('answerInput');
     const answerDisplay = document.getElementById('answerDisplay');
     const multidigitTable = document.getElementById('multidigitTable');
+    const multidigitInput = document.getElementById('multidigitAnswerInput');
     if (input && !input.classList.contains('hidden')) {
         input.disabled = true;
     }
@@ -1425,14 +1399,9 @@ function checkAnswer(question, userAnswer) {
         answerDisplay.setAttribute('tabindex', '-1');
         answerDisplay.style.pointerEvents = 'none';
     }
-    if (multidigitTable && !multidigitTable.classList.contains('hidden')) {
-        const answerCells = multidigitTable._answerCells || [];
-        answerCells.forEach(cell => {
-            cell.setAttribute('tabindex', '-1');
-            cell.style.pointerEvents = 'none';
-        });
+    if (multidigitInput && !multidigitInput.classList.contains('hidden')) {
+        multidigitInput.disabled = true;
     }
-    // Mobile input is already disabled above
 
     // If wrong or no answer, speak and wait for speech to complete (skip for multi-digit variants)
     const variantConfig = variants[operation][currentSession.variant];

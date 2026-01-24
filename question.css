@@ -29,7 +29,7 @@
 .question-line.mobile-question {
     text-align: right;
     font-size: 28px;
-    letter-spacing: 0.1em; /* Add spacing between digits (already spaced in JS, this adds extra visual spacing) */
+    letter-spacing: 4mm; /* 4mm spacing between digits for all lines */
     padding-right: 20px;
     font-family: 'Courier New', monospace; /* Monospace font for better digit alignment */
 }
@@ -52,7 +52,7 @@
 .correct-answer-line {
     text-align: right;
     font-size: 28px;
-    letter-spacing: 0.1em;
+    letter-spacing: 4mm; /* 4mm spacing to match question lines */
     padding-right: 20px;
     font-family: 'Courier New', monospace;
     color: #d32f2f; /* Red color for wrong answer */
@@ -62,12 +62,33 @@
 /* CALLED BY: question.html - <div id="answerCellsContainer" class="answer-cells-container">, question.js - setupRightToLeftInput() (creates digit cells) */
 .answer-cells-container {
     display: flex;
-    justify-content: flex-end;
+    flex-direction: column;
+    align-items: flex-end;
     gap: 8px;
     padding-right: 20px;
     font-family: 'Courier New', monospace;
     font-size: 28px;
     margin: 15px 0;
+}
+
+/* CALLED BY: question.js - setupRightToLeftInput() (creates simple input field for multi-digit answers) */
+.multidigit-answer-input {
+    display: inline-block;
+    text-align: right;
+    font-size: inherit; /* Inherit from parent .mobile-question */
+    font-family: inherit; /* Inherit from parent .mobile-question */
+    letter-spacing: inherit; /* Inherit from parent .mobile-question */
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    outline: none;
+    color: inherit; /* Inherit from parent */
+    font-weight: inherit; /* Inherit from parent */
+    box-sizing: border-box;
+    caret-color: #667eea; /* Blinking cursor color */
 }
 
 /* CALLED BY: question.js - setupRightToLeftInput() (creates individual answer cells) */
