@@ -1042,7 +1042,9 @@ function setupRightToLeftInput(question, requiredDigits) {
         mobileInput.style.opacity = '0';
         mobileInput.style.width = '1px';
         mobileInput.style.height = '1px';
-        mobileInput.style.pointerEvents = 'none';
+        mobileInput.style.left = '-9999px'; // Move off-screen but keep focusable
+        mobileInput.style.pointerEvents = 'auto'; // Allow focus for keyboard
+        mobileInput.style.zIndex = '-1'; // Behind everything
     } else {
         if (mobileInput) mobileInput.classList.add('hidden');
     }
@@ -1127,6 +1129,13 @@ function setupRightToLeftInput(question, requiredDigits) {
         setTimeout(() => {
             mobileInput.focus();
         }, 300);
+        
+        // Also allow tapping on answer cells to focus input (mobile keyboard fallback)
+        answerCellsContainer.addEventListener('click', () => {
+            if (isMobile && mobileInput && currentPosition < requiredDigits) {
+                mobileInput.focus();
+            }
+        });
     } else {
         // Desktop: Use keyboard events on answer cells
         document.addEventListener('keydown', (e) => {
@@ -1163,6 +1172,12 @@ function setupRightToLeftInput(question, requiredDigits) {
     updateDisplay();
     
     // Store references for checkAnswer
+    if (answerCellsContainer) {
+        answerCellsContainer._answerCells = answerCells;
+        answerCellsContainer._enteredDigits = enteredDigits;
+        answerCellsContainer._mobileInput = mobileInput;
+    }
+    // Also store on multidigitTable for backward compatibility
     if (multidigitTable) {
         multidigitTable._answerCells = answerCells;
         multidigitTable._enteredDigits = enteredDigits;
@@ -1299,10 +1314,9 @@ function checkAnswer(question, userAnswer) {
     // Get answer from answer cells if userAnswer not provided
     const answerCellsContainer = document.getElementById('answerCellsContainer');
     if ((userAnswer === undefined || userAnswer === null) && answerCellsContainer && !answerCellsContainer.classList.contains('hidden')) {
-        // Get entered digits from stored array (they're stored in order entered, which is correct)
-        const multidigitTable = document.getElementById('multidigitTable');
-        if (multidigitTable && multidigitTable._enteredDigits) {
-            const digits = multidigitTable._enteredDigits.filter(d => d);
+        // Get entered digits from stored array (they're stored left to right, which is correct)
+        if (answerCellsContainer._enteredDigits) {
+            const digits = answerCellsContainer._enteredDigits.filter(d => d);
             if (digits.length > 0) {
                 const answerStr = digits.join('');
                 userAnswer = parseInt(answerStr, 10);
@@ -1310,14 +1324,26 @@ function checkAnswer(question, userAnswer) {
                 userAnswer = null;
             }
         } else {
-            // Fallback: read from cells (cells are displayed right to left, so reverse)
-            const answerCells = Array.from(answerCellsContainer.querySelectorAll('.answer-cell'));
-            const digits = answerCells.map(cell => cell.textContent.trim()).filter(d => d).reverse();
-            if (digits.length > 0) {
-                const answerStr = digits.join('');
-                userAnswer = parseInt(answerStr, 10);
+            // Fallback: try multidigitTable for backward compatibility
+            const multidigitTable = document.getElementById('multidigitTable');
+            if (multidigitTable && multidigitTable._enteredDigits) {
+                const digits = multidigitTable._enteredDigits.filter(d => d);
+                if (digits.length > 0) {
+                    const answerStr = digits.join('');
+                    userAnswer = parseInt(answerStr, 10);
+                } else {
+                    userAnswer = null;
+                }
             } else {
-                userAnswer = null;
+                // Last resort: read from cells (cells display right to left, so reverse)
+                const answerCells = Array.from(answerCellsContainer.querySelectorAll('.answer-cell'));
+                const digits = answerCells.map(cell => cell.textContent.trim()).filter(d => d).reverse();
+                if (digits.length > 0) {
+                    const answerStr = digits.join('');
+                    userAnswer = parseInt(answerStr, 10);
+                } else {
+                    userAnswer = null;
+                }
             }
         }
     }
@@ -1325,6 +1351,17 @@ function checkAnswer(question, userAnswer) {
     const timeTaken = Math.round(timeElapsed * 10) / 10;
     const correctAnswer = question.answer;
     const isCorrect = userAnswer !== null && userAnswer === correctAnswer;
+    
+    // Debug logging for answer comparison
+    if (window.debugLog) {
+        console.log('🔍 Answer check:', {
+            userAnswer,
+            correctAnswer,
+            isCorrect,
+            userAnswerType: typeof userAnswer,
+            correctAnswerType: typeof correctAnswer
+        });
+    }
 
     currentSession.totalTime += timeTaken;
 
