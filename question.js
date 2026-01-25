@@ -895,7 +895,7 @@ function displayQuestion(question) {
     
     // Check if right-to-left input is needed (multi-digit variants)
     if (variantConfig.rightToLeft) {
-        setupRightToLeftInput(question, requiredDigits);
+        setupRightToLeftInput(question, requiredDigits, operation);
     } else {
         setupNormalInput(question, requiredDigits);
     }
@@ -1036,9 +1036,12 @@ function setupNormalInput(question, requiredDigits) {
  * CALLED FROM:
  * - displayQuestion() (for multi-digit variants that use right-to-left input table)
  */
-function setupRightToLeftInput(question, requiredDigits) {
+function setupRightToLeftInput(question, requiredDigits, operation) {
     if (window.debugLog) window.debugLog('setupRightToLeftInput');
-    console.log('🔵 setupRightToLeftInput called with:', { question, requiredDigits });
+    console.log('🔵 setupRightToLeftInput called with:', { question, requiredDigits, operation });
+    
+    // Division uses left-to-right input (cursor starts at rightmost position)
+    const isDivision = operation === 'division';
     
     const answerDisplay = document.getElementById('answerDisplay');
     const input = document.getElementById('answerInput');
@@ -1116,7 +1119,9 @@ function setupRightToLeftInput(question, requiredDigits) {
         correctAnswerLine.classList.add('hidden');
     }
     
-    // Handle input manually to ensure cursor stays on left and digits flow right-to-left
+    // Handle input manually
+    // For division: cursor starts at rightmost position and moves left (left-to-right input)
+    // For other operations: cursor stays at leftmost position and digits flow right-to-left
     // Direction is handled by CSS (text-align: right), no need to set dir attribute
     
     // Function to get raw value (no spaces needed - CSS letter-spacing handles visual spacing)
@@ -1128,93 +1133,168 @@ function setupRightToLeftInput(question, requiredDigits) {
         const rawValue = getRawValue(this.value);
         const cursorPos = this.selectionStart;
         
-        // Handle digit input - always insert at position 0 (leftmost)
-        if (/^\d$/.test(e.key) && rawValue.length < requiredDigits) {
-            e.preventDefault();
-            
-            // Insert digit at the beginning (position 0) - this makes digits flow right-to-left
-            const newRawValue = e.key + rawValue;
-            // CSS letter-spacing will handle visual spacing
-            this.value = newRawValue;
-            
-            // Keep cursor at position 0 (left side)
-            setTimeout(() => {
-                this.setSelectionRange(0, 0);
-            }, 0);
-            
-            // Auto-submit when all digits entered
-            if (newRawValue.length >= requiredDigits) {
-                const userAnswer = parseInt(newRawValue, 10);
-                if (!isNaN(userAnswer)) {
-                    // Add delay so user can see the last digit (especially on mobile)
-                    const isMobile = window.innerWidth <= 768;
-                    const delay = isMobile ? 200 : 300; // 0.2 seconds on mobile, 0.3 on desktop
-                    setTimeout(() => {
+        if (isDivision) {
+            // Division: left-to-right input (normal browser behavior)
+            // Only intercept to limit digits and auto-submit, otherwise let browser handle input
+            if (/^\d$/.test(e.key)) {
+                const currentLength = rawValue.length;
+                if (currentLength >= requiredDigits) {
+                    // Already at max digits, prevent input and auto-submit
+                    e.preventDefault();
+                    const userAnswer = parseInt(rawValue, 10);
+                    if (!isNaN(userAnswer)) {
+                        const isMobile = window.innerWidth <= 768;
+                        const delay = isMobile ? 200 : 300;
+                        setTimeout(() => {
+                            checkAnswer(question, userAnswer);
+                        }, delay);
+                    }
+                }
+                // Otherwise, let browser handle the input normally (don't prevent default)
+                // The input event handler will clean non-digits and handle auto-submit
+            }
+            // Handle Enter
+            else if (e.key === 'Enter') {
+                const value = getRawValue(this.value);
+                if (value.length > 0) {
+                    const userAnswer = parseInt(value, 10);
+                    if (!isNaN(userAnswer)) {
                         checkAnswer(question, userAnswer);
-                    }, delay);
+                    }
                 }
             }
-        }
-        // Handle Backspace - delete from the left (position 0)
-        else if (e.key === 'Backspace' && rawValue.length > 0) {
-            e.preventDefault();
-            const newRawValue = rawValue.slice(1); // Remove first character
-            this.value = newRawValue;
-            setTimeout(() => {
-                this.setSelectionRange(0, 0);
-            }, 0);
-        }
-        // Handle Delete - same as Backspace for our use case
-        else if (e.key === 'Delete' && rawValue.length > 0) {
-            e.preventDefault();
-            const newRawValue = rawValue.slice(1);
-            this.value = newRawValue;
-            setTimeout(() => {
-                this.setSelectionRange(0, 0);
-            }, 0);
-        }
-        // Handle Enter
-        else if (e.key === 'Enter') {
-            const value = getRawValue(this.value);
-            if (value.length > 0) {
-                const userAnswer = parseInt(value, 10);
-                if (!isNaN(userAnswer)) {
-                    checkAnswer(question, userAnswer);
+            // Allow all other keys (Backspace, Delete, Arrow keys, etc.) to work normally
+            // No need to prevent default - let normal cursor movement work
+        } else {
+            // Other operations: right-to-left input (cursor stays at left)
+            // Handle digit input - always insert at position 0 (leftmost)
+            if (/^\d$/.test(e.key) && rawValue.length < requiredDigits) {
+                e.preventDefault();
+                
+                // Insert digit at the beginning (position 0) - this makes digits flow right-to-left
+                const newRawValue = e.key + rawValue;
+                // CSS letter-spacing will handle visual spacing
+                this.value = newRawValue;
+                
+                // Keep cursor at position 0 (left side)
+                setTimeout(() => {
+                    this.setSelectionRange(0, 0);
+                }, 0);
+                
+                // Auto-submit when all digits entered
+                if (newRawValue.length >= requiredDigits) {
+                    const userAnswer = parseInt(newRawValue, 10);
+                    if (!isNaN(userAnswer)) {
+                        // Add delay so user can see the last digit (especially on mobile)
+                        const isMobile = window.innerWidth <= 768;
+                        const delay = isMobile ? 200 : 300; // 0.2 seconds on mobile, 0.3 on desktop
+                        setTimeout(() => {
+                            checkAnswer(question, userAnswer);
+                        }, delay);
+                    }
                 }
             }
-        }
-        // Prevent arrow keys and other navigation - keep cursor at left
-        else if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
-            e.preventDefault();
-            setTimeout(() => {
-                this.setSelectionRange(0, 0);
-            }, 0);
+            // Handle Backspace - delete from the left (position 0)
+            else if (e.key === 'Backspace' && rawValue.length > 0) {
+                e.preventDefault();
+                const newRawValue = rawValue.slice(1); // Remove first character
+                this.value = newRawValue;
+                setTimeout(() => {
+                    this.setSelectionRange(0, 0);
+                }, 0);
+            }
+            // Handle Delete - same as Backspace for our use case
+            else if (e.key === 'Delete' && rawValue.length > 0) {
+                e.preventDefault();
+                const newRawValue = rawValue.slice(1);
+                this.value = newRawValue;
+                setTimeout(() => {
+                    this.setSelectionRange(0, 0);
+                }, 0);
+            }
+            // Handle Enter
+            else if (e.key === 'Enter') {
+                const value = getRawValue(this.value);
+                if (value.length > 0) {
+                    const userAnswer = parseInt(value, 10);
+                    if (!isNaN(userAnswer)) {
+                        checkAnswer(question, userAnswer);
+                    }
+                }
+            }
+            // Prevent arrow keys and other navigation - keep cursor at left
+            else if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+                e.preventDefault();
+                setTimeout(() => {
+                    this.setSelectionRange(0, 0);
+                }, 0);
+            }
         }
     });
     
-    // Handle input event to clean non-digits
+    // Handle input event to clean non-digits and auto-submit
     answerInput.addEventListener('input', function() {
         const rawValue = getRawValue(this.value);
+        const cursorPos = this.selectionStart;
+        
         if (this.value !== rawValue) {
+            // Non-digits were entered, clean them
             this.value = rawValue;
+            // Restore cursor position (approximate)
+            setTimeout(() => {
+                if (isDivision) {
+                    // For division, let cursor stay where it naturally is (normal behavior)
+                    // Don't force cursor position
+                } else {
+                    // For other operations, keep cursor at position 0 (left)
+                    this.setSelectionRange(0, 0);
+                }
+            }, 0);
         }
-        // Always keep cursor at position 0 (left)
-        setTimeout(() => {
-            this.setSelectionRange(0, 0);
-        }, 0);
+        
+        // Auto-submit when all digits entered (for division)
+        if (isDivision && rawValue.length >= requiredDigits) {
+            const userAnswer = parseInt(rawValue, 10);
+            if (!isNaN(userAnswer)) {
+                // Add delay so user can see the last digit (especially on mobile)
+                const isMobile = window.innerWidth <= 768;
+                const delay = isMobile ? 200 : 300; // 0.2 seconds on mobile, 0.3 on desktop
+                setTimeout(() => {
+                    checkAnswer(question, userAnswer);
+                }, delay);
+            }
+        }
     });
     
-    // Handle click - always move cursor to left (position 0)
+    // Handle click - move cursor appropriately
     answerInput.addEventListener('click', function() {
         setTimeout(() => {
-            this.setSelectionRange(0, 0);
+            if (isDivision) {
+                // For division, let normal click behavior work (cursor goes where user clicks)
+                // Don't force cursor position
+            } else {
+                // For other operations, move cursor to position 0 (left)
+                this.setSelectionRange(0, 0);
+            }
         }, 0);
     });
     
-    // Focus the input field with cursor at position 0 (left)
+    // Focus the input field with cursor at appropriate position
     setTimeout(() => {
         answerInput.focus();
-        answerInput.setSelectionRange(0, 0);
+        if (isDivision) {
+            // For division, cursor should start at the rightmost position
+            // For a right-aligned empty input, position 0 should appear on the right
+            // But to ensure it's on the right, we'll set cursor to position 0
+            // The browser will handle normal left-to-right input from there
+            answerInput.setSelectionRange(0, 0);
+            // Force a reflow to ensure cursor appears on the right
+            answerInput.blur();
+            answerInput.focus();
+        } else {
+            // For other operations, cursor at position 0 (left)
+            answerInput.setSelectionRange(0, 0);
+        }
     }, 100);
     
     // Store reference for cleanup
