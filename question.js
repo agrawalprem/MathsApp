@@ -527,13 +527,11 @@ function generateAllQuestions(operation, variant) {
 
         if (variantConfig.onePerSecond) {
             // 4M1 and 4M2: One question for each second number (1-9)
-            // First number: 5-digit, randomly generated
+            // First number: 5-digit, randomly generated for EACH question
             // 4M1: no zeros, 4M2: at least 1 zero
-            // If division has remainder, subtract remainder from first number
-            // Check adjusted first number still meets zero requirements
+            // Generate first number that is divisible by second number (no remainder)
             const firstRange = variantConfig.first || [10000, 99999];
             const firstNumDigits = firstRange[1].toString().length; // 5 digits
-            let baseFirst;
             
             // Helper function to check if number has zeros
             function hasZeros(num) {
@@ -545,11 +543,8 @@ function generateAllQuestions(operation, variant) {
                 return (num.toString().match(/0/g) || []).length;
             }
             
-            // Generate one base first number for the entire session
-            let attempts = 0;
-            const maxAttempts = 1000;
-            while (attempts < maxAttempts) {
-                attempts++;
+            // Helper function to generate a first number with zero requirements
+            function generateFirstWithZeroRequirements() {
                 let firstStr = '';
                 
                 if (variantConfig.noZero) {
@@ -580,98 +575,100 @@ function generateAllQuestions(operation, variant) {
                     }
                 } else {
                     // Fallback: random 5-digit number
-                    baseFirst = Math.floor(Math.random() * (firstRange[1] - firstRange[0] + 1)) + firstRange[0];
-                    break;
+                    return Math.floor(Math.random() * (firstRange[1] - firstRange[0] + 1)) + firstRange[0];
                 }
                 
-                baseFirst = parseInt(firstStr);
-                if (baseFirst >= firstRange[0] && baseFirst <= firstRange[1] && baseFirst > 0) {
-                    break;
-                }
-            }
-            
-            if (!baseFirst || baseFirst < firstRange[0] || baseFirst > firstRange[1]) {
-                console.error('Failed to generate valid first number for division variant');
-                return; // Exit if we can't generate a valid first number
+                return parseInt(firstStr);
             }
             
             // Generate one question for each second number (1-9)
-            // Adjust first number if remainder exists
+            // Generate a unique first number for each question that is divisible by second
             for (let second = secondRange[0]; second <= secondRange[1]; second++) {
-                let adjustedFirst = baseFirst;
-                const remainder = adjustedFirst % second;
+                let first = 0;
+                let attempts = 0;
+                const maxAttempts = 1000;
                 
-                // If there's a remainder, subtract it from first number
-                if (remainder > 0) {
-                    adjustedFirst = adjustedFirst - remainder;
+                while (attempts < maxAttempts) {
+                    attempts++;
                     
-                    // Check if adjusted first number still meets zero requirements
+                    // Generate a base first number with zero requirements
+                    let baseFirst = generateFirstWithZeroRequirements();
+                    
+                    // Adjust to make it divisible by second (no remainder)
+                    const remainder = baseFirst % second;
+                    if (remainder === 0) {
+                        // Already divisible, check if it meets requirements
+                        if (baseFirst >= firstRange[0] && baseFirst <= firstRange[1]) {
+                            if (variantConfig.noZero && !hasZeros(baseFirst)) {
+                                first = baseFirst;
+                                break;
+                            } else if (variantConfig.hasZero && countZeros(baseFirst) >= 1) {
+                                first = baseFirst;
+                                break;
+                            } else if (!variantConfig.noZero && !variantConfig.hasZero) {
+                                first = baseFirst;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // Adjust baseFirst to be divisible by second
+                    let adjustedFirst = baseFirst - remainder;
+                    
+                    // If adjusted is too small, add multiples of second
+                    if (adjustedFirst < firstRange[0]) {
+                        const multiple = Math.ceil((firstRange[0] - adjustedFirst) / second);
+                        adjustedFirst = adjustedFirst + (second * multiple);
+                    }
+                    
+                    // Check if adjusted first meets zero requirements
                     let valid = false;
                     if (variantConfig.noZero) {
                         // 4M1: Adjusted first should have no zeros
-                        valid = !hasZeros(adjustedFirst) && adjustedFirst >= 10000;
+                        valid = !hasZeros(adjustedFirst) && adjustedFirst >= firstRange[0] && adjustedFirst <= firstRange[1];
                     } else if (variantConfig.hasZero) {
                         // 4M2: Adjusted first should have at least 1 zero
-                        valid = countZeros(adjustedFirst) >= 1 && adjustedFirst >= 10000;
+                        valid = countZeros(adjustedFirst) >= 1 && adjustedFirst >= firstRange[0] && adjustedFirst <= firstRange[1];
                     } else {
-                        valid = adjustedFirst >= firstRange[0];
+                        valid = adjustedFirst >= firstRange[0] && adjustedFirst <= firstRange[1];
                     }
                     
-                    if (!valid) {
-                        // Try adding multiples of second to find valid first number
-                        let foundValid = false;
-                        for (let multiple = 1; multiple <= 100 && !foundValid; multiple++) {
-                            const testFirst = baseFirst - remainder + (second * multiple);
-                            if (testFirst < firstRange[0] || testFirst > firstRange[1]) continue;
-                            
-                            if (variantConfig.noZero) {
-                                if (!hasZeros(testFirst) && testFirst >= 10000) {
-                                    adjustedFirst = testFirst;
-                                    foundValid = true;
-                                }
-                            } else if (variantConfig.hasZero) {
-                                if (countZeros(testFirst) >= 1 && testFirst >= 10000) {
-                                    adjustedFirst = testFirst;
-                                    foundValid = true;
-                                }
-                            } else {
-                                adjustedFirst = testFirst;
+                    if (valid) {
+                        first = adjustedFirst;
+                        break;
+                    }
+                    
+                    // Try adding multiples of second to find valid first number
+                    let foundValid = false;
+                    for (let multiple = 1; multiple <= 100 && !foundValid; multiple++) {
+                        const testFirst = adjustedFirst + (second * multiple);
+                        if (testFirst > firstRange[1]) break;
+                        
+                        if (variantConfig.noZero) {
+                            if (!hasZeros(testFirst)) {
+                                first = testFirst;
                                 foundValid = true;
                             }
-                        }
-                        
-                        // If still not valid, try subtracting multiples
-                        if (!foundValid) {
-                            for (let multiple = 1; multiple <= remainder && !foundValid; multiple++) {
-                                const testFirst = baseFirst - remainder - (second * multiple);
-                                if (testFirst < firstRange[0] || testFirst > firstRange[1]) break;
-                                
-                                if (variantConfig.noZero) {
-                                    if (!hasZeros(testFirst) && testFirst >= 10000) {
-                                        adjustedFirst = testFirst;
-                                        foundValid = true;
-                                    }
-                                } else if (variantConfig.hasZero) {
-                                    if (countZeros(testFirst) >= 1 && testFirst >= 10000) {
-                                        adjustedFirst = testFirst;
-                                        foundValid = true;
-                                    }
-                                } else {
-                                    adjustedFirst = testFirst;
-                                    foundValid = true;
-                                }
+                        } else if (variantConfig.hasZero) {
+                            if (countZeros(testFirst) >= 1) {
+                                first = testFirst;
+                                foundValid = true;
                             }
-                        }
-                        
-                        // If still not valid, use the base adjustment (might have zeros but will still work)
-                        if (!foundValid) {
-                            adjustedFirst = baseFirst - remainder;
+                        } else {
+                            first = testFirst;
+                            foundValid = true;
                         }
                     }
+                    
+                    if (foundValid) break;
                 }
                 
-                const result = Math.floor(adjustedFirst / second);
-                allQuestions.push({ first: adjustedFirst, second: second, answer: result });
+                if (first >= firstRange[0] && first <= firstRange[1]) {
+                    const result = Math.floor(first / second);
+                    allQuestions.push({ first: first, second: second, answer: result });
+                } else {
+                    console.warn(`Failed to generate valid first number for second=${second} after ${maxAttempts} attempts`);
+                }
             }
             
             // Shuffle questions to randomize sequence of second number
