@@ -646,13 +646,59 @@ function startActiveSessionsPolling() {
             const hasChanges = JSON.stringify(oldActiveSessions) !== JSON.stringify(window.activeSessions);
             
             if (hasChanges) {
-                // Update only affected cells instead of rebuilding entire table
+                // Detect which active sessions disappeared (completed variants)
+                const oldSessionKeys = new Set(oldActiveSessions.map(s => `${s.user_id}_${s.operation}_${s.variant}`));
+                const newSessionKeys = new Set(activeSessionsData.map(s => `${s.user_id}_${s.operation}_${s.variant}`));
+                
+                // Find sessions that disappeared (were in old, not in new)
+                const disappearedSessions = oldActiveSessions.filter(s => {
+                    const key = `${s.user_id}_${s.operation}_${s.variant}`;
+                    return !newSessionKeys.has(key);
+                });
+                
+                // If any sessions disappeared, refresh scores for those students
+                if (disappearedSessions.length > 0) {
+                    const userIdsToRefresh = [...new Set(disappearedSessions.map(s => s.user_id))];
+                    console.log(`🔄 Active sessions disappeared for ${userIdsToRefresh.length} student(s), refreshing scores...`);
+                    await refreshScoresForStudents(userIdsToRefresh);
+                }
+                
+                // Update all cells (will show green/red for completed variants)
                 updateActiveSessionCells();
             }
         } catch (error) {
             console.error('❌ Error in active sessions polling:', error);
         }
     }, 5000); // 5 seconds
+}
+
+// Refresh scores for specific students
+// CALLED BY: teacher-dashboard.js - startActiveSessionsPolling() (when active sessions disappear)
+async function refreshScoresForStudents(userIds) {
+    if (window.debugLog) window.debugLog('refreshScoresForStudents', `(${userIds.length} students)`);
+    if (!supabase || userIds.length === 0) return;
+    
+    try {
+        // Fetch latest scores for these students
+        const { data: scoresData, error: scoresError } = await supabase
+            .from('user_scores')
+            .select('*')
+            .in('user_id', userIds);
+        
+        if (scoresError) {
+            console.warn('⚠️ Error refreshing scores:', scoresError);
+            return;
+        }
+        
+        // Update studentScores array: remove old scores for these students, add new ones
+        const newScores = scoresData || [];
+        studentScores = studentScores.filter(s => !userIds.includes(s.user_id));
+        studentScores.push(...newScores);
+        
+        console.log(`✅ Refreshed scores for ${userIds.length} student(s), found ${newScores.length} new score records`);
+    } catch (error) {
+        console.error('❌ Error refreshing scores:', error);
+    }
 }
 
 // Update only cells that have active sessions (efficient DOM update)
