@@ -667,7 +667,44 @@ function generateAllQuestions(operation, variant) {
                     const result = Math.floor(first / second);
                     allQuestions.push({ first: first, second: second, answer: result });
                 } else {
-                    console.warn(`Failed to generate valid first number for second=${second} after ${maxAttempts} attempts`);
+                    // Fallback: Generate a guaranteed valid number if random generation fails
+                    // Use a systematic approach with some randomness to ensure variety
+                    console.warn(`Failed to generate valid first number for second=${second} after ${maxAttempts} attempts, using fallback`);
+                    
+                    let fallbackFirst = 0;
+                    // Try multiple random starting points to ensure variety
+                    const randomStart = Math.floor(Math.random() * 90000) + 10000; // Random 5-digit number
+                    const startMultiplier = Math.ceil(randomStart / second);
+                    
+                    // Search from random start point, checking numbers divisible by second
+                    for (let offset = 0; offset < 1000 && fallbackFirst === 0; offset++) {
+                        const multiplier = startMultiplier + offset;
+                        const candidate = second * multiplier;
+                        
+                        if (candidate > firstRange[1]) break;
+                        if (candidate >= firstRange[0] && countZeros(candidate) >= 1) {
+                            fallbackFirst = candidate;
+                            break;
+                        }
+                    }
+                    
+                    // If still no valid number, try from the beginning of range
+                    if (fallbackFirst === 0) {
+                        for (let multiplier = Math.ceil(firstRange[0] / second); multiplier <= Math.floor(firstRange[1] / second); multiplier++) {
+                            const candidate = second * multiplier;
+                            if (candidate >= firstRange[0] && candidate <= firstRange[1] && countZeros(candidate) >= 1) {
+                                fallbackFirst = candidate;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (fallbackFirst >= firstRange[0] && fallbackFirst <= firstRange[1]) {
+                        const result = Math.floor(fallbackFirst / second);
+                        allQuestions.push({ first: fallbackFirst, second: second, answer: result });
+                    } else {
+                        console.error(`Failed to generate even fallback first number for second=${second}`);
+                    }
                 }
             }
             
