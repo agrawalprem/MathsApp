@@ -108,6 +108,42 @@
     transition: border-color 0.3s ease;
 }
 
+/* CALLED BY: index.js - Password input wrapper for show/hide toggle */
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-wrapper input {
+    padding-right: 45px; /* Make room for toggle button */
+    width: 100%;
+}
+
+/* CALLED BY: index.js - Password toggle button */
+.password-toggle {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px 8px;
+    color: #666;
+    transition: color 0.2s ease;
+    z-index: 1;
+}
+
+.password-toggle:hover {
+    color: #333;
+}
+
+.password-toggle:focus {
+    outline: 2px solid #667eea;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
 /* CALLED BY: index.js - showRegistration(), showLogin(), showForgotPassword() (applies to <input> and <select> elements on focus) */
 .auth-form input:focus,
 .auth-form select:focus {

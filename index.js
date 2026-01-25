@@ -55,8 +55,14 @@ function showRegistration() {
                 <input type="number" id="regClass" placeholder="Class" min="1" max="9" required>
                 <input type="text" id="regSection" placeholder="Section" value="A" pattern="[A-Z]" minlength="1" maxlength="1" required>
                 <input type="number" id="regRollNumber" placeholder="Roll Number" min="1" max="99">
-                <input type="password" id="regPassword" placeholder="Password" minlength="6" required>
-                <input type="password" id="regPasswordConfirm" placeholder="Confirm Password" minlength="6" required>
+                <div class="password-input-wrapper">
+                    <input type="password" id="regPassword" placeholder="Password" minlength="6" required>
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('regPassword', this)" aria-label="Show password">👁️</button>
+                </div>
+                <div class="password-input-wrapper">
+                    <input type="password" id="regPasswordConfirm" placeholder="Confirm Password" minlength="6" required>
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('regPasswordConfirm', this)" aria-label="Show password">👁️</button>
+                </div>
                 <button type="submit" class="btn">Register</button>
             </form>
             <div id="regError" class="auth-error"></div>
@@ -77,7 +83,10 @@ function showLogin() {
             <h3>Login</h3>
             <form id="loginForm" class="auth-form" onsubmit="handleLoginForm(event)">
                 <input type="email" id="loginEmail" placeholder="Email" required>
-                <input type="password" id="loginPassword" placeholder="Password" required>
+                <div class="password-input-wrapper">
+                    <input type="password" id="loginPassword" placeholder="Password" required>
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('loginPassword', this)" aria-label="Show password">👁️</button>
+                </div>
                 <button type="submit" class="btn">Log In</button>
             </form>
             <div id="loginError" class="auth-error"></div>
@@ -106,8 +115,14 @@ function showForgotPassword() {
             <div id="forgotPasswordReset" style="display: none;">
                 <p style="margin-bottom: 20px; color: #666;">Enter your new password.</p>
                 <form id="resetPasswordForm" class="auth-form" onsubmit="handleResetPasswordForm(event)">
-                    <input type="password" id="resetNewPassword" placeholder="New Password" minlength="6" required>
-                    <input type="password" id="resetConfirmPassword" placeholder="Confirm New Password" minlength="6" required>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="resetNewPassword" placeholder="New Password" minlength="6" required>
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('resetNewPassword', this)" aria-label="Show password">👁️</button>
+                    </div>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="resetConfirmPassword" placeholder="Confirm New Password" minlength="6" required>
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('resetConfirmPassword', this)" aria-label="Show password">👁️</button>
+                    </div>
                     <button type="submit" class="btn">Update Password</button>
                 </form>
                 <div id="resetError" class="auth-error"></div>
@@ -476,6 +491,23 @@ function toggleWelcome() {
     }
 }
 
+// CALLED BY: Password toggle buttons (onclick="togglePasswordVisibility(...)")
+function togglePasswordVisibility(inputId, button) {
+    if (window.debugLog) window.debugLog('togglePasswordVisibility', `(${inputId})`);
+    const passwordInput = document.getElementById(inputId);
+    if (!passwordInput) return;
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        button.textContent = '🙈';
+        button.setAttribute('aria-label', 'Hide password');
+    } else {
+        passwordInput.type = 'password';
+        button.textContent = '👁️';
+        button.setAttribute('aria-label', 'Show password');
+    }
+}
+
 // Expose functions globally
 // CALLED BY: index.html - All onclick and onsubmit handlers access these via window object
 window.showAnonymousUser = showAnonymousUser;
@@ -483,6 +515,7 @@ window.showRegistration = showRegistration;
 window.showLogin = showLogin;
 window.showForgotPassword = showForgotPassword;
 window.toggleWelcome = toggleWelcome;
+window.togglePasswordVisibility = togglePasswordVisibility;
 window.startAsAnonymous = startAsAnonymous;
 window.handleRegistration = handleRegistration;
 window.handleLoginForm = handleLoginForm;

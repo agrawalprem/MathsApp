@@ -77,8 +77,8 @@ function endSession() {
  * - Build stats HTML with all session information
  * - Display stats in summaryStats element
  * - Determine pass/fail:
- *   - Multi-digit variants: 100% correct required (no time limit)
- *   - Standard variants: wrong ≤ 10% AND average time ≤ 6 seconds
+ *   - All variants: correct >= 90% AND wrong <= 10%
+ *   - Single-digit variants: also requires average time ≤ 6 seconds
  * - Display PASS or FAIL with appropriate styling
  * - Store pass/fail result in currentSession.passed
  * - Build question details HTML with all results
@@ -137,16 +137,16 @@ function showSummary() {
     const isMultiDigit = variantConfig.rightToLeft;
     
     // Pass criteria: 
-    // - Multi-digit variants: 100% correct (correctCount === totalQuestions) AND 0% wrong (wrongCount === 0)
-    // - Single-digit variants: correct >= 90% AND wrong <= 10% AND average time per correct question < 6 seconds
+    // - All variants: correct >= 90% AND wrong <= 10%
+    // - Single-digit variants: also requires average time per correct question < 6 seconds
     let passed = false;
     if (totalQuestions > 0) {
+        const correctPercentage = (session.correctCount / totalQuestions) * 100;
         if (isMultiDigit) {
-            // Multi-digit: 100% correct and 0% wrong
-            passed = session.correctCount === totalQuestions && session.wrongCount === 0;
+            // Multi-digit: correct >= 90% AND wrong <= 10% (no time limit)
+            passed = correctPercentage >= 90 && wrongPercentage <= 10;
         } else {
             // Single-digit: correct >= 90% AND wrong <= 10% AND average time < 6 seconds
-            const correctPercentage = (session.correctCount / totalQuestions) * 100;
             passed = correctPercentage >= 90 && wrongPercentage <= 10 && avgTime < 6;
         }
     }
