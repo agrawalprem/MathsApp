@@ -23,9 +23,9 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // Site URL for email redirects - Update this with your Netlify site URL
 // IMPORTANT: Password reset emails should always redirect to your production URL (Netlify)
 // Also update Supabase Dashboard → Authentication → URL Configuration:
-//   1. Set "Site URL" to your Netlify URL (e.g., https://premagrawal-maths.netlify.app)
-//   2. Add to "Redirect URLs": https://premagrawal-maths.netlify.app/**
-const PRODUCTION_URL = 'https://premagrawal-maths.netlify.app';
+//   1. Set "Site URL" to your Netlify URL (e.g., https://mathsbaby.netlify.app)
+//   2. Add to "Redirect URLs": https://mathsbaby.netlify.app/**
+const PRODUCTION_URL = 'https://mathsbaby.netlify.app';
 const SITE_URL = window.location.origin; // Current URL (for local testing)
 
 // For password reset, always use production URL (emails should go to live site, not localhost)
