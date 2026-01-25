@@ -254,21 +254,41 @@
     font-weight: 500;
 }
 
+/* CALLED BY: question.html - <div class="dashboard-buttons-grid"> */
+.dashboard-buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+    margin-top: 15px;
+    margin-bottom: 20px;
+    max-width: 256px; /* Allows 2 buttons side by side: 120px + 8px + 120px + padding = ~256px */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* CALLED BY: question.html - <button class="btn btn-auth"> inside .dashboard-buttons-grid */
+.dashboard-buttons-grid .btn-auth {
+    padding: 6px 12px;
+    font-size: 13px;
+    width: 100%;
+}
+
 /* CALLED BY: question.html - <div class="quiz-controls hidden" id="quizControls">, question.js - displayQuestion() (removes 'hidden' class for multi-digit variants, adds 'hidden' class for standard variants), startSession() (adds 'hidden' class initially) */
 .quiz-controls {
     display: grid;
-    grid-template-columns: repeat(4, minmax(120px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
     margin-top: 20px;
-    justify-items: stretch;
+    max-width: 256px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* CALLED BY: question.html - <button class="btn btn-quiz" id="onHoldBtn">, <button class="btn btn-quiz" id="tryAgainBtn">, <button class="btn btn-quiz" id="nextQuestionBtn">, <button class="btn btn-quiz" id="nextAssignmentBtn"> */
-.btn-quiz {
-    padding: 8px 16px;
-    font-size: 14px;
-    min-width: 120px;
-    width: 100%; /* fill grid cell */
+.quiz-controls .btn-quiz {
+    padding: 6px 12px;
+    font-size: 13px;
+    width: 100%;
 }
 
 /* CALLED BY: question.html - <div class="progress-tracker">, question.js - updateProgressTracker() (updates progress text and bar) */

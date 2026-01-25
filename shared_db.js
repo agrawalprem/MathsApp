@@ -50,6 +50,11 @@ var isFetchingProfile = false; // Prevent multiple simultaneous profile fetches
 var sessionTimeoutTimer = null; // Stores the timeout timer ID
 var sessionTimeoutMinutes = null; // Stores the timeout duration for current session
 
+// Inactivity timeout management (5 minutes)
+var inactivityTimer = null; // Stores the inactivity timeout timer ID
+var inactivityTimeoutMinutes = 5; // 5 minutes of inactivity before logout
+var activityEventListeners = []; // Stores event listeners for cleanup
+
 
 // ============================================================================
 // EMAIL CONFIRMATION HELPERS
@@ -190,6 +195,8 @@ async function initSupabase() {
                         const timeoutMinutes = await fetchSessionTimeout(profile.school_id);
                         startSessionTimeout(timeoutMinutes);
                     }
+                    // Start inactivity tracking (5-minute timeout)
+                    startInactivityTracking();
                     // Handle email confirmation or password reset URLs
                     handleEmailConfirmation();
                     cleanupURLHash();
@@ -200,6 +207,8 @@ async function initSupabase() {
                     }
                     // Start session timeout with default (30 minutes) if profile fetch fails
                     startSessionTimeout(30);
+                    // Start inactivity tracking (5-minute timeout)
+                    startInactivityTracking();
                     handleEmailConfirmation();
                     cleanupURLHash();
                 });
@@ -248,6 +257,8 @@ async function initSupabase() {
                         const timeoutMinutes = await fetchSessionTimeout(profile.school_id);
                         startSessionTimeout(timeoutMinutes);
                     }
+                    // Start inactivity tracking (5-minute timeout)
+                    startInactivityTracking();
                 }).catch(err => {
                     console.warn('⚠️ Could not fetch user profile:', err);
                     if (typeof updateAuthUI === 'function') {
@@ -255,6 +266,8 @@ async function initSupabase() {
                     }
                     // Start session timeout with default (30 minutes) if profile fetch fails
                     startSessionTimeout(30);
+                    // Start inactivity tracking (5-minute timeout)
+                    startInactivityTracking();
                 });
             } else if (event === 'SIGNED_OUT') {
                 currentUser = null;
@@ -262,6 +275,8 @@ async function initSupabase() {
                 console.log('✅ User signed out');
                 // Clear session timeout
                 clearSessionTimeout();
+                // Stop inactivity tracking
+                stopInactivityTracking();
                 if (typeof updateAuthUI === 'function') {
                     updateAuthUI();
                 }
@@ -281,6 +296,9 @@ async function initSupabase() {
         });
         
         console.log('✅ Auth state change listener set up');
+        
+        // Set up browser close handler (only once, regardless of auth state)
+        setupBrowserCloseHandler();
     } catch (error) {
         console.error('❌ Error initializing Supabase:', error);
     }
@@ -929,6 +947,9 @@ async function handleSessionTimeout() {
     // Clear the timer
     clearSessionTimeout();
     
+    // Stop inactivity tracking
+    stopInactivityTracking();
+    
     // Sign out the user
     if (supabase) {
         try {
@@ -951,6 +972,293 @@ async function handleSessionTimeout() {
 }
 
 // ============================================================================
+// INACTIVITY TIMEOUT MANAGEMENT (5 MINUTES)
+// ============================================================================
+
+/**
+ * REQUIREMENTS:
+ * - Reset the inactivity timer on any user activity
+ * - Clear existing timer and start a new 5-minute countdown
+ * - No return value
+ * 
+ * CALLED BY: Activity event listeners (mousemove, keydown, click, touchstart, scroll)
+ */
+function resetInactivityTimer() {
+    if (window.debugLog) window.debugLog('resetInactivityTimer');
+    
+    // Only reset if user is logged in
+    if (!currentUser) {
+        return;
+    }
+    
+    // Clear existing timer
+    clearInactivityTimer();
+    
+    // Start new 5-minute timer
+    const timeoutMs = inactivityTimeoutMinutes * 60 * 1000; // 5 minutes in milliseconds
+    inactivityTimer = setTimeout(() => {
+        handleInactivityTimeout();
+    }, timeoutMs);
+}
+
+/**
+ * REQUIREMENTS:
+ * - Clear the inactivity timer if it exists
+ * - Set inactivityTimer to null
+ * - No return value
+ * 
+ * CALLED BY: shared_db.js - resetInactivityTimer() (before starting new timer), shared_db.js - stopInactivityTracking() (when user logs out), shared_db.js - onAuthStateChange (when user signs out)
+ */
+function clearInactivityTimer() {
+    if (window.debugLog) window.debugLog('clearInactivityTimer');
+    
+    if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+        inactivityTimer = null;
+    }
+}
+
+/**
+ * REQUIREMENTS:
+ * - Called when 5 minutes of inactivity is detected
+ * - Sign out the user via supabase.auth.signOut()
+ * - Clear inactivity timer
+ * - Redirect to index.html with inactivity message
+ * - No return value
+ * 
+ * CALLED BY: shared_db.js - resetInactivityTimer() (when timeout is reached)
+ */
+async function handleInactivityTimeout() {
+    if (window.debugLog) window.debugLog('handleInactivityTimeout');
+    
+    console.log('⏰ Inactivity timeout reached (5 minutes) - signing out user');
+    
+    // Clear the timer
+    clearInactivityTimer();
+    
+    // Sign out the user
+    if (supabase) {
+        try {
+            await supabase.auth.signOut();
+            console.log('✅ User signed out due to inactivity timeout');
+        } catch (error) {
+            console.error('❌ Error signing out on inactivity timeout:', error);
+        }
+    }
+    
+    // Clear user state
+    currentUser = null;
+    currentUserProfile = null;
+    
+    // Redirect to index page with inactivity message
+    const currentPath = window.location.pathname;
+    if (!currentPath.includes('index.html')) {
+        window.location.href = 'index.html?inactivity=1';
+    }
+}
+
+/**
+ * REQUIREMENTS:
+ * - Set up activity event listeners to track user activity
+ * - Listen for: mousemove, keydown, click, touchstart, scroll
+ * - Reset inactivity timer on any activity
+ * - Store listeners in activityEventListeners array for cleanup
+ * - No return value
+ * 
+ * CALLED BY: shared_db.js - startInactivityTracking() (when user logs in)
+ */
+function setupActivityListeners() {
+    if (window.debugLog) window.debugLog('setupActivityListeners');
+    
+    // Remove existing listeners if any
+    removeActivityListeners();
+    
+    // List of events to track
+    const activityEvents = ['mousemove', 'keydown', 'click', 'touchstart', 'scroll', 'mousedown'];
+    
+    // Create throttled reset function (only reset once per second to avoid excessive timer resets)
+    let lastResetTime = 0;
+    const throttleMs = 1000; // Reset timer at most once per second
+    
+    const throttledReset = () => {
+        const now = Date.now();
+        if (now - lastResetTime >= throttleMs) {
+            resetInactivityTimer();
+            lastResetTime = now;
+        }
+    };
+    
+    // Add event listeners
+    activityEvents.forEach(eventType => {
+        const listener = throttledReset;
+        document.addEventListener(eventType, listener, { passive: true });
+        activityEventListeners.push({ type: eventType, listener: listener });
+    });
+    
+    console.log('✅ Activity listeners set up for inactivity tracking');
+}
+
+/**
+ * REQUIREMENTS:
+ * - Remove all activity event listeners
+ * - Clear activityEventListeners array
+ * - No return value
+ * 
+ * CALLED BY: shared_db.js - stopInactivityTracking() (when user logs out), shared_db.js - setupActivityListeners() (before adding new listeners)
+ */
+function removeActivityListeners() {
+    if (window.debugLog) window.debugLog('removeActivityListeners');
+    
+    activityEventListeners.forEach(({ type, listener }) => {
+        document.removeEventListener(type, listener);
+    });
+    activityEventListeners = [];
+}
+
+/**
+ * REQUIREMENTS:
+ * - Start inactivity tracking for logged-in user
+ * - Set up activity event listeners
+ * - Start the 5-minute inactivity timer
+ * - No return value
+ * 
+ * CALLED BY: shared_db.js - initSupabase() (when user signs in), shared_db.js - onAuthStateChange (when user signs in)
+ */
+function startInactivityTracking() {
+    if (window.debugLog) window.debugLog('startInactivityTracking');
+    
+    // Only start if user is logged in
+    if (!currentUser) {
+        return;
+    }
+    
+    // Set up activity listeners
+    setupActivityListeners();
+    
+    // Start the inactivity timer
+    resetInactivityTimer();
+    
+    console.log('✅ Inactivity tracking started (5-minute timeout)');
+}
+
+/**
+ * REQUIREMENTS:
+ * - Stop inactivity tracking when user logs out
+ * - Remove activity event listeners
+ * - Clear inactivity timer
+ * - No return value
+ * 
+ * CALLED BY: shared_db.js - onAuthStateChange (when user signs out), logout handlers
+ */
+function stopInactivityTracking() {
+    if (window.debugLog) window.debugLog('stopInactivityTracking');
+    
+    // Remove event listeners
+    removeActivityListeners();
+    
+    // Clear timer
+    clearInactivityTimer();
+    
+    console.log('✅ Inactivity tracking stopped');
+}
+
+// ============================================================================
+// BROWSER CLOSE HANDLER
+// ============================================================================
+
+/**
+ * REQUIREMENTS:
+ * - Handle browser/tab close event
+ * - Sign out user when browser is closed
+ * - Clear active session and timeouts
+ * - Use synchronous operations where possible for reliability
+ * - No return value
+ * 
+ * CALLED BY: Browser beforeunload/unload events
+ */
+function handleBrowserClose() {
+    if (window.debugLog) window.debugLog('handleBrowserClose');
+    
+    // Only logout if user is logged in
+    if (!currentUser || !supabase) {
+        return;
+    }
+    
+    console.log('🔒 Browser closing - signing out user');
+    
+    try {
+        // Clear active session tracking (synchronous if possible)
+        if (typeof window.clearActiveSession === 'function') {
+            // Try to clear synchronously, but don't await
+            window.clearActiveSession().catch(err => {
+                console.error('Error clearing active session on browser close:', err);
+            });
+        }
+        
+        // Clear session timeout (synchronous)
+        if (typeof window.clearSessionTimeout === 'function') {
+            window.clearSessionTimeout();
+        }
+        
+        // Stop inactivity tracking (synchronous)
+        stopInactivityTracking();
+        
+        // Sign out the user (use sendBeacon for reliability if available)
+        // Note: Supabase signOut is async, but we can't reliably await in unload
+        // The session will be cleared on the server side when token expires
+        if (supabase && supabase.auth) {
+            // Attempt to sign out (may not complete, but we try)
+            supabase.auth.signOut().catch(err => {
+                console.error('Error signing out on browser close:', err);
+            });
+        }
+        
+        console.log('✅ Browser close handler executed');
+    } catch (error) {
+        console.error('❌ Error in browser close handler:', error);
+    }
+}
+
+/**
+ * REQUIREMENTS:
+ * - Set up browser close event listeners
+ * - Listen for beforeunload and unload events
+ * - Call handleBrowserClose() when browser/tab is closed
+ * - No return value
+ * 
+ * CALLED BY: shared_db.js - initSupabase() (after setting up auth state listener)
+ */
+function setupBrowserCloseHandler() {
+    if (window.debugLog) window.debugLog('setupBrowserCloseHandler');
+    
+    // Remove existing listeners if any (to avoid duplicates)
+    if (window._browserCloseHandler) {
+        window.removeEventListener('beforeunload', window._browserCloseHandler);
+        window.removeEventListener('unload', window._browserCloseHandler);
+        window.removeEventListener('pagehide', window._browserCloseHandler);
+    }
+    
+    // Create handler function
+    window._browserCloseHandler = (event) => {
+        // Only handle if user is logged in
+        if (!currentUser || !supabase) {
+            return;
+        }
+        
+        // Call logout handler
+        handleBrowserClose();
+    };
+    
+    // Add event listeners
+    // Use pagehide for better mobile browser support
+    window.addEventListener('pagehide', window._browserCloseHandler);
+    window.addEventListener('beforeunload', window._browserCloseHandler);
+    window.addEventListener('unload', window._browserCloseHandler);
+    
+    console.log('✅ Browser close handler set up');
+}
+
+// ============================================================================
 // EXPOSE FUNCTIONS GLOBALLY
 // ============================================================================
 
@@ -964,3 +1272,5 @@ window.fetchVariantScores = fetchVariantScores;
 window.fetchAllVariantScores = fetchAllVariantScores;
 window.handleEmailConfirmation = handleEmailConfirmation;
 window.clearSessionTimeout = clearSessionTimeout; // Expose for logout handlers
+window.startInactivityTracking = startInactivityTracking; // Expose for manual start if needed
+window.stopInactivityTracking = stopInactivityTracking; // Expose for logout handlers

@@ -285,6 +285,10 @@ async function handleLogout() {
     if (typeof window.clearSessionTimeout === 'function') {
         window.clearSessionTimeout();
     }
+    // Stop inactivity tracking
+    if (typeof window.stopInactivityTracking === 'function') {
+        window.stopInactivityTracking();
+    }
     if (supabase) {
         await supabase.auth.signOut();
     }

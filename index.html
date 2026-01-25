@@ -103,6 +103,7 @@
             <h1 class="page-title">Learning Maths in Baby Steps</h1>
             
             <div class="auth-buttons-grid">
+                <button class="btn btn-auth" onclick="toggleWelcome()">Welcome</button>
                 <button class="btn btn-auth" onclick="showAnonymousUser()">Anonymous User</button>
                 <button class="btn btn-auth" onclick="showRegistration()">Registration</button>
                 <div class="auth-combined">
@@ -113,7 +114,7 @@
             </div>
             
             <!-- Teaching Method Information -->
-            <div class="teaching-method-info">
+            <div class="teaching-method-info hidden" id="welcomeContent">
                 <div class="welcome-text">
                     <p>Welcome to this new method of teaching children the fundamentals of arithmetic. The object of this method is to make children fluent in</p>
                 </div>

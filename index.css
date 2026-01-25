@@ -19,26 +19,38 @@
 /* CALLED BY: index.html - <div class="auth-buttons-grid"> */
 .auth-buttons-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(120px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
     margin-bottom: 30px;
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
 }
 
 /* CALLED BY: index.html - <button class="btn btn-auth" onclick="showAnonymousUser()">, showRegistration(), showLogin(), showForgotPassword() */
 .btn-auth {
-    padding: 6px 12px;
-    font-size: 13px;
+    background: white !important; /* Override .btn gradient */
+    border: 2px solid #ddd !important; /* Override .btn border */
+    border-radius: 10px;
+    padding: 20px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #333 !important; /* Override .btn white text */
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
     width: 100%;
 }
 
+/* CALLED BY: index.html - hover state on .btn-auth */
+.btn-auth:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    border-color: #667eea;
+    background: white !important; /* Keep white on hover */
+}
+
+/* Wrapper for Login/Logout sharing the same grid cell */
 /* Wrapper for Login/Logout sharing the same grid cell */
 .auth-combined {
-    display: flex;
-    gap: 0;
-    justify-content: center;
+    display: contents; /* Makes children participate in grid directly */
 }
 
 /* CALLED BY: index.html - <div id="authContentArea" class="auth-content-area">, index.js - showAnonymousUser(), showRegistration(), showLogin(), showForgotPassword() (sets contentArea.style.display) */
@@ -61,6 +73,18 @@
 /* CALLED BY: index.js - showRegistration(), showLogin(), showForgotPassword() (creates <h3> inside auth-form-container) */
 .auth-form-container h3 {
     margin-bottom: 20px;
+    color: #333;
+}
+
+/* CALLED BY: index.js - showRegistration() (creates <p class="registration-info">) */
+.registration-info {
+    margin-bottom: 20px;
+    padding: 12px;
+    background: #e7f3ff;
+    border-left: 4px solid #667eea;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.5;
     color: #333;
 }
 

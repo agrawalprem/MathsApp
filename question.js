@@ -950,7 +950,10 @@ function setupNormalInput(question, requiredDigits) {
             const userAnswer = this.value;
             if (userAnswer.length >= requiredDigits) {
                 const parsed = parseInt(userAnswer);
-                checkAnswer(question, isNaN(parsed) ? null : parsed);
+                // Add delay on mobile so user can see the last digit before it submits
+                setTimeout(() => {
+                    checkAnswer(question, isNaN(parsed) ? null : parsed);
+                }, 200); // 0.2 seconds delay on mobile
             }
         });
         
@@ -981,7 +984,10 @@ function setupNormalInput(question, requiredDigits) {
             const userAnswer = this.value;
             if (userAnswer.length >= requiredDigits) {
                 const parsed = parseInt(userAnswer);
-                checkAnswer(question, isNaN(parsed) ? null : parsed);
+                // Add delay so user can see the last digit before it submits
+                setTimeout(() => {
+                    checkAnswer(question, isNaN(parsed) ? null : parsed);
+                }, 200); // 0.2 seconds delay
             }
         });
 
@@ -1140,9 +1146,12 @@ function setupRightToLeftInput(question, requiredDigits) {
             if (newRawValue.length >= requiredDigits) {
                 const userAnswer = parseInt(newRawValue, 10);
                 if (!isNaN(userAnswer)) {
+                    // Add delay so user can see the last digit (especially on mobile)
+                    const isMobile = window.innerWidth <= 768;
+                    const delay = isMobile ? 200 : 300; // 0.2 seconds on mobile, 0.3 on desktop
                     setTimeout(() => {
                         checkAnswer(question, userAnswer);
-                    }, 300);
+                    }, delay);
                 }
             }
         }
@@ -1538,38 +1547,60 @@ function updateQuestionPageHeader() {
         if (userNameDisplay) userNameDisplay.textContent = fullName ? `Name: ${fullName}` : 'Name: Anonymous';
         if (userClassDisplay) userClassDisplay.textContent = classSection ? `Class: ${classSection}` : 'Class: NA';
         if (userRollDisplay) userRollDisplay.textContent = rollNumber ? `Roll Number: ${rollNumber}` : 'Roll Number: NA';
-        return;
-    }
+    } else {
+        // Fallback to stored values from sessionStorage (set in student dashboard)
+        try {
+            const cachedProfile = sessionStorage.getItem('quizUserProfile');
+            if (cachedProfile) {
+                const profile = JSON.parse(cachedProfile);
+                const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ');
+                const classSection = profile.class && profile.section ? `${profile.class}${profile.section}` : '';
+                const rollNumber = profile.roll_number || '';
 
-    // Fallback to stored values from sessionStorage (set in student dashboard)
-    try {
-        const cachedProfile = sessionStorage.getItem('quizUserProfile');
-        if (cachedProfile) {
-            const profile = JSON.parse(cachedProfile);
-            const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ');
-            const classSection = profile.class && profile.section ? `${profile.class}${profile.section}` : '';
-            const rollNumber = profile.roll_number || '';
+                const userNameDisplay = document.getElementById('questionUserNameDisplay');
+                const userClassDisplay = document.getElementById('questionUserClassDisplay');
+                const userRollDisplay = document.getElementById('questionUserRollDisplay');
 
+                if (userNameDisplay) userNameDisplay.textContent = fullName ? `Name: ${fullName}` : 'Name: Anonymous';
+                if (userClassDisplay) userClassDisplay.textContent = classSection ? `Class: ${classSection}` : 'Class: NA';
+                if (userRollDisplay) userRollDisplay.textContent = rollNumber ? `Roll Number: ${rollNumber}` : 'Roll Number: NA';
+            } else {
+                // Final fallback for anonymous / missing data
+                const userNameDisplay = document.getElementById('questionUserNameDisplay');
+                const userClassDisplay = document.getElementById('questionUserClassDisplay');
+                const userRollDisplay = document.getElementById('questionUserRollDisplay');
+                if (userNameDisplay) userNameDisplay.textContent = 'Name: Anonymous';
+                if (userClassDisplay) userClassDisplay.textContent = 'Class: NA';
+                if (userRollDisplay) userRollDisplay.textContent = 'Roll Number: NA';
+            }
+        } catch (err) {
+            console.warn('Unable to parse cached profile for question header', err);
+            // Final fallback for anonymous / missing data
             const userNameDisplay = document.getElementById('questionUserNameDisplay');
             const userClassDisplay = document.getElementById('questionUserClassDisplay');
             const userRollDisplay = document.getElementById('questionUserRollDisplay');
-
-            if (userNameDisplay) userNameDisplay.textContent = fullName ? `Name: ${fullName}` : 'Name: Anonymous';
-            if (userClassDisplay) userClassDisplay.textContent = classSection ? `Class: ${classSection}` : 'Class: NA';
-            if (userRollDisplay) userRollDisplay.textContent = rollNumber ? `Roll Number: ${rollNumber}` : 'Roll Number: NA';
-            return;
+            if (userNameDisplay) userNameDisplay.textContent = 'Name: Anonymous';
+            if (userClassDisplay) userClassDisplay.textContent = 'Class: NA';
+            if (userRollDisplay) userRollDisplay.textContent = 'Roll Number: NA';
         }
-    } catch (err) {
-        console.warn('Unable to parse cached profile for question header', err);
     }
 
-    // Final fallback for anonymous / missing data
-    const userNameDisplay = document.getElementById('questionUserNameDisplay');
-    const userClassDisplay = document.getElementById('questionUserClassDisplay');
-    const userRollDisplay = document.getElementById('questionUserRollDisplay');
-    if (userNameDisplay) userNameDisplay.textContent = 'Name: Anonymous';
-    if (userClassDisplay) userClassDisplay.textContent = 'Class: NA';
-    if (userRollDisplay) userRollDisplay.textContent = 'Roll Number: NA';
+    // Update operation and variant from sessionStorage
+    const operation = sessionStorage.getItem('quizOperation');
+    const variant = sessionStorage.getItem('quizVariant');
+    
+    const operationDisplay = document.getElementById('questionOperationDisplay');
+    const variantDisplay = document.getElementById('questionVariantDisplay');
+    
+    if (operationDisplay) {
+        // Capitalize first letter of operation
+        const operationText = operation ? operation.charAt(0).toUpperCase() + operation.slice(1) : 'N/A';
+        operationDisplay.textContent = `Operation: ${operationText}`;
+    }
+    
+    if (variantDisplay) {
+        variantDisplay.textContent = variant ? `Variant: ${variant}` : 'Variant: N/A';
+    }
 }
 
 /**

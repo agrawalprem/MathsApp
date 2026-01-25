@@ -574,6 +574,14 @@ async function handleLogout() {
     if (typeof window.clearActiveSession === 'function') {
         await window.clearActiveSession();
     }
+    // Clear session timeout
+    if (typeof window.clearSessionTimeout === 'function') {
+        window.clearSessionTimeout();
+    }
+    // Stop inactivity tracking
+    if (typeof window.stopInactivityTracking === 'function') {
+        window.stopInactivityTracking();
+    }
     if (supabase) {
         await supabase.auth.signOut();
     }

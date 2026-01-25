@@ -2,6 +2,25 @@
    SUMMARY PAGE - Summary-specific Styles
    ============================================================================ */
 
+/* CALLED BY: summary.html - <div class="dashboard-buttons-grid"> */
+.dashboard-buttons-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 8px;
+    margin-top: 15px;
+    margin-bottom: 20px;
+    max-width: 256px; /* Allows 2 buttons side by side: 120px + 8px + 120px + padding = ~256px */
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* CALLED BY: summary.html - <button class="btn btn-auth"> inside .dashboard-buttons-grid */
+.dashboard-buttons-grid .btn-auth {
+    padding: 6px 12px;
+    font-size: 13px;
+    width: 100%;
+}
+
 /* CALLED BY: summary.html - <div id="summarySection" class="summary-section"> */
 .summary-section {
     margin-top: 30px;

@@ -35,6 +35,7 @@ function showRegistration() {
         <div class="auth-form-container">
             <h3>Registration</h3>
             <form id="registrationForm" class="auth-form" onsubmit="handleRegistration(event)">
+                <p class="registration-info">Students, whose school is not registered, may join as Online Students. To get your Class, Section and Roll Number, please contact Prem Agrawal at agrawal.prem@gmail.com, or +91 98228 47682 (WhatsApp).</p>
                 <input type="email" id="regEmail" placeholder="Email" required>
                 <input type="text" id="regFirstName" placeholder="First Name" required>
                 <input type="text" id="regLastName" placeholder="Last Name">
@@ -466,12 +467,22 @@ async function handleResetPasswordForm(event) {
     }
 }
 
+// CALLED BY: index.html - <button onclick="toggleWelcome()">Welcome</button>
+function toggleWelcome() {
+    if (window.debugLog) window.debugLog('toggleWelcome');
+    const welcomeContent = document.getElementById('welcomeContent');
+    if (welcomeContent) {
+        welcomeContent.classList.toggle('hidden');
+    }
+}
+
 // Expose functions globally
 // CALLED BY: index.html - All onclick and onsubmit handlers access these via window object
 window.showAnonymousUser = showAnonymousUser;
 window.showRegistration = showRegistration;
 window.showLogin = showLogin;
 window.showForgotPassword = showForgotPassword;
+window.toggleWelcome = toggleWelcome;
 window.startAsAnonymous = startAsAnonymous;
 window.handleRegistration = handleRegistration;
 window.handleLoginForm = handleLoginForm;
