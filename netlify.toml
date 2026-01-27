@@ -4,6 +4,19 @@
 [build.environment]
   NODE_VERSION = "18"
 
+# Force HTTPS redirect
+[[redirects]]
+  from = "http://mathsbaby.netlify.app/*"
+  to = "https://mathsbaby.netlify.app/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://*.netlify.app/*"
+  to = "https://mathsbaby.netlify.app/:splat"
+  status = 301
+  force = true
+
 # Redirects - handle SPA routing if needed
 [[redirects]]
   from = "/*"
