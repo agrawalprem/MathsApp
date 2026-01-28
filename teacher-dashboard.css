@@ -24,7 +24,9 @@ body {
     background: white;
     border-radius: 12px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-    overflow: hidden;
+    /* NOTE: overflow:hidden can break position:sticky in some browsers.
+       Keep rounded corners via border-radius; allow sticky headers to work. */
+    overflow: visible;
 }
 
 /* CALLED BY: teacher-dashboard.html - <header class="header"> */
