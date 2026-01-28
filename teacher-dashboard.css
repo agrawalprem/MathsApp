@@ -134,16 +134,17 @@ body {
 /* CALLED BY: teacher-dashboard.html - <div id="dashboardGrid" class="dashboard-grid-container hidden">, teacher-dashboard.js - loadDashboard() (removes 'hidden' class) */
 .dashboard-grid-container {
     padding: 20px;
-    overflow: auto;
-    max-height: calc(100vh - 250px);
-    position: relative; /* Helps sticky positioning in some browsers */
+    /* Let inner grid-wrapper handle scrolling so sticky headers work reliably */
+    overflow: visible;
+    position: relative;
 }
 
 /* CALLED BY: teacher-dashboard.html - <div class="grid-wrapper"> */
 .grid-wrapper {
     overflow-x: auto;
-    overflow-y: visible;
-    position: relative;
+    overflow-y: auto;
+    max-height: calc(100vh - 250px);
+    position: relative; /* Scroll container for sticky header cells */
 }
 
 /* CALLED BY: teacher-dashboard.html - <table id="progressTable" class="progress-table">, teacher-dashboard.js - buildProgressTable() (creates table structure) */
