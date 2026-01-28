@@ -134,6 +134,7 @@ body {
     padding: 20px;
     overflow: auto;
     max-height: calc(100vh - 250px);
+    position: relative; /* Helps sticky positioning in some browsers */
 }
 
 /* CALLED BY: teacher-dashboard.html - <div class="grid-wrapper"> */
@@ -146,18 +147,14 @@ body {
 /* CALLED BY: teacher-dashboard.html - <table id="progressTable" class="progress-table">, teacher-dashboard.js - buildProgressTable() (creates table structure) */
 .progress-table {
     width: 100%;
-    border-collapse: collapse;
+    /* Sticky headers are unreliable with border-collapse: collapse in some browsers */
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 13px;
     min-width: 800px;
 }
 
 /* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (creates <th> elements in header row) */
-.progress-table thead {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
 .progress-table th {
     background: #f8f9fa;
     padding: 12px 8px;
@@ -166,7 +163,7 @@ body {
     border: 1px solid #dee2e6;
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: 100; /* Keep variant header row above body cells */
     white-space: nowrap;
 }
 
