@@ -153,8 +153,13 @@ async function loadTeacherDashboard() {
 
         students = (studentsData || []).sort((a, b) => {
             // Sort by roll_number (if available), otherwise by name
-            if (a.roll_number && b.roll_number) {
-                return (a.roll_number || '').localeCompare(b.roll_number || '');
+            // NOTE: roll_number can be stored as a number in DB, so coerce to string before localeCompare.
+            const rollA = a.roll_number;
+            const rollB = b.roll_number;
+            const hasRollA = rollA !== null && rollA !== undefined && rollA !== '';
+            const hasRollB = rollB !== null && rollB !== undefined && rollB !== '';
+            if (hasRollA && hasRollB) {
+                return String(rollA).localeCompare(String(rollB), undefined, { numeric: true, sensitivity: 'base' });
             }
             const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim() || a.email;
             const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim() || b.email;
@@ -262,7 +267,7 @@ function buildDashboardGrid() {
     // Build header row
     const headerRow = document.createElement('tr');
     const headerColumns = [
-        'Student', 'Class', 'Roll No.'
+        'Student', 'Class', 'Roll No.', 'Email'
     ];
     
     headerColumns.forEach(col => {
@@ -309,6 +314,11 @@ function buildDashboardGrid() {
         rollCell.textContent = student.roll_number || '';
         rollCell.className = 'fixed-column';
         row.appendChild(rollCell);
+
+        const emailCell = document.createElement('td');
+        emailCell.textContent = student.email || '';
+        emailCell.className = 'fixed-column';
+        row.appendChild(emailCell);
 
         // Variant status columns
         allVariants.forEach(({ operation, variant }) => {
@@ -438,7 +448,7 @@ async function exportToExcel() {
         const worksheet = workbook.addWorksheet('Student Progress');
 
         // Add header row
-        const headerRow = ['Student', 'Class', 'Roll No.'];
+        const headerRow = ['Student', 'Class', 'Roll No.', 'Email'];
         allVariants.forEach(({ operation, variant }) => {
             headerRow.push(variant);
         });
@@ -471,7 +481,8 @@ async function exportToExcel() {
             const row = [
                 `${student.first_name || ''} ${student.last_name || ''}`.trim() || student.email,
                 (student.class || '') + (student.section || ''), // Combined class+section
-                student.roll_number || ''
+                student.roll_number || '',
+                student.email || ''
             ];
 
             allVariants.forEach(({ operation, variant }) => {
@@ -498,7 +509,7 @@ async function exportToExcel() {
 
             // Style status cells
             allVariants.forEach((_, index) => {
-                const cell = dataRow.getCell(4 + index); // Start after fixed columns (Student, Class, Roll No.)
+                const cell = dataRow.getCell(5 + index); // Start after fixed columns (Student, Class, Roll No., Email)
                 const status = getVariantStatus(student.user_id, allVariants[index].operation, allVariants[index].variant);
                 
                 if (status && typeof status === 'object' && status.type === 'active') {
@@ -536,15 +547,16 @@ async function exportToExcel() {
         worksheet.getColumn(1).width = 25; // Student
         worksheet.getColumn(2).width = 10; // Class
         worksheet.getColumn(3).width = 12; // Roll No.
-        for (let i = 4; i <= 3 + allVariants.length; i++) {
+        worksheet.getColumn(4).width = 30; // Email
+        for (let i = 5; i <= 4 + allVariants.length; i++) {
             worksheet.getColumn(i).width = 8; // Variant columns
         }
 
-        // Freeze header row and first 3 columns
+        // Freeze header row and first 4 columns
         worksheet.views = [{
             state: 'frozen',
             ySplit: 1,
-            xSplit: 3
+            xSplit: 4
         }];
 
         // Generate Excel file and download
