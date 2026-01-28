@@ -139,7 +139,8 @@ body {
 /* CALLED BY: teacher-dashboard.html - <div class="grid-wrapper"> */
 .grid-wrapper {
     overflow-x: auto;
-    overflow-y: auto;
+    overflow-y: visible;
+    position: relative;
 }
 
 /* CALLED BY: teacher-dashboard.html - <table id="progressTable" class="progress-table">, teacher-dashboard.js - buildProgressTable() (creates table structure) */
@@ -151,6 +152,12 @@ body {
 }
 
 /* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (creates <th> elements in header row) */
+.progress-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
 .progress-table th {
     background: #f8f9fa;
     padding: 12px 8px;
@@ -168,7 +175,7 @@ body {
     background: #e9ecef;
     position: sticky;
     left: 0;
-    z-index: 11;
+    z-index: 101;
 }
 
 /* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (creates <td> elements in table body) */
