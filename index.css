@@ -106,6 +106,13 @@
     font-size: 16px;
     background-color: white;
     transition: border-color 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* CALLED BY: index.js - showRegistration() (wraps email input and error message) */
+.auth-form > div {
+    width: 100%;
 }
 
 /* CALLED BY: index.js - Password input wrapper for show/hide toggle */
@@ -168,6 +175,16 @@
     font-size: 14px;
     margin-top: 10px;
     min-height: 20px;
+}
+
+/* CALLED BY: index.js - checkEmailExists() (creates <div id="regEmailError" class="field-error">) - Inline error message below email field */
+.field-error {
+    color: #dc3545;
+    font-size: 13px;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    padding: 5px 0;
+    font-weight: 500;
 }
 
 /* Loading State */

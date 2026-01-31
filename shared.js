@@ -22,7 +22,7 @@
 // 3. The variant will automatically get: noTimeLimit: true, rightToLeft: true
 // ============================================================================
 
-// CALLED BY: student-dashboard.js - loadVariantsForOperation() (reads variant definitions), question.js - startSession() (reads variant configuration)
+// CALLED BY: shared_db.js - fetchAndUpdateVariantStatuses() (reads variant definitions), question.js - startSession() (reads variant configuration)
 const multiDigitVariants = {
     addition: {
         '1M1': {
@@ -116,7 +116,7 @@ for (const operation in multiDigitVariants) {
 // ============================================================================
 // STANDARD VARIANTS
 // ============================================================================
-// CALLED BY: student-dashboard.js - loadVariantsForOperation() (reads variant definitions), student-dashboard.js - updateOperationCompletionStatus() (checks variant keys), question.js - startSession() (reads variant configuration)
+// CALLED BY: shared_db.js - fetchAndUpdateVariantStatuses() (reads variant definitions), question.js - startSession() (reads variant configuration)
 const variants = {
     addition: {
         '1A0': { first: [0, 9], second: [0, 0], name: '1A0: Adding 0' },

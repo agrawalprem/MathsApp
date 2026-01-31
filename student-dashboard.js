@@ -50,36 +50,6 @@ function updateStudentDashboardHeader() {
     }
 }
 
-// CALLED BY: student-dashboard.js - updateAuthUI() (updates operation completion status after fetching variants), student-dashboard.js - selectOperation() (updates completion status when operation selected)
-function updateOperationCompletionStatus() {
-    if (window.debugLog) window.debugLog('updateOperationCompletionStatus');
-    if (!currentUser) return;
-
-    const operations = ['addition', 'subtraction', 'multiplication', 'division'];
-    
-    operations.forEach(operation => {
-        const opsVariants = variants[operation];
-        if (!opsVariants) return;
-
-        const variantKeys = Object.keys(opsVariants);
-        const allVariantsPassed = variantKeys.every(variantKey => {
-            const variantKeyFull = `${operation}_${variantKey}`;
-            return window.passedVariants.has(variantKeyFull);
-        });
-
-        const operationCards = document.querySelectorAll('.operation-card');
-        operationCards.forEach(card => {
-            const onclickAttr = card.getAttribute('onclick');
-            if (onclickAttr && onclickAttr.includes(`selectOperation('${operation}')`)) {
-                if (allVariantsPassed && variantKeys.length > 0) {
-                    card.classList.add('completed');
-                } else {
-                    card.classList.remove('completed');
-                }
-            }
-        });
-    });
-}
 
 async function updateAuthUI(skipPageSwitch = false) {
     if (window.debugLog) window.debugLog('updateAuthUI', `(skipPageSwitch=${skipPageSwitch})`);
@@ -114,13 +84,8 @@ async function updateAuthUI(skipPageSwitch = false) {
                 }
             }
             
-            await fetchPassedVariants();
-            await fetchFailedVariants();
-            updateOperationCompletionStatus();
-            
-            if (window.selectedOperation) {
-                loadVariantsForOperation(window.selectedOperation);
-            }
+            // Fetch all variant statuses and update UI directly
+            await fetchAndUpdateVariantStatuses();
         } catch (err) {
             console.error('Error fetching user data:', err);
         }
@@ -128,8 +93,6 @@ async function updateAuthUI(skipPageSwitch = false) {
         updateStudentDashboardHeader();
     } else {
         currentUserProfile = null;
-        window.passedVariants.clear();
-        window.failedVariants.clear();
         
         // Hide Teacher Dashboard button when logged out
         const teacherDashboardBtn = document.getElementById('teacherDashboardBtn');
@@ -137,18 +100,24 @@ async function updateAuthUI(skipPageSwitch = false) {
             teacherDashboardBtn.classList.add('hidden');
         }
         
+        // Clear all variant containers
+        const operations = ['Addition', 'Subtraction', 'Multiplication', 'Division'];
+        operations.forEach(op => {
+            const container = document.getElementById(`variantsContainer${op}`);
+            if (container) {
+                container.innerHTML = '';
+                container.classList.add('hidden');
+            }
+        });
+        
         document.querySelectorAll('.variant-card').forEach(card => {
             card.classList.remove('passed', 'failed');
         });
         
         document.querySelectorAll('.operation-card').forEach(card => {
-            card.classList.remove('completed');
+            card.classList.remove('completed', 'selected');
         });
         
-        const variantsContainer = document.getElementById('variantsContainer');
-        if (variantsContainer) {
-            variantsContainer.innerHTML = '';
-        }
         window.selectedOperation = null;
     }
 }
@@ -156,116 +125,47 @@ async function updateAuthUI(skipPageSwitch = false) {
 // CALLED BY: student-dashboard.html - <div class="operation-card" onclick="selectOperation('addition')"> (and similar for other operations)
 function selectOperation(operation) {
     if (window.debugLog) window.debugLog('selectOperation', `(${operation})`);
-    document.querySelectorAll('.operation-card').forEach(card => {
-        card.classList.remove('selected');
-    });
     
-    if (event && event.target) {
-        const clickedCard = event.target.closest('.operation-card');
-        if (clickedCard) {
-            clickedCard.classList.add('selected');
-        }
+    if (!operation) {
+        console.warn('⚠️ selectOperation called without operation parameter');
+        return;
     }
     
+    // Set selected operation
     window.selectedOperation = operation;
     
-    if (currentUser && supabase) {
-        fetchPassedVariants()
-            .then(() => fetchFailedVariants())
-            .then(() => {
-                updateOperationCompletionStatus();
-                loadVariantsForOperation(operation);
-            })
-            .catch(err => {
-                console.warn('Error fetching variants:', err);
-                loadVariantsForOperation(operation);
-            });
+    // Update selected operation card styling
+    document.querySelectorAll('.operation-card').forEach(card => {
+        card.classList.remove('selected');
+        const onclickAttr = card.getAttribute('onclick');
+        if (onclickAttr && onclickAttr.includes(`selectOperation('${operation}')`)) {
+            card.classList.add('selected');
+        }
+    });
+    
+    // Show/hide appropriate variant container (all containers already populated)
+    // First, hide ALL containers
+    const operations = ['addition', 'subtraction', 'multiplication', 'division'];
+    operations.forEach(op => {
+        const containerId = `variantsContainer${op.charAt(0).toUpperCase() + op.slice(1)}`;
+        const container = document.getElementById(containerId);
+        if (container) {
+            container.classList.add('hidden');
+        }
+    });
+    
+    // Then, show only the selected operation's container
+    const selectedContainerId = `variantsContainer${operation.charAt(0).toUpperCase() + operation.slice(1)}`;
+    const selectedContainer = document.getElementById(selectedContainerId);
+    if (selectedContainer) {
+        selectedContainer.classList.remove('hidden');
     } else {
-        loadVariantsForOperation(operation);
+        console.warn(`⚠️ Container not found: ${selectedContainerId}`);
     }
 }
 
-// CALLED BY: student-dashboard.js - updateAuthUI() (loads variants for selected operation), student-dashboard.js - selectOperation() (loads variants when operation selected)
-async function loadVariantsForOperation(operation) {
-    if (window.debugLog) window.debugLog('loadVariantsForOperation', `(${operation})`);
-    const container = document.getElementById('variantsContainer');
-    if (!container) {
-        console.error('variantsContainer not found');
-        return;
-    }
-    
-    container.innerHTML = '<p style="text-align: center; color: #666;">Loading variants...</p>';
 
-    const opsVariants = variants[operation];
-    if (!opsVariants) {
-        container.innerHTML = '<p style="text-align: center; color: #dc3545;">No variants found for this operation.</p>';
-        return;
-    }
-
-    const sequence = window.learningSequence[operation] || [];
-
-    const variantKeys = Object.keys(opsVariants);
-    const sortedKeys = variantKeys.sort((a, b) => {
-        const indexA = sequence.indexOf(a);
-        const indexB = sequence.indexOf(b);
-        
-        if (indexA !== -1 && indexB !== -1) {
-            return indexA - indexB;
-        }
-        if (indexA !== -1) return -1;
-        if (indexB !== -1) return 1;
-        return 0;
-    });
-
-    container.innerHTML = '';
-    
-    // Fetch all variant scores for this operation
-    const allScores = await window.fetchAllVariantScores();
-    
-    sortedKeys.forEach(variantKey => {
-        const variant = opsVariants[variantKey];
-        const variantKeyFull = `${operation}_${variantKey}`;
-        const isPassed = window.passedVariants.has(variantKeyFull);
-        const isFailed = window.failedVariants.has(variantKeyFull);
-        
-        const card = document.createElement('div');
-        let cardClass = 'variant-card';
-        if (isPassed) {
-            cardClass += ' passed';
-        } else if (isFailed) {
-            cardClass += ' failed';
-        }
-        card.className = cardClass;
-        card.onclick = () => launchVariant(operation, variantKey);
-        
-        let statusText = 'Not started';
-        if (isPassed) {
-            // Get minimum average_time from all passed attempts
-            const variantData = allScores[variantKeyFull];
-            if (variantData && variantData.minTime != null) {
-                statusText = `✓ ${variantData.minTime.toFixed(1)}s`;
-            } else {
-                statusText = '✓ Passed';
-            }
-        } else if (isFailed) {
-            // Get failed attempt count
-            const variantData = allScores[variantKeyFull];
-            const attemptCount = variantData?.failedCount || 0;
-            statusText = `✗ ${attemptCount} attempt${attemptCount !== 1 ? 's' : ''}`;
-        }
-        
-        card.innerHTML = `
-            <div class="variant-name">${variant.name}</div>
-            <div class="variant-status">${statusText}</div>
-        `;
-        
-        container.appendChild(card);
-    });
-    
-    console.log(`✅ Loaded ${sortedKeys.length} variants for ${operation}`);
-}
-
-// CALLED BY: student-dashboard.js - loadVariantsForOperation() (card.onclick = () => launchVariant(operation, variantKey))
+// CALLED BY: shared_db.js - fetchAndUpdateVariantStatuses() (card.onclick = () => launchVariant(operation, variantKey))
 function launchVariant(operation, variant) {
     if (window.debugLog) window.debugLog('launchVariant', `(${operation}, ${variant})`);
     sessionStorage.setItem('quizOperation', operation);
@@ -299,9 +199,7 @@ async function handleLogout() {
 // CALLED BY: student-dashboard.html - All onclick handlers and DOMContentLoaded listener access these via window object
 window.updateUserDisplay = updateUserDisplay;
 window.updateStudentDashboardHeader = updateStudentDashboardHeader;
-window.updateOperationCompletionStatus = updateOperationCompletionStatus;
 window.updateAuthUI = updateAuthUI;
 window.selectOperation = selectOperation;
-window.loadVariantsForOperation = loadVariantsForOperation;
 window.launchVariant = launchVariant;
 window.handleLogout = handleLogout;

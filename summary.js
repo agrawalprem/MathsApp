@@ -8,8 +8,8 @@
 // ============================================================================
 // NOTE: This module depends on:
 // - shared.js: currentSession, timerInterval, variants
-// - shared_db.js: currentUser, saveScore, fetchPassedVariants, fetchFailedVariants
-// - dashboard.js: updateOperationCompletionStatus, loadVariantsForOperation
+// - shared_db.js: currentUser, saveScore
+// - dashboard.js: (no longer needed - status updates handled by fetchAndUpdateVariantStatuses)
 // - dashboard.js: selectedOperation (accessed via window)
 // ============================================================================
 

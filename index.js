@@ -36,7 +36,10 @@ function showRegistration() {
             <h3>Registration</h3>
             <form id="registrationForm" class="auth-form" onsubmit="handleRegistration(event)">
                 <p class="registration-info">Students, whose school is not registered, may join as Online Students. To get your Class, Section and Roll Number, please contact Prem Agrawal at agrawal.prem@gmail.com, or +91 98228 47682 (WhatsApp).</p>
-                <input type="email" id="regEmail" placeholder="Email" required>
+                <div>
+                    <input type="email" id="regEmail" placeholder="Email" required>
+                    <div id="regEmailError" class="field-error" style="display: none;"></div>
+                </div>
                 <input type="text" id="regFirstName" placeholder="First Name" required>
                 <input type="text" id="regLastName" placeholder="Last Name">
                 <select id="regUserType" required>
@@ -68,6 +71,27 @@ function showRegistration() {
             <div id="regError" class="auth-error"></div>
         </div>
     `;
+    // Attach event listeners immediately after creating the form
+    const emailInput = document.getElementById('regEmail');
+    if (emailInput) {
+        emailInput.addEventListener('blur', checkEmailExists);
+            // Clear error when user starts typing
+            emailInput.addEventListener('input', () => {
+                const errorEl = document.getElementById('regError');
+                const emailErrorEl = document.getElementById('regEmailError');
+                if (errorEl && errorEl.textContent.includes('This email id is used by')) {
+                    errorEl.textContent = '';
+                    errorEl.style.color = '';
+                }
+                if (emailErrorEl && emailErrorEl.textContent.includes('This email id is used by')) {
+                    emailErrorEl.textContent = '';
+                    emailErrorEl.style.display = 'none';
+                }
+                emailInput.setCustomValidity('');
+                emailInput.style.borderColor = '';
+            });
+    }
+    
     document.getElementById('regUserType').addEventListener('change', updateSignupFieldsBasedOnUserType);
     // Load schools into dropdown
     loadSchoolsIntoDropdown();
@@ -256,14 +280,115 @@ function updateSignupFieldsBasedOnUserType() {
     }
 }
 
+// CALLED BY: index.js - showRegistration() (adds event listener: emailInput.addEventListener('blur', checkEmailExists))
+async function checkEmailExists(event) {
+    if (window.debugLog) window.debugLog('checkEmailExists');
+    const emailInput = event.target;
+    const email = emailInput.value.trim();
+    const errorEl = document.getElementById('regError');
+    const emailErrorEl = document.getElementById('regEmailError');
+    
+    // Clear previous errors
+    if (errorEl) {
+        errorEl.textContent = '';
+        errorEl.style.color = '';
+    }
+    if (emailErrorEl) {
+        emailErrorEl.textContent = '';
+        emailErrorEl.style.display = 'none';
+    }
+    
+    // If email is empty, don't check
+    if (!email) {
+        return;
+    }
+    
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        // Invalid email format - let HTML5 validation handle this
+        return;
+    }
+    
+    // Wait for Supabase to be initialized
+    if (!supabase) {
+        let attempts = 0;
+        while (!supabase && attempts < 10) {
+            await new Promise(resolve => setTimeout(resolve, 200));
+            attempts++;
+        }
+        if (!supabase) {
+            return;
+        }
+    }
+    
+    try {
+        // Check if email exists in user_profiles table
+        const { data: existingUser, error } = await supabase
+            .from('user_profiles')
+            .select('first_name, last_name, email')
+            .eq('email', email.toLowerCase())
+            .maybeSingle();
+        
+        if (error) {
+            return;
+        }
+        
+        if (existingUser) {
+            // Email already exists - show error with user's name
+            const userName = `${existingUser.first_name || ''} ${existingUser.last_name || ''}`.trim() || 'another user';
+            const errorMessage = `This email id is used by ${userName}`;
+            
+            // Show error below email field (more visible)
+            if (emailErrorEl) {
+                emailErrorEl.textContent = errorMessage;
+                emailErrorEl.style.display = 'block';
+            }
+            
+            // Also show in general error area
+            if (errorEl) {
+                errorEl.textContent = errorMessage;
+                errorEl.style.color = '#dc3545';
+            }
+            
+            // Mark the input as invalid
+            emailInput.setCustomValidity(errorMessage);
+            emailInput.style.borderColor = '#dc3545';
+            
+            // Prevent user from leaving the field - refocus after a short delay
+            setTimeout(() => {
+                emailInput.focus();
+                emailInput.select(); // Select the text so user can easily replace it
+            }, 100);
+        } else {
+            // Email is available - clear any previous error
+            emailInput.setCustomValidity('');
+            emailInput.style.borderColor = '';
+            if (emailErrorEl) {
+                emailErrorEl.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        // Silently handle errors - don't show to user unless critical
+    }
+}
+
 // CALLED BY: index.html - <form onsubmit="handleRegistration(event)"> (dynamically inserted by showRegistration())
 async function handleRegistration(event) {
     if (window.debugLog) window.debugLog('handleRegistration');
     event.preventDefault();
     const errorEl = document.getElementById('regError');
+    const emailInput = document.getElementById('regEmail');
     errorEl.textContent = '';
     
-    const email = document.getElementById('regEmail').value.trim();
+    // Check if email field has custom validity error (email already exists)
+    if (emailInput && !emailInput.validity.valid) {
+        emailInput.focus();
+        emailInput.reportValidity(); // Show browser's validation message
+        return;
+    }
+    
+    const email = emailInput.value.trim();
     const firstName = document.getElementById('regFirstName').value.trim();
     const lastName = document.getElementById('regLastName').value.trim();
     const userType = document.getElementById('regUserType').value;
@@ -284,6 +409,29 @@ async function handleRegistration(event) {
     if (password !== passwordConfirm) {
         errorEl.textContent = 'Passwords do not match';
         return;
+    }
+
+    // Final check: verify email doesn't already exist
+    try {
+        const { data: existingUser, error: checkError } = await supabase
+            .from('user_profiles')
+            .select('first_name, last_name, email')
+            .eq('email', email.toLowerCase())
+            .maybeSingle();
+        
+        if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
+            throw new Error(`Error checking email: ${checkError.message}`);
+        }
+        
+        if (existingUser) {
+            const userName = `${existingUser.first_name || ''} ${existingUser.last_name || ''}`.trim() || 'another user';
+            errorEl.textContent = `This email id is used by ${userName}`;
+            errorEl.style.color = '#dc3545';
+            return;
+        }
+    } catch (checkError) {
+        // If check fails, continue with registration attempt (Supabase will catch duplicate emails)
+        console.warn('Email check failed, proceeding with registration:', checkError);
     }
 
     try {
@@ -522,6 +670,7 @@ window.handleLoginForm = handleLoginForm;
 window.handleForgotPasswordForm = handleForgotPasswordForm;
 window.handleResetPasswordForm = handleResetPasswordForm;
 window.updateSignupFieldsBasedOnUserType = updateSignupFieldsBasedOnUserType;
+window.checkEmailExists = checkEmailExists;
 
 // Initialize on page load
 // CALLED BY: index.html - Automatically executed when DOMContentLoaded event fires

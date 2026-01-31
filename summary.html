@@ -53,10 +53,6 @@
     <script>
         // Initialize state
         let selectedOperation = null;
-        window.passedVariants = new Set();
-        window.failedVariants = new Set();
-        const passedVariants = window.passedVariants;
-        const failedVariants = window.failedVariants;
         
         const learningSequence = {
             addition: ['1A0', '1A1', '1A2', '1A3', '1A', '1B', '1C', '1D', '1', '1M1', '1M2'],
@@ -65,8 +61,6 @@
             division: ['4A1', '4A2', '4A3', '4A', '4B4', '4B5', '4B6', '4B', '4C7', '4C8', '4C9', '4C', '4', '4M1', '4M2']
         };
         window.learningSequence = learningSequence;
-        window.passedVariants = passedVariants;
-        window.failedVariants = failedVariants;
         window.selectedOperation = selectedOperation;
 
         function updateSummaryPageHeader() {
@@ -130,19 +124,12 @@
                                 saveScore(variantKey, score, passed).then(savedData => {
                                     if (savedData) {
                                         console.log('✅ Score saved to server');
-                                        // Refresh passed and failed variants
-                                        if (typeof fetchPassedVariants === 'function') {
-                                            return fetchPassedVariants();
-                                        }
+                                        // Dashboard will fetch fresh data when user navigates to it
                                     } else {
                                         console.error('❌ Failed to save score');
                                     }
-                                }).then(() => {
-                                    if (typeof fetchFailedVariants === 'function') {
-                                        return fetchFailedVariants();
-                                    }
                                 }).catch(err => {
-                                    console.warn('⚠️ Error saving score or refreshing variants:', err);
+                                    console.warn('⚠️ Error saving score:', err);
                                 });
                             }
                         }

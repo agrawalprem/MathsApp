@@ -558,244 +558,51 @@ async function saveScore(variantKey, score, passed = null) {
 // VARIANT PROGRESS FUNCTIONS
 // ============================================================================
 
+
+
+
 /**
  * REQUIREMENTS:
- * - Return early if no currentUser
- * - Query scores table for user_id matching currentUser.id
- * - Filter for passed: true
- * - Extract variant_key from each row
- * - Add each variant_key to window.passedVariants Set
- * - Log count of passed variants
- * - Handle errors gracefully (log and continue)
- * - No return value
+ * - Fetch all scores for current user and directly update variant cards and operation cards
+ * - Process data and update UI during processing (no intermediate result object)
+ * - Priority logic: Pass (Priority 1) > Fail (Priority 2) > No Attempt (Priority 3)
+ * - Failed status requires attemptCount >= 1 (not >= 3)
+ * - Operation status: Pass if all variants in operation have pass status
+ * - Handle errors gracefully
  * 
- * CALLED BY: student-dashboard.js - updateAuthUI() (when updating UI for logged-in user), student-dashboard.js - selectOperation() (when selecting an operation), summary.js - endSession() (after saving score)
+ * CALLED BY: student-dashboard.js - updateAuthUI() (when dashboard loads)
  */
-async function fetchPassedVariants() {
-    if (window.debugLog) window.debugLog('fetchPassedVariants');
+async function fetchAndUpdateVariantStatuses() {
+    if (window.debugLog) window.debugLog('fetchAndUpdateVariantStatuses');
     if (!currentUser || !supabase) {
-        console.warn('⚠️ fetchPassedVariants: No currentUser or supabase client');
-        // NOTE: passedVariants is still in index.html, will be moved to dashboard.js later
-        if (window.passedVariants) {
-            window.passedVariants.clear();
-        }
+        console.warn('⚠️ fetchAndUpdateVariantStatuses: No currentUser or supabase client');
         return;
     }
     
     try {
-        console.log('📥 Fetching passed variants for user:', currentUser.id);
-        // Fetch all scores and filter in JavaScript to avoid boolean query issues
-        // Table has 'operation' and 'variant' as separate columns, not 'variant_key'
-        const { data, error } = await supabase
-            .from('user_scores')
-            .select('operation, variant, passed')
-            .eq('user_id', currentUser.id);
+        console.log('📥 Fetching all variant statuses for user:', currentUser.id);
         
-        if (error) {
-            console.error('❌ Supabase query error details:', {
-                message: error.message,
-                details: error.details,
-                hint: error.hint,
-                code: error.code
-            });
-            throw error;
-        }
-        
-        // Clear existing passed variants
-        if (window.passedVariants) {
-            window.passedVariants.clear();
-        } else {
-            window.passedVariants = new Set();
-        }
-        
-        // Filter for passed = true in JavaScript (handles boolean, string, or number)
-        if (data && data.length > 0) {
-            data.forEach(row => {
-                // Check if passed is true (handle boolean true, string 'true', or number 1)
-                const isPassed = row.passed === true || row.passed === 'true' || row.passed === 1 || row.passed === '1';
-                if (isPassed) {
-                    // Construct variant_key from operation and variant (e.g., "addition_1A0")
-                    const variantKey = `${row.operation}_${row.variant}`;
-                    window.passedVariants.add(variantKey);
-                }
-            });
-            console.log('✅ Passed variants fetched:', window.passedVariants.size, 'variants');
-        } else {
-            console.log('ℹ️ No passed variants found');
-        }
-    } catch (error) {
-        console.error('❌ Error fetching passed variants:', error);
-        // Clear passed variants on error
-        if (window.passedVariants) {
-            window.passedVariants.clear();
-        }
-    }
-}
-
-/**
- * REQUIREMENTS:
- * - Return early if no currentUser
- * - Query scores table for user_id matching currentUser.id
- * - Group by variant_key
- * - For each variant, check if ALL attempts have passed: false
- * - If all attempts failed, add variant_key to window.failedVariants Set
- * - Log count of failed variants
- * - Handle errors gracefully (log and continue)
- * - No return value
- * 
- * CALLED BY: student-dashboard.js - updateAuthUI() (when updating UI for logged-in user), student-dashboard.js - selectOperation() (when selecting an operation), summary.js - endSession() (after saving score)
- */
-async function fetchFailedVariants() {
-    if (window.debugLog) window.debugLog('fetchFailedVariants');
-    if (!currentUser || !supabase) {
-        console.warn('⚠️ fetchFailedVariants: No currentUser or supabase client');
-        // NOTE: failedVariants and passedVariants are still in index.html, will be moved to dashboard.js later
-        if (window.failedVariants) {
-            window.failedVariants.clear();
-        }
-        return;
-    }
-    
-    try {
-        console.log('📥 Fetching failed variants for user:', currentUser.id);
-        // Table has 'operation' and 'variant' as separate columns, not 'variant_key'
-        const { data, error } = await supabase
-            .from('user_scores')
-            .select('operation, variant, passed')
-            .eq('user_id', currentUser.id);
-        
-        if (error) {
-            console.error('❌ Supabase query error details:', {
-                message: error.message,
-                details: error.details,
-                hint: error.hint,
-                code: error.code
-            });
-            throw error;
-        }
-        
-        // Clear existing failed variants
-        if (window.failedVariants) {
-            window.failedVariants.clear();
-        } else {
-            window.failedVariants = new Set();
-        }
-        
-        if (data && data.length > 0) {
-            // Group by variant_key (constructed from operation and variant)
-            const variantGroups = {};
-            data.forEach(row => {
-                // Construct variant_key from operation and variant (e.g., "addition_1A0")
-                const variantKey = `${row.operation}_${row.variant}`;
-                if (!variantGroups[variantKey]) {
-                    variantGroups[variantKey] = [];
-                }
-                variantGroups[variantKey].push(row.passed);
-            });
-            
-            // Check each variant: if ALL attempts failed (all passed === false), add to failedVariants
-            Object.keys(variantGroups).forEach(variantKey => {
-                const attempts = variantGroups[variantKey];
-                const allFailed = attempts.every(passed => passed === false || passed === 'false' || passed === 0 || passed === '0');
-                if (allFailed && attempts.length >= 3) {
-                    // Only mark as failed if user has attempted at least 3 times and all failed
-                    window.failedVariants.add(variantKey);
-                }
-            });
-            
-            console.log('✅ Failed variants fetched:', window.failedVariants.size, 'variants');
-        } else {
-            console.log('ℹ️ No failed variants found');
-        }
-    } catch (error) {
-        console.error('❌ Error fetching failed variants:', error);
-        // Clear failed variants on error
-        if (window.failedVariants) {
-            window.failedVariants.clear();
-        }
-    }
-}
-
-/**
- * REQUIREMENTS:
- * - Fetch minimum average_time for passed attempts of a specific variant (operation + variant) for the current user
- * - Use SQL aggregation MIN(average_time) for efficiency
- * - Filter where average_time IS NOT NULL and passed = true
- * - Return the minimum average_time value or null if no passed attempts found
- * - Handle errors gracefully (return null)
- * 
- * CALLED BY: student-dashboard.js - loadVariantsForOperation() (to get min average_time for passed variants)
- */
-async function fetchVariantScores(operation, variant) {
-    if (window.debugLog) window.debugLog('fetchVariantScores', `(${operation}, ${variant})`);
-    if (!currentUser || !supabase) {
-        console.warn('⚠️ fetchVariantScores: No currentUser or supabase client');
-        return null;
-    }
-    
-    try {
-        const { data, error } = await supabase
-            .from('user_scores')
-            .select('average_time')
-            .eq('user_id', currentUser.id)
-            .eq('operation', operation)
-            .eq('variant', variant)
-            .eq('passed', true)
-            .not('average_time', 'is', null)
-            .order('average_time', { ascending: true })
-            .limit(1);
-        
-        if (error) {
-            console.error('❌ Error fetching variant scores:', error);
-            return null;
-        }
-        
-        if (data && data.length > 0 && data[0].average_time != null) {
-            return parseFloat(data[0].average_time);
-        }
-        
-        return null;
-    } catch (error) {
-        console.error('❌ Error fetching variant scores:', error);
-        return null;
-    }
-}
-
-/**
- * REQUIREMENTS:
- * - Fetch minimum average_time for passed variants and attempt counts for failed variants
- * - Use SQL aggregation for efficiency
- * - Return object with variant keys mapping to { minTime: <number>, attemptCount: <number> }
- * - Handle errors gracefully (return empty object)
- * 
- * CALLED BY: student-dashboard.js - loadVariantsForOperation() (to get scores for all variants at once)
- */
-async function fetchAllVariantScores() {
-    if (window.debugLog) window.debugLog('fetchAllVariantScores');
-    if (!currentUser || !supabase) {
-        console.warn('⚠️ fetchAllVariantScores: No currentUser or supabase client');
-        return {};
-    }
-    
-    try {
-        // Fetch all scores to calculate min time for passed and count for failed
+        // Fetch all scores from database
         const { data, error } = await supabase
             .from('user_scores')
             .select('operation, variant, passed, average_time')
-            .eq('user_id', currentUser.id);
+            .eq('user_id', currentUser.id)
+            .order('operation', { ascending: true })
+            .order('variant', { ascending: true })
+            .order('completed_at', { ascending: false });
         
         if (error) {
-            console.error('❌ Error fetching all variant scores:', error);
-            return {};
+            console.error('❌ Error fetching variant statuses:', error);
+            return;
         }
         
-        // Group by variant_key and calculate min time for passed, count for failed
-        const grouped = {};
+        // Group scores by variant_key
+        const variantData = {};
         if (data && data.length > 0) {
             data.forEach(row => {
-                const variantKey = `${row.operation}_${row.variant}`;
-                if (!grouped[variantKey]) {
-                    grouped[variantKey] = {
+                    const variantKey = `${row.operation}_${row.variant}`;
+                if (!variantData[variantKey]) {
+                    variantData[variantKey] = {
                         passedScores: [],
                         failedCount: 0
                     };
@@ -803,26 +610,179 @@ async function fetchAllVariantScores() {
                 
                 const isPassed = row.passed === true || row.passed === 'true' || row.passed === 1 || row.passed === '1';
                 if (isPassed && row.average_time != null && !isNaN(row.average_time)) {
-                    grouped[variantKey].passedScores.push(parseFloat(row.average_time));
+                    variantData[variantKey].passedScores.push(parseFloat(row.average_time));
                 } else if (!isPassed) {
-                    grouped[variantKey].failedCount++;
+                    variantData[variantKey].failedCount++;
                 }
-            });
-            
-            // Calculate min time for each variant
-            Object.keys(grouped).forEach(variantKey => {
-                const variant = grouped[variantKey];
-                if (variant.passedScores.length > 0) {
-                    variant.minTime = Math.min(...variant.passedScores);
-                }
-                delete variant.passedScores; // Clean up, only keep minTime and failedCount
             });
         }
         
-        return grouped;
+        // Get variants object from shared.js
+        const variantsObj = window.variants || {};
+        const operations = ['addition', 'subtraction', 'multiplication', 'division'];
+        const learningSequence = window.learningSequence || {};
+        
+        // Track which operation to show initially (first one where not all variants passed)
+        let firstIncompleteOperation = null;
+        
+        // Process each operation
+        operations.forEach(operation => {
+            const opsVariants = variantsObj[operation];
+            if (!opsVariants) return;
+            
+            const sequence = learningSequence[operation] || [];
+            const variantKeys = Object.keys(opsVariants);
+            const sortedKeys = variantKeys.sort((a, b) => {
+                const indexA = sequence.indexOf(a);
+                const indexB = sequence.indexOf(b);
+                if (indexA !== -1 && indexB !== -1) {
+                    return indexA - indexB;
+        }
+                if (indexA !== -1) return -1;
+                if (indexB !== -1) return 1;
+                return 0;
+            });
+            
+
+            // Get container for this operation
+            const containerId = `variantsContainer${operation.charAt(0).toUpperCase() + operation.slice(1)}`;
+            const container = document.getElementById(containerId);
+            if (!container) {
+                console.warn(`⚠️ Container ${containerId} not found`);
+                return;
+            }
+            
+            // Track if all variants passed for this operation
+            let allVariantsPassed = true;
+            
+            // Process each variant and update existing card
+            sortedKeys.forEach(variantKey => {
+                const variant = opsVariants[variantKey];
+                const variantKeyFull = `${operation}_${variantKey}`;
+                const data = variantData[variantKeyFull];
+            
+                // Determine status with priority logic
+                let status = 'none';
+                let minTime = null;
+                let attemptCount = 0;
+                
+                if (data) {
+                    // Priority 1: Pass (if any attempt passed)
+                    if (data.passedScores.length > 0) {
+                        status = 'passed';
+                        minTime = Math.min(...data.passedScores);
+                    }
+                    // Priority 2: Fail (if all attempts failed AND attemptCount >= 1)
+                    else if (data.failedCount >= 1) {
+                        status = 'failed';
+                        attemptCount = data.failedCount;
+                    }
+                    // Priority 3: No Attempt (otherwise)
+                }
+                
+                // Track operation completion
+                if (status !== 'passed') {
+                    allVariantsPassed = false;
+                }
+
+                // Find existing card by data attributes
+                const card = container.querySelector(`[data-variant="${variantKey}"]`);
+                if (!card) {
+                    console.warn(`⚠️ Card not found for variant ${variantKey} in ${containerId}`);
+                    return;
+                }
+                
+                // Update status text
+                const statusElement = card.querySelector('.variant-status');
+                if (statusElement) {
+                    let statusText = 'Not started';
+                    if (status === 'passed') {
+                        if (minTime != null) {
+                            statusText = `✓ ${minTime.toFixed(1)}s`;
+                        } else {
+                            statusText = '✓ Passed';
+                        }
+                    } else if (status === 'failed') {
+                        statusText = `✗ ${attemptCount} attempt${attemptCount !== 1 ? 's' : ''}`;
+                    }
+                    statusElement.textContent = statusText;
+                }
+                
+                // Update CSS classes
+                card.classList.remove('passed', 'failed');
+                if (status === 'passed') {
+                    card.classList.add('passed');
+                } else if (status === 'failed') {
+                    card.classList.add('failed');
+                }
+                
+                // Ensure click handler is set
+                if (!card.onclick) {
+                    card.onclick = () => {
+                        if (typeof window.launchVariant === 'function') {
+                            window.launchVariant(operation, variantKey);
+                        } else {
+                            // Fallback: navigate directly
+                            sessionStorage.setItem('quizOperation', operation);
+                            sessionStorage.setItem('quizVariant', variantKey);
+                            window.location.href = 'question.html';
+                        }
+                    };
+                }
+            });
+            
+            // Update operation card completion status
+            const operationCards = document.querySelectorAll('.operation-card');
+            operationCards.forEach(card => {
+                const onclickAttr = card.getAttribute('onclick');
+                if (onclickAttr && onclickAttr.includes(`selectOperation('${operation}')`)) {
+                    if (allVariantsPassed && variantKeys.length > 0) {
+                        card.classList.add('completed');
+                    } else {
+                        card.classList.remove('completed');
+                    }
+                }
+            });
+            
+            // Track first incomplete operation for initial display
+            if (!allVariantsPassed && firstIncompleteOperation === null) {
+                firstIncompleteOperation = operation;
+    }
+        });
+        
+        // Show the first incomplete operation container, or addition if all passed
+        // Only set visible operation on first run (when window.selectedOperation is not set)
+        // After that, respect user's selection
+        if (!window.selectedOperation) {
+            const operationToShow = firstIncompleteOperation || 'addition';
+            window.selectedOperation = operationToShow;
+            
+            // Show/hide containers
+            operations.forEach(operation => {
+                const containerId = `variantsContainer${operation.charAt(0).toUpperCase() + operation.slice(1)}`;
+                const container = document.getElementById(containerId);
+                if (container) {
+                    if (operation === operationToShow) {
+                        container.classList.remove('hidden');
+                    } else {
+                        container.classList.add('hidden');
+                    }
+                }
+            });
+            
+            // Update operation card selection
+            document.querySelectorAll('.operation-card').forEach(card => {
+                card.classList.remove('selected');
+                const onclickAttr = card.getAttribute('onclick');
+                if (onclickAttr && onclickAttr.includes(`selectOperation('${operationToShow}')`)) {
+                    card.classList.add('selected');
+                }
+            });
+        }
+        
+        console.log('✅ Variant statuses updated and UI refreshed');
     } catch (error) {
-        console.error('❌ Error fetching all variant scores:', error);
-        return {};
+        console.error('❌ Error in fetchAndUpdateVariantStatuses:', error);
     }
 }
 
@@ -1266,10 +1226,7 @@ function setupBrowserCloseHandler() {
 window.initSupabase = initSupabase;
 window.fetchUserProfile = fetchUserProfile;
 window.saveScore = saveScore;
-window.fetchPassedVariants = fetchPassedVariants;
-window.fetchFailedVariants = fetchFailedVariants;
-window.fetchVariantScores = fetchVariantScores;
-window.fetchAllVariantScores = fetchAllVariantScores;
+window.fetchAndUpdateVariantStatuses = fetchAndUpdateVariantStatuses;
 window.handleEmailConfirmation = handleEmailConfirmation;
 window.clearSessionTimeout = clearSessionTimeout; // Expose for logout handlers
 window.startInactivityTracking = startInactivityTracking; // Expose for manual start if needed

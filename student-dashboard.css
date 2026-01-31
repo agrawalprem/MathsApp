@@ -34,7 +34,7 @@
     margin-bottom: 20px;
 }
 
-/* CALLED BY: student-dashboard.html - <div class="operation-card" onclick="selectOperation('addition')">, student-dashboard.js - selectOperation() (adds/removes 'selected' class), updateOperationCompletionStatus() (adds/removes 'completed' class) */
+/* CALLED BY: student-dashboard.html - <div class="operation-card" onclick="selectOperation('addition')">, student-dashboard.js - selectOperation() (adds/removes 'selected' class), shared_db.js - fetchAndUpdateVariantStatuses() (adds/removes 'completed' class) */
 .operation-card {
     background: white;
     border: 2px solid #ddd;
@@ -58,7 +58,7 @@
     background: #f0f4ff;
 }
 
-/* CALLED BY: student-dashboard.js - updateOperationCompletionStatus() (adds 'completed' class when all variants passed) */
+/* CALLED BY: shared_db.js - fetchAndUpdateVariantStatuses() (adds 'completed' class when all variants passed) */
 .operation-card.completed {
     background: #d4edda;
     border-color: #28a745;
@@ -85,7 +85,7 @@
     font-weight: 500;
 }
 
-/* CALLED BY: student-dashboard.html - <div id="variantsContainer" class="variants-container"></div>, student-dashboard.js - loadVariantsForOperation() (appends variant cards) */
+/* CALLED BY: student-dashboard.html - <div id="variantsContainerAddition" class="variants-container"></div> (and similar for other operations), shared_db.js - fetchAndUpdateVariantStatuses() (appends variant cards) */
 .variants-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -93,7 +93,12 @@
     margin-top: 20px;
 }
 
-/* CALLED BY: student-dashboard.js - loadVariantsForOperation() (creates <div class="variant-card">), updateAuthUI() (removes 'passed'/'failed' classes) */
+/* CALLED BY: student-dashboard.js - selectOperation() (hides containers that are not selected), shared_db.js - fetchAndUpdateVariantStatuses() (hides containers that are not selected) */
+.variants-container.hidden {
+    display: none !important;
+}
+
+/* CALLED BY: student-dashboard.html - <div class="variant-card" data-operation="..." data-variant="...">, shared_db.js - fetchAndUpdateVariantStatuses() (adds 'passed'/'failed' classes) */
 .variant-card {
     background: white;
     border: 2px solid #ddd;
@@ -111,7 +116,7 @@
     border-color: #667eea;
 }
 
-/* CALLED BY: student-dashboard.js - loadVariantsForOperation() (adds 'passed' class when variant is in passedVariants Set) */
+/* CALLED BY: shared_db.js - fetchAndUpdateVariantStatuses() (adds 'passed' class when variant has passed status) */
 .variant-card.passed {
     background: #d4edda;
     border-color: #28a745;
@@ -123,7 +128,7 @@
     background: #c3e6cb;
 }
 
-/* CALLED BY: student-dashboard.js - loadVariantsForOperation() (adds 'failed' class when variant is in failedVariants Set) */
+/* CALLED BY: shared_db.js - fetchAndUpdateVariantStatuses() (adds 'failed' class when variant has failed status) */
 .variant-card.failed {
     background: #f8d7da;
     border-color: #dc3545;
@@ -135,26 +140,26 @@
     background: #f5c6cb;
 }
 
-/* CALLED BY: student-dashboard.js - loadVariantsForOperation() (creates <div class="variant-name">) */
+/* CALLED BY: student-dashboard.html - <div class="variant-name"> (static HTML) */
 .variant-name {
     font-size: 16px;
     font-weight: 500;
     margin-bottom: 5px;
 }
 
-/* CALLED BY: student-dashboard.js - loadVariantsForOperation() (creates <div class="variant-status">) */
+/* CALLED BY: student-dashboard.html - <div class="variant-status"> (static HTML), shared_db.js - fetchAndUpdateVariantStatuses() (updates textContent) */
 .variant-status {
     font-size: 12px;
     color: #666;
 }
 
-/* CALLED BY: student-dashboard.js - loadVariantsForOperation() (applies to .variant-status inside .variant-card.passed) */
+/* CALLED BY: shared_db.js - fetchAndUpdateVariantStatuses() (applies to .variant-status inside .variant-card.passed) */
 .variant-card.passed .variant-status {
     color: #155724;
     font-weight: 600;
 }
 
-/* CALLED BY: student-dashboard.js - loadVariantsForOperation() (applies to .variant-status inside .variant-card.failed) */
+/* CALLED BY: shared_db.js - fetchAndUpdateVariantStatuses() (applies to .variant-status inside .variant-card.failed) */
 .variant-card.failed .variant-status {
     color: #721c24;
     font-weight: 600;
