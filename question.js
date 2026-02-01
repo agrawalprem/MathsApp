@@ -433,41 +433,9 @@ function generateAllQuestions(operation, variant) {
 
         if (variantConfig.onePerSecond) {
             // 3M1 and 3M2: One question for each second number (0-9), random first number
-            // First number: 5-digit, randomly generated
+            // First number: 5-digit, randomly generated for EACH question
             // 3M1: no zeros, 3M2: at least 1 zero
             const firstNumDigits = firstRange[1].toString().length; // 5 digits
-            let first;
-            
-            // Generate one first number for the entire session
-            let attempts = 0;
-            const maxAttempts = 10000;
-            
-            while (attempts < maxAttempts) {
-                attempts++;
-                // Generate random 5-digit number (10000 to 99999)
-                first = Math.floor(Math.random() * (firstRange[1] - firstRange[0] + 1)) + firstRange[0];
-                const firstStr = first.toString();
-                
-                if (variantConfig.noZero) {
-                    // 3M1: Check for absence of zero
-                    if (!firstStr.includes('0')) {
-                        break; // Found a number with no zeros
-                    }
-                } else if (variantConfig.hasZero) {
-                    // 3M2: Check for presence of zero
-                    if (firstStr.includes('0')) {
-                        break; // Found a number with at least one zero
-                    }
-                } else {
-                    // No constraint, use any valid number
-                    break;
-                }
-            }
-            
-            if (!first || first < firstRange[0] || first > firstRange[1]) {
-                console.error('Failed to generate valid first number for multiplication variant');
-                return; // Exit if we can't generate a valid first number
-            }
             
             // Generate exactly one question for each second number (0-9), total 10 questions
             // Use a Set to ensure no duplicate second numbers
@@ -475,7 +443,39 @@ function generateAllQuestions(operation, variant) {
             for (let second = secondRange[0]; second <= secondRange[1]; second++) {
                 if (!usedSeconds.has(second)) {
                     usedSeconds.add(second);
-                    allQuestions.push({ first: first, second: second, answer: first * second });
+                    
+                    // Generate a new first number for each question
+                    let first;
+                    let attempts = 0;
+                    const maxAttempts = 10000;
+                    
+                    while (attempts < maxAttempts) {
+                        attempts++;
+                        // Generate random 5-digit number (10000 to 99999)
+                        first = Math.floor(Math.random() * (firstRange[1] - firstRange[0] + 1)) + firstRange[0];
+                        const firstStr = first.toString();
+                        
+                        if (variantConfig.noZero) {
+                            // 3M1: Check for absence of zero
+                            if (!firstStr.includes('0')) {
+                                break; // Found a number with no zeros
+                            }
+                        } else if (variantConfig.hasZero) {
+                            // 3M2: Check for presence of zero
+                            if (firstStr.includes('0')) {
+                                break; // Found a number with at least one zero
+                            }
+                        } else {
+                            // No constraint, use any valid number
+                            break;
+                        }
+                    }
+                    
+                    if (first && first >= firstRange[0] && first <= firstRange[1]) {
+                        allQuestions.push({ first: first, second: second, answer: first * second });
+                    } else {
+                        console.warn(`Failed to generate valid first number for second=${second} after ${maxAttempts} attempts`);
+                    }
                 }
             }
             
@@ -774,12 +774,13 @@ function generateAllQuestions(operation, variant) {
  */
 function askNextQuestion() {
     if (window.debugLog) window.debugLog('askNextQuestion');
-    console.log('🔵 askNextQuestion called. currentSession:', currentSession ? {
-        questionIndex: currentSession.questionIndex,
-        totalQuestions: currentSession.questions?.length,
-        operation: currentSession.operation,
-        variant: currentSession.variant
-    } : 'null');
+    // Debug logging removed for production
+    // if (window.debugLog) window.debugLog('askNextQuestion', currentSession ? {
+    //     questionIndex: currentSession.questionIndex,
+    //     totalQuestions: currentSession.questions?.length,
+    //     operation: currentSession.operation,
+    //     variant: currentSession.variant
+    // } : 'null');
     
     // Check if we've asked 50 questions and need to prompt
     if (currentSession.questionIndex === 50 && currentSession.questions.length > 50) {
@@ -800,7 +801,8 @@ function askNextQuestion() {
     }
 
     const question = currentSession.questions[currentSession.questionIndex];
-    console.log('🔵 Current question:', question);
+    // Debug logging removed for production
+    // console.log('🔵 Current question:', question);
     const questionKey = `${question.first}_${question.second}_${question.answer}`;
 
     // Skip if already asked (shouldn't happen, but safety check)
@@ -811,7 +813,8 @@ function askNextQuestion() {
     }
 
     currentSession.askedQuestions.add(questionKey);
-    console.log('🔵 Calling displayQuestion with:', question);
+    // Debug logging removed for production
+    // console.log('🔵 Calling displayQuestion with:', question);
     displayQuestion(question);
     updateProgressTracker();
     startTimer();
@@ -858,18 +861,40 @@ function displayQuestion(question) {
     }
     
     if (isMultiDigit) {
-        console.log('🔵 Multi-digit variant detected. Setting up right-to-left input.');
+        // Debug logging removed for production
+        // console.log('🔵 Multi-digit variant detected. Setting up right-to-left input.');
         // Always show question in line1/line2 with right-aligned, spaced digits
         line1.classList.remove('hidden');
         line2.classList.remove('hidden');
-        // Format numbers with spacing between digits and right-align
-        const firstStr = question.first.toString();
-        const secondStr = question.second.toString();
-        line1.textContent = firstStr; // CSS letter-spacing will handle spacing
-        line2.textContent = `${opSymbol} ${secondStr}`; // CSS letter-spacing will handle spacing
-        // Add mobile-question class for styling (works for both mobile and desktop now)
-        line1.classList.add('mobile-question');
-        line2.classList.add('mobile-question');
+        
+        // For division, use uniform 5-character text fields (left-aligned)
+        if (operation === 'division') {
+            // Format dividend as 5-character text with leading zeros
+            const dividendStr = String(question.first).padStart(5, '0');
+            line1.textContent = dividendStr;
+            // Format divisor line: 4 spaces + operation symbol + space + 1-digit divisor (moved 4 places right)
+            // Using 4 spaces to move it 2 digits to the right (each digit position = 2 spaces in monospace)
+            const divisorStr = `    ${opSymbol} ${question.second}`;
+            line2.textContent = divisorStr;
+            // Apply division-field class for uniform styling
+            line1.classList.add('division-field');
+            line2.classList.add('division-field', 'divisor-line'); // Add divisor-line class for wider width
+            // Remove mobile-question class if present
+            line1.classList.remove('mobile-question');
+            line2.classList.remove('mobile-question');
+        } else {
+            // Format numbers with spacing between digits and right-align
+            const firstStr = question.first.toString();
+            const secondStr = question.second.toString();
+            line1.textContent = firstStr; // CSS letter-spacing will handle spacing
+            line2.textContent = `${opSymbol} ${secondStr}`; // CSS letter-spacing will handle spacing
+            // Add mobile-question class for styling (works for both mobile and desktop now)
+            line1.classList.add('mobile-question');
+            line2.classList.add('mobile-question');
+            // Remove division-field class if present
+            line1.classList.remove('division-field');
+            line2.classList.remove('division-field');
+        }
         
         // Show the divider line
         const mathDivider = document.getElementById('mathDivider');
@@ -1072,7 +1097,8 @@ function setupNormalInput(question, requiredDigits) {
  */
 function setupRightToLeftInput(question, requiredDigits, operation) {
     if (window.debugLog) window.debugLog('setupRightToLeftInput');
-    console.log('🔵 setupRightToLeftInput called with:', { question, requiredDigits, operation });
+    // Debug logging removed for production
+    // console.log('🔵 setupRightToLeftInput called with:', { question, requiredDigits, operation });
     
     // Division uses left-to-right input (cursor starts at rightmost position)
     const isDivision = operation === 'division';
@@ -1106,7 +1132,8 @@ function setupRightToLeftInput(question, requiredDigits, operation) {
     
     // Create a wrapper div styled exactly like question lines
     const answerWrapper = document.createElement('div');
-    answerWrapper.className = 'question-line mobile-question';
+    // For division, use division-field class; for others, use mobile-question
+    answerWrapper.className = isDivision ? 'division-field' : 'question-line mobile-question';
     answerWrapper.id = 'multidigitAnswerWrapper';
     answerWrapper.style.position = 'relative';
     
@@ -1115,8 +1142,8 @@ function setupRightToLeftInput(question, requiredDigits, operation) {
     answerInput.type = 'text';
     answerInput.inputMode = 'numeric';
     answerInput.pattern = '[0-9]*';
-    answerInput.className = 'multidigit-answer-input';
-    answerInput.id = 'multidigitAnswerInput';
+        answerInput.className = isDivision ? 'multidigit-answer-input division-answer-input' : 'multidigit-answer-input';
+        answerInput.id = 'multidigitAnswerInput';
     // Style to match question lines exactly - inherit from mobile-question class
     // All styling (including letter-spacing) is handled by CSS classes
     answerInput.style.padding = '0';
@@ -1125,10 +1152,27 @@ function setupRightToLeftInput(question, requiredDigits, operation) {
     answerInput.style.borderRadius = '0';
     answerInput.style.background = 'transparent';
     answerInput.style.outline = 'none';
-    answerInput.style.width = '100%';
+    // For division, width is set by CSS (accounts for letter-spacing); for others, use 100%
+    if (!isDivision) {
+        answerInput.style.width = '100%';
+    }
+    // For division, width is handled by CSS class .multidigit-answer-input.division-answer-input
     answerInput.placeholder = '';
     answerInput.autocomplete = 'off';
-    answerInput.maxLength = requiredDigits;
+    // Explicitly enable the input (in case it was disabled from previous question)
+    answerInput.disabled = false;
+    // For division, always use 5 digits max (dividend is always 5 digits)
+    answerInput.maxLength = isDivision ? 5 : requiredDigits;
+    
+    // For division, create a uniform 5-character text field (left-aligned)
+    if (isDivision) {
+        // Use division-field class for uniform styling with other division lines
+        answerWrapper.className = 'division-field';
+        answerWrapper.style.textAlign = 'left'; // Left-align wrapper
+        answerWrapper.style.paddingRight = '0'; // No padding needed
+        answerWrapper.style.paddingLeft = '0';
+        // Input already has division-answer-input class which uses 5ch width
+    }
     
     // Put input inside wrapper
     answerWrapper.appendChild(answerInput);
@@ -1163,6 +1207,9 @@ function setupRightToLeftInput(question, requiredDigits, operation) {
         return value.replace(/\D/g, '');
     };
     
+    // Flag to prevent multiple auto-submits
+    let isSubmitting = false;
+    
     answerInput.addEventListener('keydown', function(e) {
         const rawValue = getRawValue(this.value);
         const cursorPos = this.selectionStart;
@@ -1172,17 +1219,10 @@ function setupRightToLeftInput(question, requiredDigits, operation) {
             // Only intercept to limit digits and auto-submit, otherwise let browser handle input
             if (/^\d$/.test(e.key)) {
                 const currentLength = rawValue.length;
-                if (currentLength >= requiredDigits) {
-                    // Already at max digits, prevent input and auto-submit
+                if (currentLength >= 5) {
+                    // Already at max 5 digits, prevent input
                     e.preventDefault();
-                    const userAnswer = parseInt(rawValue, 10);
-                    if (!isNaN(userAnswer)) {
-                        const isMobile = window.innerWidth <= 768;
-                        const delay = isMobile ? 200 : 300;
-                        setTimeout(() => {
-                            checkAnswer(question, userAnswer);
-                        }, delay);
-                    }
+                    // Auto-submit will be handled by input event when 5 digits are reached
                 }
                 // Otherwise, let browser handle the input normally (don't prevent default)
                 // The input event handler will clean non-digits and handle auto-submit
@@ -1286,17 +1326,32 @@ function setupRightToLeftInput(question, requiredDigits, operation) {
             }, 0);
         }
         
-        // Auto-submit when all digits entered (for division)
-        if (isDivision && rawValue.length >= requiredDigits) {
-            const userAnswer = parseInt(rawValue, 10);
-            if (!isNaN(userAnswer)) {
-                // Add delay so user can see the last digit (especially on mobile)
-                const isMobile = window.innerWidth <= 768;
-                const delay = isMobile ? 200 : 300; // 0.2 seconds on mobile, 0.3 on desktop
-                setTimeout(() => {
-                    checkAnswer(question, userAnswer);
-                }, delay);
-            }
+        // Auto-submit when exactly 5 digits entered (for division)
+        // Only submit when all 5 digits are entered, leading zeros are accepted
+        if (isDivision && rawValue.length === 5 && !isSubmitting) {
+            // Prevent multiple submissions
+            isSubmitting = true;
+            // Use a small delay to ensure the value is fully updated
+            setTimeout(() => {
+                const finalValue = getRawValue(this.value);
+                if (finalValue.length === 5) {
+                    const userAnswer = parseInt(finalValue, 10);
+                    if (!isNaN(userAnswer)) {
+                        // Add delay so user can see the last digit (especially on mobile)
+                        const isMobile = window.innerWidth <= 768;
+                        const delay = isMobile ? 200 : 300; // 0.2 seconds on mobile, 0.3 on desktop
+                        setTimeout(() => {
+                            checkAnswer(question, userAnswer);
+                            // Reset flag after submission
+                            isSubmitting = false;
+                        }, delay);
+                    } else {
+                        isSubmitting = false;
+                    }
+                } else {
+                    isSubmitting = false;
+                }
+            }, 10); // Small delay to ensure DOM is updated
         }
     });
     
@@ -1317,14 +1372,10 @@ function setupRightToLeftInput(question, requiredDigits, operation) {
     setTimeout(() => {
         answerInput.focus();
         if (isDivision) {
-            // For division, cursor should start at the rightmost position
-            // For a right-aligned empty input, position 0 should appear on the right
-            // But to ensure it's on the right, we'll set cursor to position 0
-            // The browser will handle normal left-to-right input from there
+            // For division, cursor should start at position 0
+            // Since input is right-aligned, position 0 will be at the leftmost position
+            // This will appear below the leftmost digit of the dividend
             answerInput.setSelectionRange(0, 0);
-            // Force a reflow to ensure cursor appears on the right
-            answerInput.blur();
-            answerInput.focus();
         } else {
             // For other operations, cursor at position 0 (left)
             answerInput.setSelectionRange(0, 0);
@@ -1484,6 +1535,9 @@ function checkAnswer(question, userAnswer) {
     const correctAnswer = question.answer;
     const isCorrect = userAnswer !== null && userAnswer === correctAnswer;
     
+    // Get operation from currentSession (needed for displaying correct answer)
+    const operation = currentSession.operation;
+    
     // Debug logging for answer comparison
     if (window.debugLog) {
         console.log('🔍 Answer check:', {
@@ -1505,11 +1559,20 @@ function checkAnswer(question, userAnswer) {
         const multidigitInput = document.getElementById('multidigitAnswerInput');
         const correctAnswerLine = document.getElementById('correctAnswerLine');
         if (multidigitInput && !multidigitInput.classList.contains('hidden')) {
-            // Show correct answer in fourth line (CSS letter-spacing handles spacing)
+            // Show correct answer in fourth line
             if (correctAnswerLine) {
-                const answerStr = correctAnswer.toString();
-                // CSS letter-spacing will handle visual spacing
-                correctAnswerLine.textContent = answerStr;
+                // For division, format as 5-character text with leading zeros
+                if (operation === 'division') {
+                    const answerStr = String(correctAnswer).padStart(5, '0');
+                    correctAnswerLine.textContent = answerStr;
+                    correctAnswerLine.className = 'division-field'; // Use uniform styling
+                    correctAnswerLine.style.color = '#d32f2f'; // Red for wrong answer
+                } else {
+                    // For other operations, use existing styling
+                    const answerStr = correctAnswer.toString();
+                    // CSS letter-spacing will handle visual spacing
+                    correctAnswerLine.textContent = answerStr;
+                }
                 correctAnswerLine.classList.remove('hidden');
             }
         } else {
@@ -1519,7 +1582,7 @@ function checkAnswer(question, userAnswer) {
     }
 
     // Record result
-    const operation = currentSession.operation;
+    // operation already declared above
     let opSymbol = '+';
     if (operation === 'subtraction') opSymbol = '-';
     else if (operation === 'multiplication') opSymbol = '×';

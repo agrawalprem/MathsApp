@@ -91,6 +91,49 @@
     caret-color: #667eea; /* Blinking cursor color */
 }
 
+/* CALLED BY: question.js - displayQuestion() and setupRightToLeftInput() (for division - uniform 5-character text fields) */
+.division-field {
+    text-align: left; /* Left-aligned for all division fields */
+    width: 5ch; /* Fixed 5-character width */
+    font-family: 'Courier New', monospace; /* Monospace font for consistent character width */
+    font-size: 28px; /* Match current font size */
+    letter-spacing: 6mm; /* Increased spacing between digits for division (more than 4mm used in multiplication) */
+    display: block; /* Block display to ensure lines stack vertically */
+    padding: 0;
+    margin: 10px 0; /* Vertical spacing between lines (matches .question-line) */
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    outline: none;
+    color: #333;
+    font-weight: 500;
+    box-sizing: border-box;
+}
+
+/* CALLED BY: question.js - displayQuestion() (for division line2 - divisor line needs more width) */
+.division-field.divisor-line {
+    width: auto; /* Allow wider width for divisor line (has spaces + symbol + number) */
+    min-width: 5ch; /* Minimum width to match other lines */
+}
+
+/* CALLED BY: question.js - setupRightToLeftInput() (for division - 5-digit field with left-to-right input) */
+.multidigit-answer-input.division-answer-input {
+    text-align: left; /* Left-to-right input for division */
+    width: calc(5ch + 4 * 6mm); /* 5 characters + 4 letter-spacings (6mm each) */
+    font-family: 'Courier New', monospace; /* Match dividend font */
+    font-size: 28px; /* Match dividend font size */
+    letter-spacing: 6mm; /* Match spacing in .division-field */
+    display: inline-block; /* Allow positioning */
+    padding: 0;
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    outline: none;
+    box-sizing: border-box;
+    caret-color: #667eea; /* Blinking cursor color */
+}
+
 /* CALLED BY: question.js - setupRightToLeftInput() (creates individual answer cells) */
 .answer-cell {
     width: auto;
