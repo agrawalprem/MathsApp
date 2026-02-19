@@ -9,6 +9,12 @@ let teacherProfile = null;
 let students = [];
 let studentScores = [];
 let allVariants = [];
+let currentUserRole = null; // 'Teacher', 'Principal', or 'Administrator'
+let availableSchools = []; // Schools user can access
+let availableClasses = []; // Classes user can access
+let selectedSchoolId = null; // Currently selected school
+let selectedClass = null; // Currently selected class
+let selectedSection = null; // Currently selected section
 
 // Learning sequence for column ordering
 const learningSequence = {
@@ -25,6 +31,411 @@ let collapsedOperations = {
     '3': false,  // Operation 3 (Multiplication): hide 3A0-3C
     '4': false   // Operation 4 (Division): hide 4A1-4C9
 };
+
+// Identify user role based on email matching schools table
+// CALLED BY: teacher-dashboard.js - loadTeacherDashboard() (identifies if user is Teacher/Principal/Administrator)
+async function identifyUserRole(profileData, schoolsData) {
+    if (window.debugLog) window.debugLog('identifyUserRole');
+    
+    const userEmail = (profileData.email || currentUser.email || '').toLowerCase().trim();
+    
+    if (!userEmail) {
+        return 'Teacher'; // Default to Teacher if no email
+    }
+    
+    // Check if user email matches administrator_email or principal_email in schools table
+    for (const school of schoolsData || []) {
+        const adminEmail = (school.administrator_email || '').toLowerCase().trim();
+        const principalEmail = (school.principal_email || '').toLowerCase().trim();
+        
+        // Priority: Administrator > Principal > Teacher
+        if (adminEmail && userEmail === adminEmail) {
+            return 'Administrator';
+        }
+        if (principalEmail && userEmail === principalEmail) {
+            return 'Principal';
+        }
+    }
+    
+    // Default to Teacher if no match
+    return 'Teacher';
+}
+
+// Fetch available schools based on user role
+// CALLED BY: teacher-dashboard.js - loadTeacherDashboard() (gets schools user can access)
+async function fetchAvailableSchools(profileData, userRole, schoolsData) {
+    if (window.debugLog) window.debugLog('fetchAvailableSchools');
+    
+    const userEmail = (profileData.email || currentUser.email || '').toLowerCase().trim();
+    const schools = [];
+    
+    if (userRole === 'Teacher') {
+        // For teachers: get schools from Classes table where teacher_email matches
+        const { data: classesData, error: classesError } = await supabase
+            .from('classes')
+            .select('school_id')
+            .eq('teacher_email', userEmail);
+        
+        if (classesError) {
+            console.warn('⚠️ Error fetching classes for teacher:', classesError);
+            return [];
+        }
+        
+        // Extract unique school IDs
+        const schoolIds = [...new Set((classesData || []).map(c => c.school_id))];
+        
+        if (schoolIds.length === 0) {
+            return [];
+        }
+        
+        // Fetch school details
+        const { data: schoolsData, error: schoolsError } = await supabase
+            .from('schools')
+            .select('school_id, school_name')
+            .in('school_id', schoolIds)
+            .order('school_id', { ascending: true });
+        
+        if (schoolsError) {
+            console.warn('⚠️ Error fetching schools:', schoolsError);
+            return [];
+        }
+        
+        return (schoolsData || []).map(school => ({
+            school_id: school.school_id,
+            school_name: school.school_name || `School ${school.school_id}`
+        }));
+        
+    } else if (userRole === 'Principal' || userRole === 'Administrator') {
+        // For principals/administrators: get schools where their email matches
+        const emailField = userRole === 'Principal' ? 'principal_email' : 'administrator_email';
+        
+        // Filter schools from provided schoolsData
+        const matchingSchools = (schoolsData || []).filter(school => {
+            const schoolEmail = (school[emailField] || '').toLowerCase().trim();
+            return schoolEmail && userEmail === schoolEmail;
+        });
+        
+        // If we have school_name in the data, use it; otherwise fetch it
+        if (matchingSchools.length > 0 && matchingSchools[0].school_name) {
+            return matchingSchools.map(school => ({
+                school_id: school.school_id,
+                school_name: school.school_name || `School ${school.school_id}`
+            }));
+        }
+        
+        // Fetch school names if not in provided data
+        const schoolIds = matchingSchools.map(s => s.school_id);
+        if (schoolIds.length > 0) {
+            const { data: schoolsWithNames, error: schoolsError } = await supabase
+                .from('schools')
+                .select('school_id, school_name')
+                .in('school_id', schoolIds)
+                .order('school_id', { ascending: true });
+            
+            if (schoolsError) {
+                console.warn('⚠️ Error fetching school names:', schoolsError);
+                return matchingSchools.map(school => ({
+                    school_id: school.school_id,
+                    school_name: `School ${school.school_id}`
+                }));
+            }
+            
+            return (schoolsWithNames || []).map(school => ({
+                school_id: school.school_id,
+                school_name: school.school_name || `School ${school.school_id}`
+            }));
+        }
+        
+        return [];
+    }
+    
+    return [];
+}
+
+// Fetch available classes for selected school
+// CALLED BY: teacher-dashboard.js - loadTeacherDashboard(), onSchoolChange() (gets classes for school)
+async function fetchAvailableClasses(schoolId, profileData, userRole) {
+    if (window.debugLog) window.debugLog('fetchAvailableClasses', `(schoolId=${schoolId})`);
+    
+    if (!schoolId) return [];
+    
+    const userEmail = (profileData.email || currentUser.email || '').toLowerCase().trim();
+    
+    if (userRole === 'Teacher') {
+        // For teachers: get classes from Classes table where teacher_email matches
+        const { data: classesData, error: classesError } = await supabase
+            .from('classes')
+            .select('school_id, class, section')
+            .eq('school_id', schoolId)
+            .eq('teacher_email', userEmail)
+            .order('class', { ascending: true })
+            .order('section', { ascending: true });
+        
+        if (classesError) {
+            console.warn('⚠️ Error fetching classes:', classesError);
+            return [];
+        }
+        
+        return (classesData || []).map(c => ({
+            school_id: c.school_id,
+            class: c.class,
+            section: c.section
+        }));
+        
+    } else if (userRole === 'Principal' || userRole === 'Administrator') {
+        // For principals/administrators: get all classes in the selected school
+        const { data: classesData, error: classesError } = await supabase
+            .from('classes')
+            .select('school_id, class, section')
+            .eq('school_id', schoolId)
+            .order('class', { ascending: true })
+            .order('section', { ascending: true });
+        
+        if (classesError) {
+            console.warn('⚠️ Error fetching classes:', classesError);
+            return [];
+        }
+        
+        return (classesData || []).map(c => ({
+            school_id: c.school_id,
+            class: c.class,
+            section: c.section
+        }));
+    }
+    
+    return [];
+}
+
+// Render school and class selector dropdowns
+// CALLED BY: teacher-dashboard.js - loadTeacherDashboard() (creates dropdown UI)
+function renderSchoolClassSelectors() {
+    if (window.debugLog) window.debugLog('renderSchoolClassSelectors');
+    
+    const selectorContainer = document.getElementById('schoolClassSelectors');
+    if (!selectorContainer) return;
+    
+    selectorContainer.innerHTML = '';
+    
+    // Show selectors only if multiple schools or classes available
+    const showSchoolSelector = availableSchools.length > 1;
+    const showClassSelector = availableClasses.length > 1;
+    
+    if (!showSchoolSelector && !showClassSelector) {
+        selectorContainer.classList.add('hidden');
+        return;
+    }
+    
+    selectorContainer.classList.remove('hidden');
+    
+    // Create school selector if needed
+    if (showSchoolSelector) {
+        const schoolGroup = document.createElement('div');
+        schoolGroup.className = 'selector-group';
+        
+        const schoolLabel = document.createElement('label');
+        schoolLabel.className = 'selector-label';
+        schoolLabel.textContent = 'Select School:';
+        schoolLabel.setAttribute('for', 'schoolSelector');
+        
+        const schoolSelect = document.createElement('select');
+        schoolSelect.id = 'schoolSelector';
+        schoolSelect.className = 'selector-dropdown';
+        schoolSelect.innerHTML = '<option value="">-- Select School --</option>';
+        
+        availableSchools.forEach(school => {
+            const option = document.createElement('option');
+            option.value = school.school_id;
+            option.textContent = school.school_name;
+            if (selectedSchoolId === school.school_id) {
+                option.selected = true;
+            }
+            schoolSelect.appendChild(option);
+        });
+        
+        schoolSelect.addEventListener('change', async (e) => {
+            const schoolId = parseInt(e.target.value);
+            await onSchoolChange(schoolId);
+        });
+        
+        schoolGroup.appendChild(schoolLabel);
+        schoolGroup.appendChild(schoolSelect);
+        selectorContainer.appendChild(schoolGroup);
+    }
+    
+    // Create class selector if needed
+    if (showClassSelector) {
+        const classGroup = document.createElement('div');
+        classGroup.className = 'selector-group';
+        
+        const classLabel = document.createElement('label');
+        classLabel.className = 'selector-label';
+        classLabel.textContent = 'Select Class:';
+        classLabel.setAttribute('for', 'classSelector');
+        
+        const classSelect = document.createElement('select');
+        classSelect.id = 'classSelector';
+        classSelect.className = 'selector-dropdown';
+        classSelect.innerHTML = '<option value="">-- Select Class --</option>';
+        
+        availableClasses.forEach(cls => {
+            const option = document.createElement('option');
+            const value = `${cls.school_id}_${cls.class}_${cls.section}`;
+            option.value = value;
+            option.textContent = `Class ${cls.class} - Section ${cls.section}`;
+            if (selectedSchoolId === cls.school_id && 
+                selectedClass === cls.class && 
+                selectedSection === cls.section) {
+                option.selected = true;
+            }
+            classSelect.appendChild(option);
+        });
+        
+        classSelect.addEventListener('change', async (e) => {
+            const [schoolId, classNum, section] = e.target.value.split('_');
+            await onClassChange(parseInt(schoolId), classNum, section);
+        });
+        
+        classGroup.appendChild(classLabel);
+        classGroup.appendChild(classSelect);
+        selectorContainer.appendChild(classGroup);
+    }
+}
+
+// Handle school selection change
+// CALLED BY: teacher-dashboard.js - renderSchoolClassSelectors() (on school dropdown change)
+async function onSchoolChange(schoolId) {
+    if (window.debugLog) window.debugLog('onSchoolChange', `(schoolId=${schoolId})`);
+    
+    selectedSchoolId = schoolId;
+    selectedClass = null;
+    selectedSection = null;
+    
+    if (!schoolId) {
+        availableClasses = [];
+        renderSchoolClassSelectors();
+        return;
+    }
+    
+    // Fetch classes for selected school
+    availableClasses = await fetchAvailableClasses(schoolId, teacherProfile, currentUserRole);
+    
+    // If only one class, auto-select it
+    if (availableClasses.length === 1) {
+        const cls = availableClasses[0];
+        await onClassChange(cls.school_id, cls.class, cls.section);
+    } else {
+        renderSchoolClassSelectors();
+    }
+}
+
+// Handle class selection change
+// CALLED BY: teacher-dashboard.js - renderSchoolClassSelectors() (on class dropdown change)
+async function onClassChange(schoolId, classNum, section) {
+    if (window.debugLog) window.debugLog('onClassChange', `(schoolId=${schoolId}, class=${classNum}, section=${section})`);
+    
+    selectedSchoolId = schoolId;
+    selectedClass = classNum;
+    selectedSection = section;
+    
+    // Load students for selected class
+    await loadStudentsForClass(schoolId, classNum, section);
+}
+
+// Load students for selected school, class, and section
+// CALLED BY: teacher-dashboard.js - onClassChange(), loadTeacherDashboard() (loads students)
+async function loadStudentsForClass(schoolId, classNum, section) {
+    if (window.debugLog) window.debugLog('loadStudentsForClass', `(schoolId=${schoolId}, class=${classNum}, section=${section})`);
+    
+    try {
+        showLoading(true);
+        showError('');
+        
+        // Build student query
+        let studentsQuery = supabase
+            .from('user_profiles')
+            .select('*')
+            .eq('user_type', 'Student')
+            .eq('school_id', schoolId)
+            .eq('class', classNum)
+            .eq('section', section);
+        
+        const { data: studentsData, error: studentsError } = await studentsQuery;
+        
+        if (studentsError) {
+            throw new Error(`Error fetching students: ${studentsError.message}`);
+        }
+        
+        students = (studentsData || []).sort((a, b) => {
+            const rollA = a.roll_number;
+            const rollB = b.roll_number;
+            const hasRollA = rollA !== null && rollA !== undefined && rollA !== '';
+            const hasRollB = rollB !== null && rollB !== undefined && rollB !== '';
+            if (hasRollA && hasRollB) {
+                return String(rollA).localeCompare(String(rollB), undefined, { numeric: true, sensitivity: 'base' });
+            }
+            const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim() || a.email;
+            const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim() || b.email;
+            return nameA.localeCompare(nameB);
+        });
+        
+        console.log(`✅ Found ${students.length} students in School ${schoolId}, Class ${classNum}-${section}`);
+        
+        if (students.length === 0) {
+            showError(`No students found in Class ${classNum}-${section}.`);
+            showLoading(false);
+            document.getElementById('dashboardControls').classList.add('hidden');
+            document.getElementById('dashboardGrid').classList.add('hidden');
+            return;
+        }
+        
+        // Fetch scores for all students
+        const studentUserIds = students.map(s => s.user_id);
+        const { data: scoresData, error: scoresError } = await supabase
+            .from('user_scores')
+            .select('*')
+            .in('user_id', studentUserIds);
+        
+        if (scoresError) {
+            throw new Error(`Error fetching scores: ${scoresError.message}`);
+        }
+        
+        studentScores = scoresData || [];
+        console.log(`✅ Found ${studentScores.length} score records`);
+        
+        // Fetch active sessions for all students
+        const { data: activeSessionsData, error: activeSessionsError } = await supabase
+            .from('active_sessions')
+            .select('*')
+            .in('user_id', studentUserIds);
+        
+        if (activeSessionsError) {
+            console.warn('⚠️ Error fetching active sessions:', activeSessionsError);
+        }
+        
+        window.activeSessions = activeSessionsData || [];
+        console.log(`✅ Found ${window.activeSessions.length} active sessions`);
+        
+        // Build and display the grid
+        buildDashboardGrid();
+        
+        document.getElementById('studentCount').textContent = students.length;
+        document.getElementById('variantCount').textContent = allVariants.length;
+        
+        showLoading(false);
+        document.getElementById('dashboardControls').classList.remove('hidden');
+        document.getElementById('dashboardGrid').classList.remove('hidden');
+        
+        // Start polling for active sessions updates every 5 seconds
+        if (!window.activeSessionsPollInterval) {
+            startActiveSessionsPolling();
+        }
+        
+    } catch (error) {
+        console.error('❌ Error loading students:', error);
+        showError(error.message);
+        showLoading(false);
+    }
+}
 
 // Check authentication on page load
 // CALLED BY: teacher-dashboard.html - DOMContentLoaded listener (initializes dashboard on page load)
@@ -116,92 +527,54 @@ async function loadTeacherDashboard() {
             .single();
 
         if (profileError || !profileData) {
-            throw new Error('Teacher profile not found. Please ensure you are logged in as a teacher.');
+            throw new Error('User profile not found. Please ensure you are logged in.');
         }
 
-        // Verify user is a teacher
-        if (profileData.user_type !== 'Teacher') {
-            throw new Error('Access denied. This dashboard is only available for teachers.');
+        // Fetch schools data to check for Principal/Administrator emails
+        const { data: schoolsData, error: schoolsError } = await supabase
+            .from('schools')
+            .select('school_id, school_name, principal_email, administrator_email');
+
+        if (schoolsError) {
+            console.warn('⚠️ Error fetching schools data:', schoolsError);
         }
 
-        // Verify teacher has class and section assigned
-        if (!profileData.class || !profileData.section) {
-            throw new Error('Your teacher profile is missing class or section information. Please contact administrator.');
+        // Identify user role (Teacher, Principal, or Administrator)
+        currentUserRole = await identifyUserRole(profileData, schoolsData || []);
+        
+        // Verify user has access (must be Teacher, Principal, or Administrator)
+        if (profileData.user_type !== 'Teacher' && currentUserRole === 'Teacher') {
+            throw new Error('Access denied. This dashboard is only available for teachers, principals, and administrators.');
         }
 
         teacherProfile = profileData;
-        console.log(`✅ Teacher profile loaded: Class ${profileData.class}, Section ${profileData.section}`);
+        
+        console.log(`✅ ${currentUserRole} profile loaded`);
 
-        // Fetch all students in teacher's class and section
-        let studentsQuery = supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('user_type', 'Student')
-            .eq('class', profileData.class)
-            .eq('section', profileData.section);
-
-        // If school_id is set, also filter by school_id
-        if (profileData.school_id) {
-            studentsQuery = studentsQuery.eq('school_id', profileData.school_id);
+        // Fetch available schools based on role
+        availableSchools = await fetchAvailableSchools(profileData, currentUserRole, schoolsData || []);
+        
+        if (availableSchools.length === 0) {
+            throw new Error(`No schools found for your ${currentUserRole.toLowerCase()} account. Please contact administrator.`);
         }
-
-        const { data: studentsData, error: studentsError } = await studentsQuery;
-
-        if (studentsError) {
-            throw new Error(`Error fetching students: ${studentsError.message}`);
+        
+        // Auto-select school if only one available
+        if (availableSchools.length === 1) {
+            selectedSchoolId = availableSchools[0].school_id;
         }
-
-        students = (studentsData || []).sort((a, b) => {
-            // Sort by roll_number (if available), otherwise by name
-            // NOTE: roll_number can be stored as a number in DB, so coerce to string before localeCompare.
-            const rollA = a.roll_number;
-            const rollB = b.roll_number;
-            const hasRollA = rollA !== null && rollA !== undefined && rollA !== '';
-            const hasRollB = rollB !== null && rollB !== undefined && rollB !== '';
-            if (hasRollA && hasRollB) {
-                return String(rollA).localeCompare(String(rollB), undefined, { numeric: true, sensitivity: 'base' });
+        
+        // Fetch available classes
+        if (selectedSchoolId) {
+            availableClasses = await fetchAvailableClasses(selectedSchoolId, profileData, currentUserRole);
+            
+            // Auto-select class if only one available
+            if (availableClasses.length === 1) {
+                const cls = availableClasses[0];
+                selectedClass = cls.class;
+                selectedSection = cls.section;
             }
-            const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim() || a.email;
-            const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim() || b.email;
-            return nameA.localeCompare(nameB);
-        });
-
-        console.log(`✅ Found ${students.length} students in Class ${profileData.class}-${profileData.section}`);
-
-        if (students.length === 0) {
-            showError('No students found. Please assign students to your teacher account.');
-            showLoading(false);
-            return;
         }
-
-        // Fetch scores for all students
-        const studentUserIds = students.map(s => s.user_id);
-        const { data: scoresData, error: scoresError } = await supabase
-            .from('user_scores')
-            .select('*')
-            .in('user_id', studentUserIds);
-
-        if (scoresError) {
-            throw new Error(`Error fetching scores: ${scoresError.message}`);
-        }
-
-        studentScores = scoresData || [];
-        console.log(`✅ Found ${studentScores.length} score records`);
-
-        // Fetch active sessions for all students
-        const { data: activeSessionsData, error: activeSessionsError } = await supabase
-            .from('active_sessions')
-            .select('*')
-            .in('user_id', studentUserIds);
-
-        if (activeSessionsError) {
-            console.warn('⚠️ Error fetching active sessions:', activeSessionsError);
-        }
-
-        // Store active sessions in global variable
-        window.activeSessions = activeSessionsData || [];
-        console.log(`✅ Found ${window.activeSessions.length} active sessions`);
-
+        
         // Build flattened variant list for columns
         allVariants = [];
         Object.keys(learningSequence).forEach(operation => {
@@ -210,18 +583,33 @@ async function loadTeacherDashboard() {
             });
         });
 
-        // Build and display the grid
-        buildDashboardGrid();
+        // Update dashboard title based on role
+        const headerTitle = document.querySelector('.header h1');
+        if (headerTitle) {
+            const roleTitle = currentUserRole === 'Teacher' ? 'Teacher' : 
+                             currentUserRole === 'Principal' ? 'Principal' : 
+                             'Administrator';
+            headerTitle.textContent = `${roleTitle} Dashboard - Student Progress`;
+        }
         
-        document.getElementById('studentCount').textContent = students.length;
-        document.getElementById('variantCount').textContent = allVariants.length;
-        
-        showLoading(false);
-        document.getElementById('dashboardControls').classList.remove('hidden');
-        document.getElementById('dashboardGrid').classList.remove('hidden');
+        // Update page title
+        document.title = `${currentUserRole} Dashboard - Student Progress`;
 
-        // Start polling for active sessions updates every 5 seconds
-        startActiveSessionsPolling();
+        // Render school/class selectors
+        renderSchoolClassSelectors();
+        
+        // If school and class are auto-selected, load students immediately
+        if (selectedSchoolId && selectedClass && selectedSection) {
+            await loadStudentsForClass(selectedSchoolId, selectedClass, selectedSection);
+        } else {
+            // Show selectors and wait for user selection
+            showLoading(false);
+            if (availableSchools.length > 1 || availableClasses.length > 1) {
+                showError('Please select a school and class to view students.');
+            } else {
+                showError('No classes found. Please contact administrator.');
+            }
+        }
 
     } catch (error) {
         console.error('❌ Error loading dashboard:', error);

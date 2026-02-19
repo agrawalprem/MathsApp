@@ -17,7 +17,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#156082">
-    <title>Teacher Dashboard - Student Progress</title>
+    <title>Dashboard - Student Progress</title>
     <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="teacher-dashboard.css">
     <!-- ExcelJS for Excel export -->
@@ -53,7 +53,7 @@
             - teacher-dashboard.css (.header, .user-info)
         -->
         <header class="header">
-            <h1>Teacher Dashboard - Student Progress</h1>
+            <h1>Dashboard - Student Progress</h1>
             <div class="user-info">
                 <button id="studentDashboardBtn" class="btn btn-secondary">Student Dashboard</button>
                 <button id="logoutBtn" class="btn btn-secondary">Log Out</button>
@@ -83,6 +83,17 @@
             - teacher-dashboard.css (.error-message, .hidden)
         -->
         <div id="errorMessage" class="error-message hidden"></div>
+
+        <!--
+            REQUIREMENTS:
+            - School and class selection dropdowns
+            - Hidden by default, shown when multiple schools/classes available
+            
+            REFERENCED BY:
+            - teacher-dashboard.js: renderSchoolClassSelectors() (creates and populates dropdowns)
+            - teacher-dashboard.css (.school-class-selectors)
+        -->
+        <div id="schoolClassSelectors" class="school-class-selectors hidden"></div>
 
         <!--
             REQUIREMENTS:

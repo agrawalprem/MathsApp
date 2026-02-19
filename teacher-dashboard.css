@@ -107,6 +107,54 @@ body {
     display: none !important;
 }
 
+/* CALLED BY: teacher-dashboard.html - <div id="schoolClassSelectors" class="school-class-selectors hidden">, teacher-dashboard.js - renderSchoolClassSelectors() (creates and populates dropdowns) */
+.school-class-selectors {
+    padding: 20px 30px;
+    border-bottom: 2px solid #e9ecef;
+    background: #f8f9fa;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+/* CALLED BY: teacher-dashboard.js - renderSchoolClassSelectors() (creates .selector-group divs) */
+.selector-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 200px;
+}
+
+/* CALLED BY: teacher-dashboard.js - renderSchoolClassSelectors() (creates .selector-label elements) */
+.selector-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+}
+
+/* CALLED BY: teacher-dashboard.js - renderSchoolClassSelectors() (creates .selector-dropdown select elements) */
+.selector-dropdown {
+    padding: 10px 15px;
+    border: 2px solid #e9ecef;
+    border-radius: 6px;
+    font-size: 16px;
+    background: white;
+    color: #333;
+    cursor: pointer;
+    transition: border-color 0.2s;
+}
+
+.selector-dropdown:hover {
+    border-color: #667eea;
+}
+
+.selector-dropdown:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
 /* CALLED BY: teacher-dashboard.html - <div id="dashboardControls" class="dashboard-controls hidden">, teacher-dashboard.js - loadDashboard() (removes 'hidden' class) */
 .dashboard-controls {
     padding: 20px 30px;
