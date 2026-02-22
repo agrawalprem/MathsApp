@@ -9,6 +9,9 @@
 // - Anonymous user navigation
 // ============================================================================
 
+// CRITICAL: Use function declarations (not expressions) so they're hoisted
+// This ensures functions are available even if assignment to window fails
+
 // CALLED BY: index.html - <button onclick="showAnonymousUser()">Anonymous User</button>
 // Expose to window immediately so onclick handlers can access it
 function showAnonymousUser() {
@@ -150,8 +153,17 @@ function showLogin() {
         </div>
     `;
 }
-// Expose immediately after definition
-window.showLogin = showLogin;
+// CRITICAL: Expose immediately after definition - wrap in try-catch to prevent errors from blocking
+try {
+    window.showLogin = showLogin;
+    if (typeof window.showLogin !== 'function') {
+        console.error('❌ Failed to expose showLogin to window');
+    }
+} catch (e) {
+    console.error('❌ Error exposing showLogin:', e);
+    // Fallback: try direct assignment
+    window.showLogin = showLogin;
+}
 
 // CALLED BY: index.html - <button onclick="showForgotPassword()">Forgot Password</button>
 function showForgotPassword() {
@@ -777,6 +789,8 @@ function toggleWelcome() {
         welcomeContent.classList.toggle('hidden');
     }
 }
+// Expose immediately after definition
+window.toggleWelcome = toggleWelcome;
 
 // CALLED BY: Password toggle buttons (onclick="togglePasswordVisibility(...)")
 function togglePasswordVisibility(inputId, button) {
