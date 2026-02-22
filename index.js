@@ -783,10 +783,31 @@ window.handleResetPasswordForm = handleResetPasswordForm;
 window.updateSignupFieldsBasedOnUserType = updateSignupFieldsBasedOnUserType;
 window.checkEmailExists = checkEmailExists;
 
+// Debug: Verify functions are available (check in console)
+console.log('✅ Auth functions loaded:', {
+    showAnonymousUser: typeof window.showAnonymousUser,
+    showRegistration: typeof window.showRegistration,
+    showLogin: typeof window.showLogin,
+    showForgotPassword: typeof window.showForgotPassword,
+    toggleWelcome: typeof window.toggleWelcome
+});
+
 // Initialize on page load
 // CALLED BY: index.html - Automatically executed when DOMContentLoaded event fires
 window.addEventListener('DOMContentLoaded', () => {
+    console.log('✅ DOMContentLoaded fired - index.js');
     if (window.debugLog) window.debugLog('DOMContentLoaded(index.js)');
+    
+    // Debug: Check if buttons exist
+    const buttons = {
+        welcome: document.querySelector('button[onclick="toggleWelcome()"]'),
+        anonymous: document.querySelector('button[onclick="showAnonymousUser()"]'),
+        registration: document.querySelector('button[onclick="showRegistration()"]'),
+        login: document.querySelector('button[onclick="showLogin()"]'),
+        forgotPassword: document.querySelector('button[onclick="showForgotPassword()"]')
+    };
+    console.log('✅ Buttons found:', Object.keys(buttons).filter(key => buttons[key] !== null));
+    
     let type = null;
     let accessToken = null;
     
