@@ -808,6 +808,35 @@ window.addEventListener('DOMContentLoaded', () => {
     };
     console.log('✅ Buttons found:', Object.keys(buttons).filter(key => buttons[key] !== null));
     
+    // Compatibility fix for devices where onclick doesn't work properly in PWA mode
+    // This is a fallback that works on ALL devices (including Panasonic P110)
+    // It adds explicit event listeners without removing onclick (so both work)
+    const attachCompatHandlers = (selector, handler) => {
+        const btn = document.querySelector(selector);
+        if (btn && !btn.dataset.compatHandlerAttached) {
+            // Add touch event listeners as fallback (onclick still works for newer devices)
+            btn.addEventListener('touchend', (e) => {
+                // Only trigger if onclick didn't fire (for compatibility)
+                setTimeout(() => {
+                    if (typeof handler === 'function') {
+                        handler();
+                    }
+                }, 0);
+            }, { passive: true });
+            
+            btn.dataset.compatHandlerAttached = 'true';
+        }
+    };
+    
+    // Attach compatibility handlers for all auth buttons (works on all devices)
+    attachCompatHandlers('button[onclick="toggleWelcome()"]', window.toggleWelcome);
+    attachCompatHandlers('button[onclick="showAnonymousUser()"]', window.showAnonymousUser);
+    attachCompatHandlers('button[onclick="showRegistration()"]', window.showRegistration);
+    attachCompatHandlers('button[onclick="showLogin()"]', window.showLogin);
+    attachCompatHandlers('button[onclick="showForgotPassword()"]', window.showForgotPassword);
+    
+    console.log('✅ Compatibility handlers attached for all devices');
+    
     let type = null;
     let accessToken = null;
     

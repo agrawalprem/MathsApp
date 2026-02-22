@@ -13,6 +13,16 @@
     <script src="shared_db.js"></script>
     <script src="index.js"></script>
     <script>
+        // Device and browser detection for compatibility
+        window.deviceInfo = {
+            userAgent: navigator.userAgent,
+            isAndroid: /Android/i.test(navigator.userAgent),
+            isOldAndroid: /Android [0-6]\./i.test(navigator.userAgent) || /Android [0-9]\.[0-4]/i.test(navigator.userAgent),
+            chromeVersion: (navigator.userAgent.match(/Chrome\/(\d+)/) || [])[1] || 'unknown',
+            webViewVersion: (navigator.userAgent.match(/wv\)\.Chrome\/(\d+)/) || [])[1] || 'unknown'
+        };
+        console.log('📱 Device Info:', window.deviceInfo);
+        
         // Display JavaScript errors on screen for mobile debugging
         window.addEventListener('error', (e) => {
             const errorDiv = document.createElement('div');
