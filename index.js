@@ -10,6 +10,7 @@
 // ============================================================================
 
 // CALLED BY: index.html - <button onclick="showAnonymousUser()">Anonymous User</button>
+// Expose to window immediately so onclick handlers can access it
 function showAnonymousUser() {
     if (window.debugLog) window.debugLog('showAnonymousUser');
     clearAuthContent();
@@ -24,8 +25,11 @@ function showAnonymousUser() {
     `;
     contentArea.style.display = 'block';
 }
+// Expose immediately after definition
+window.showAnonymousUser = showAnonymousUser;
 
 // CALLED BY: index.html - <button onclick="showRegistration()">Registration</button>
+// Expose to window immediately so onclick handlers can access it
 function showRegistration() {
     if (window.debugLog) window.debugLog('showRegistration');
     clearAuthContent();
@@ -97,12 +101,15 @@ function showRegistration() {
     // Load schools into dropdown
     loadSchoolsIntoDropdown();
 }
+// Expose immediately after definition
+window.showRegistration = showRegistration;
 
 // Store user email for step 2 of login
 let loginUserEmail = null;
 let loginUserProfile = null;
 
-// Expose showLogin immediately (before full script loads) for onclick handlers
+// CALLED BY: index.html - <button onclick="showLogin()">Login</button>
+// Expose to window immediately so onclick handlers can access it
 function showLogin() {
     if (window.debugLog) window.debugLog('showLogin');
     clearAuthContent();
@@ -143,6 +150,8 @@ function showLogin() {
         </div>
     `;
 }
+// Expose immediately after definition
+window.showLogin = showLogin;
 
 // CALLED BY: index.html - <button onclick="showForgotPassword()">Forgot Password</button>
 function showForgotPassword() {
@@ -180,6 +189,8 @@ function showForgotPassword() {
         </div>
     `;
 }
+// Expose immediately after definition
+window.showForgotPassword = showForgotPassword;
 
 // CALLED BY: index.js - showAnonymousUser(), showRegistration(), showLogin(), showForgotPassword() (clears previous content before showing new form)
 function clearAuthContent() {
@@ -214,6 +225,8 @@ async function startAsAnonymous() {
     
     window.location.href = 'student-dashboard.html';
 }
+// Expose immediately after definition
+window.startAsAnonymous = startAsAnonymous;
 
 // CALLED BY: index.js - showRegistration() (loads schools into dropdown when registration form is shown)
 async function loadSchoolsIntoDropdown() {
@@ -305,6 +318,8 @@ function updateSignupFieldsBasedOnUserType() {
         rollNumberField.placeholder = 'Roll Number';
     }
 }
+// Expose immediately after definition
+window.updateSignupFieldsBasedOnUserType = updateSignupFieldsBasedOnUserType;
 
 // CALLED BY: index.js - showRegistration() (adds event listener: emailInput.addEventListener('blur', checkEmailExists))
 async function checkEmailExists(event) {
@@ -358,6 +373,8 @@ async function checkEmailExists(event) {
         emailErrorEl.style.display = 'none';
     }
 }
+// Expose immediately after definition
+window.checkEmailExists = checkEmailExists;
 
 // CALLED BY: index.html - <form onsubmit="handleRegistration(event)"> (dynamically inserted by showRegistration())
 async function handleRegistration(event) {
@@ -561,6 +578,8 @@ async function handleRegistration(event) {
         errorEl.textContent = error.message || 'Registration failed';
     }
 }
+// Expose immediately after definition
+window.handleRegistration = handleRegistration;
 
 // CALLED BY: index.js - showLogin() (Step 1: User Code lookup)
 async function handleLoginStep1(event) {
@@ -633,6 +652,8 @@ async function handleLoginStep1(event) {
         errorEl.textContent = 'User Code not Found';
     }
 }
+// Expose immediately after definition
+window.handleLoginStep1 = handleLoginStep1;
 
 // CALLED BY: index.js - showLogin() (Step 2: Password entry)
 async function handleLoginForm(event) {
@@ -676,6 +697,8 @@ async function handleLoginForm(event) {
         errorEl.textContent = error.message || 'Login failed';
     }
 }
+// Expose immediately after definition
+window.handleLoginForm = handleLoginForm;
 
 // CALLED BY: index.html - <form onsubmit="handleForgotPasswordForm(event)"> (dynamically inserted by showForgotPassword())
 async function handleForgotPasswordForm(event) {
@@ -701,6 +724,8 @@ async function handleForgotPasswordForm(event) {
         errorEl.textContent = error.message || 'Failed to send reset link';
     }
 }
+// Expose immediately after definition
+window.handleForgotPasswordForm = handleForgotPasswordForm;
 
 // CALLED BY: index.html - <form onsubmit="handleResetPasswordForm(event)"> (dynamically inserted by showForgotPassword())
 async function handleResetPasswordForm(event) {
@@ -740,8 +765,11 @@ async function handleResetPasswordForm(event) {
         errorEl.textContent = error.message || 'Failed to update password';
     }
 }
+// Expose immediately after definition
+window.handleResetPasswordForm = handleResetPasswordForm;
 
 // CALLED BY: index.html - <button onclick="toggleWelcome()">Welcome</button>
+// Expose to window immediately so onclick handlers can access it
 function toggleWelcome() {
     if (window.debugLog) window.debugLog('toggleWelcome');
     const welcomeContent = document.getElementById('welcomeContent');
@@ -766,8 +794,10 @@ function togglePasswordVisibility(inputId, button) {
         button.setAttribute('aria-label', 'Show password');
     }
 }
+// Expose immediately after definition
+window.togglePasswordVisibility = togglePasswordVisibility;
 
-// Expose functions globally IMMEDIATELY
+// Expose functions globally IMMEDIATELY (backup - functions already exposed above)
 // CALLED BY: index.html - All onclick and onsubmit handlers access these via window object
 // Wrap in try-catch to ensure functions are exposed even if there are errors elsewhere
 try {
