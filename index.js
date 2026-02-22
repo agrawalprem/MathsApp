@@ -24,6 +24,8 @@ function showAnonymousUser() {
     `;
     contentArea.style.display = 'block';
 }
+// Expose immediately - critical for mobile browsers
+window.showAnonymousUser = showAnonymousUser;
 
 // CALLED BY: index.html - <button onclick="showRegistration()">Registration</button>
 function showRegistration() {
@@ -748,6 +750,8 @@ function toggleWelcome() {
         welcomeContent.classList.toggle('hidden');
     }
 }
+// Expose immediately - critical for mobile browsers
+window.toggleWelcome = toggleWelcome;
 
 // CALLED BY: Password toggle buttons (onclick="togglePasswordVisibility(...)")
 function togglePasswordVisibility(inputId, button) {
