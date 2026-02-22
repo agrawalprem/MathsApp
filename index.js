@@ -52,6 +52,7 @@ function showRegistration() {
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                 </select>
+                <input type="date" id="regDateOfBirth" placeholder="Date of Birth" required>
                 <select id="regSchoolId" required>
                     <option value="">Select School</option>
                 </select>
@@ -97,23 +98,47 @@ function showRegistration() {
     loadSchoolsIntoDropdown();
 }
 
+// Store user email for step 2 of login
+let loginUserEmail = null;
+let loginUserProfile = null;
+
 function showLogin() {
     if (window.debugLog) window.debugLog('showLogin');
     clearAuthContent();
+    // Reset login state
+    loginUserEmail = null;
+    loginUserProfile = null;
+    
     const contentArea = document.getElementById('authContentArea');
     contentArea.style.display = 'block';
     contentArea.innerHTML = `
         <div class="auth-form-container">
             <h3>Login</h3>
-            <form id="loginForm" class="auth-form" onsubmit="handleLoginForm(event)">
-                <input type="email" id="loginEmail" placeholder="Email" required>
-                <div class="password-input-wrapper">
-                    <input type="password" id="loginPassword" placeholder="Password" required>
-                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('loginPassword', this)" aria-label="Show password">👁️</button>
+            <div id="loginStep1">
+                <form id="loginFormStep1" class="auth-form" onsubmit="handleLoginStep1(event)">
+                    <input type="text" id="loginUserCode" placeholder="User Code (6 digits)" maxlength="6" pattern="[0-9]{6}" required>
+                    <button type="submit" class="btn">Continue</button>
+                </form>
+                <div id="loginError" class="auth-error"></div>
+            </div>
+            <div id="loginStep2" style="display: none;">
+                <div id="loginUserDetails" style="margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+                    <p style="margin: 5px 0;"><strong>School:</strong> <span id="loginSchool"></span></p>
+                    <p style="margin: 5px 0;"><strong>Class:</strong> <span id="loginClass"></span></p>
+                    <p style="margin: 5px 0;"><strong>Section:</strong> <span id="loginSection"></span></p>
+                    <p style="margin: 5px 0;"><strong>Roll Number:</strong> <span id="loginRollNumber"></span></p>
+                    <p style="margin: 5px 0;"><strong>Name:</strong> <span id="loginName"></span></p>
                 </div>
-                <button type="submit" class="btn">Log In</button>
-            </form>
-            <div id="loginError" class="auth-error"></div>
+                <form id="loginFormStep2" class="auth-form" onsubmit="handleLoginForm(event)">
+                    <div class="password-input-wrapper">
+                        <input type="password" id="loginPassword" placeholder="Password" required>
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('loginPassword', this)" aria-label="Show password">👁️</button>
+                    </div>
+                    <button type="submit" class="btn">Log In</button>
+                    <button type="button" class="btn" style="background: #6c757d; margin-top: 10px;" onclick="showLogin()">Back</button>
+                </form>
+                <div id="loginErrorStep2" class="auth-error"></div>
+            </div>
         </div>
     `;
 }
@@ -322,54 +347,14 @@ async function checkEmailExists(event) {
         }
     }
     
-    try {
-        // Check if email exists in user_profiles table
-        const { data: existingUser, error } = await supabase
-            .from('user_profiles')
-            .select('first_name, last_name, email')
-            .eq('email', email.toLowerCase())
-            .maybeSingle();
-        
-        if (error) {
-            return;
-        }
-        
-        if (existingUser) {
-            // Email already exists - show error with user's name
-            const userName = `${existingUser.first_name || ''} ${existingUser.last_name || ''}`.trim() || 'another user';
-            const errorMessage = `This email id is used by ${userName}`;
-            
-            // Show error below email field (more visible)
-            if (emailErrorEl) {
-                emailErrorEl.textContent = errorMessage;
-                emailErrorEl.style.display = 'block';
-            }
-            
-            // Also show in general error area
-            if (errorEl) {
-                errorEl.textContent = errorMessage;
-                errorEl.style.color = '#dc3545';
-            }
-            
-            // Mark the input as invalid
-            emailInput.setCustomValidity(errorMessage);
-            emailInput.style.borderColor = '#dc3545';
-            
-            // Prevent user from leaving the field - refocus after a short delay
-            setTimeout(() => {
-                emailInput.focus();
-                emailInput.select(); // Select the text so user can easily replace it
-            }, 100);
-        } else {
-            // Email is available - clear any previous error
-            emailInput.setCustomValidity('');
-            emailInput.style.borderColor = '';
-            if (emailErrorEl) {
-                emailErrorEl.style.display = 'none';
-            }
-        }
-    } catch (error) {
-        // Silently handle errors - don't show to user unless critical
+    // Note: Duplicate email check removed - Supabase Auth already prevents duplicate emails during signUp
+    // If email already exists, Supabase will return an error which we handle in handleRegistration()
+    
+    // Clear any previous error states since we're not checking anymore
+    emailInput.setCustomValidity('');
+    emailInput.style.borderColor = '';
+    if (emailErrorEl) {
+        emailErrorEl.style.display = 'none';
     }
 }
 
@@ -393,6 +378,7 @@ async function handleRegistration(event) {
     const lastName = document.getElementById('regLastName').value.trim();
     const userType = document.getElementById('regUserType').value;
     const gender = document.getElementById('regGender').value;
+    const dateOfBirth = document.getElementById('regDateOfBirth').value;
     const schoolIdSelect = document.getElementById('regSchoolId');
     const schoolId = schoolIdSelect ? schoolIdSelect.value.trim() : null;
     
@@ -412,27 +398,8 @@ async function handleRegistration(event) {
     }
 
     // Final check: verify email doesn't already exist
-    try {
-        const { data: existingUser, error: checkError } = await supabase
-            .from('user_profiles')
-            .select('first_name, last_name, email')
-            .eq('email', email.toLowerCase())
-            .maybeSingle();
-        
-        if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
-            throw new Error(`Error checking email: ${checkError.message}`);
-        }
-        
-        if (existingUser) {
-            const userName = `${existingUser.first_name || ''} ${existingUser.last_name || ''}`.trim() || 'another user';
-            errorEl.textContent = `This email id is used by ${userName}`;
-            errorEl.style.color = '#dc3545';
-            return;
-        }
-    } catch (checkError) {
-        // If check fails, continue with registration attempt (Supabase will catch duplicate emails)
-        console.warn('Email check failed, proceeding with registration:', checkError);
-    }
+    // Note: Duplicate email check removed - Supabase Auth already prevents duplicate emails during signUp
+    // If email already exists, Supabase will return an error which we handle below
 
     try {
         const { data, error } = await supabase.auth.signUp({
@@ -459,7 +426,7 @@ async function handleRegistration(event) {
         // Check if profile already exists (might be created by database trigger)
         const { data: existingProfile, error: checkError } = await supabase
             .from('user_profiles')
-            .select('user_id')
+            .select('user_id, user_code')
             .eq('user_id', userId)
             .single();
 
@@ -469,15 +436,46 @@ async function handleRegistration(event) {
 
         // Only insert if profile doesn't exist
         if (!existingProfile) {
+            // Generate user_code: Get next value from sequence or find max + 1
+            let userCode = null;
+            try {
+                // Try to use sequence first (if it exists)
+                const { data: seqData, error: seqError } = await supabase.rpc('get_next_user_code');
+                if (!seqError && seqData) {
+                    userCode = String(seqData).padStart(6, '0');
+                } else {
+                    // Fallback: Find max user_code and increment
+                    const { data: maxCodeData, error: maxError } = await supabase
+                        .from('user_profiles')
+                        .select('user_code')
+                        .not('user_code', 'is', null)
+                        .order('user_code', { ascending: false })
+                        .limit(1)
+                        .single();
+                    
+                    if (!maxError && maxCodeData && maxCodeData.user_code) {
+                        const maxCode = parseInt(maxCodeData.user_code) || 99999;
+                        userCode = String(maxCode + 1).padStart(6, '0');
+                    } else {
+                        // Start from 100000 if no existing codes
+                        userCode = '100000';
+                    }
+                }
+            } catch (codeError) {
+                console.warn('Error generating user code, starting from 100000:', codeError);
+                userCode = '100000';
+            }
+            
             const { error: profileError } = await supabase
                 .from('user_profiles')
                 .insert([{
                     user_id: userId,
-                    email: email,
                     first_name: firstName,
                     last_name: lastName || null,
                     user_type: userType,
                     gender: gender,
+                    date_of_birth: dateOfBirth || null,
+                    user_code: userCode,
                     school_id: schoolId,
                     class: classNum,
                     section: section,
@@ -503,19 +501,47 @@ async function handleRegistration(event) {
             }
         } else {
             // Profile already exists, update it instead
+            // Note: Don't update user_code if it already exists (preserve existing code)
+            const updateData = {
+                first_name: firstName,
+                last_name: lastName || null,
+                user_type: userType,
+                gender: gender,
+                date_of_birth: dateOfBirth || null,
+                school_id: schoolId,
+                class: classNum,
+                section: section,
+                roll_number: rollNumber
+            };
+            
+            // Only generate user_code if it doesn't exist
+            if (!existingProfile.user_code) {
+                let userCode = null;
+                try {
+                    // Find max user_code and increment
+                    const { data: maxCodeData, error: maxError } = await supabase
+                        .from('user_profiles')
+                        .select('user_code')
+                        .not('user_code', 'is', null)
+                        .order('user_code', { ascending: false })
+                        .limit(1)
+                        .single();
+                    
+                    if (!maxError && maxCodeData && maxCodeData.user_code) {
+                        const maxCode = parseInt(maxCodeData.user_code) || 99999;
+                        userCode = String(maxCode + 1).padStart(6, '0');
+                    } else {
+                        userCode = '100000';
+                    }
+                    updateData.user_code = userCode;
+                } catch (codeError) {
+                    console.warn('Error generating user code for existing profile:', codeError);
+                }
+            }
+            
             const { error: updateError } = await supabase
                 .from('user_profiles')
-                .update({
-                    email: email,
-                    first_name: firstName,
-                    last_name: lastName || null,
-                    user_type: userType,
-                    gender: gender,
-                    school_id: schoolId,
-                    class: classNum,
-                    section: section,
-                    roll_number: rollNumber
-                })
+                .update(updateData)
                 .eq('user_id', userId);
 
             if (updateError) {
@@ -535,23 +561,107 @@ async function handleRegistration(event) {
     }
 }
 
-// CALLED BY: index.html - <form onsubmit="handleLoginForm(event)"> (dynamically inserted by showLogin())
-async function handleLoginForm(event) {
-    if (window.debugLog) window.debugLog('handleLoginForm');
+// CALLED BY: index.js - showLogin() (Step 1: User Code lookup)
+async function handleLoginStep1(event) {
+    if (window.debugLog) window.debugLog('handleLoginStep1');
     event.preventDefault();
     const errorEl = document.getElementById('loginError');
     errorEl.textContent = '';
 
-    const email = document.getElementById('loginEmail').value.trim();
+    const userCode = document.getElementById('loginUserCode').value.trim();
+
+    // Validate user code format
+    if (!/^\d{6}$/.test(userCode)) {
+        errorEl.textContent = 'Please enter a valid 6-digit user code';
+        return;
+    }
+
+    try {
+        // Wait for Supabase to be initialized
+        if (!supabase) {
+            let attempts = 0;
+            while (!supabase && attempts < 10) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+                attempts++;
+            }
+            if (!supabase) {
+                errorEl.textContent = 'System not ready. Please try again.';
+                return;
+            }
+        }
+
+        // Fetch user profile by user_code
+        const { data: profileData, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('*, schools(school_name)')
+            .eq('user_code', userCode)
+            .single();
+
+        if (profileError || !profileData) {
+            errorEl.textContent = 'User Code not Found';
+            return;
+        }
+
+        // Get email from auth.users via RPC function (email is not in user_profiles)
+        const { data: userEmail, error: emailError } = await supabase.rpc('get_user_email_by_code', {
+            p_user_code: userCode
+        });
+
+        if (emailError || !userEmail) {
+            errorEl.textContent = 'User email not found. Please contact administrator.';
+            return;
+        }
+
+        // Store user email and profile for step 2
+        loginUserEmail = userEmail;
+        loginUserProfile = profileData;
+
+        // Display user details
+        document.getElementById('loginSchool').textContent = profileData.schools?.school_name || profileData.school || 'N/A';
+        document.getElementById('loginClass').textContent = profileData.class || 'N/A';
+        document.getElementById('loginSection').textContent = profileData.section || 'N/A';
+        document.getElementById('loginRollNumber').textContent = profileData.roll_number || 'N/A';
+        const fullName = [profileData.first_name, profileData.last_name].filter(Boolean).join(' ') || 'N/A';
+        document.getElementById('loginName').textContent = fullName;
+
+        // Show step 2, hide step 1
+        document.getElementById('loginStep1').style.display = 'none';
+        document.getElementById('loginStep2').style.display = 'block';
+        document.getElementById('loginPassword').focus();
+    } catch (error) {
+        errorEl.textContent = 'User Code not Found';
+    }
+}
+
+// CALLED BY: index.js - showLogin() (Step 2: Password entry)
+async function handleLoginForm(event) {
+    if (window.debugLog) window.debugLog('handleLoginForm');
+    event.preventDefault();
+    const errorEl = document.getElementById('loginErrorStep2');
+    errorEl.textContent = '';
+
+    if (!loginUserEmail) {
+        errorEl.textContent = 'Please start over. User code session expired.';
+        showLogin();
+        return;
+    }
+
     const password = document.getElementById('loginPassword').value;
 
     try {
         const { data, error } = await supabase.auth.signInWithPassword({
-            email: email,
+            email: loginUserEmail,
             password: password
         });
 
-        if (error) throw error;
+        if (error) {
+            if (error.message.includes('password') || error.message.includes('Invalid')) {
+                errorEl.textContent = 'Wrong Password';
+            } else {
+                errorEl.textContent = error.message || 'Login failed';
+            }
+            return;
+        }
 
         await fetchUserProfile();
         
@@ -666,6 +776,7 @@ window.toggleWelcome = toggleWelcome;
 window.togglePasswordVisibility = togglePasswordVisibility;
 window.startAsAnonymous = startAsAnonymous;
 window.handleRegistration = handleRegistration;
+window.handleLoginStep1 = handleLoginStep1;
 window.handleLoginForm = handleLoginForm;
 window.handleForgotPasswordForm = handleForgotPasswordForm;
 window.handleResetPasswordForm = handleResetPasswordForm;

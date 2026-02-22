@@ -59,6 +59,25 @@ async function updateAuthUI(skipPageSwitch = false) {
         if (studentDashboard) {
             studentDashboard.style.display = 'block';
             studentDashboard.style.visibility = 'visible';
+            
+            // Try to load cached profile from sessionStorage for immediate display
+            // This prevents showing empty name while waiting for database query
+            if (!currentUserProfile) {
+                try {
+                    const cachedProfile = sessionStorage.getItem('quizUserProfile');
+                    if (cachedProfile) {
+                        const profile = JSON.parse(cachedProfile);
+                        // Only use cached profile if it matches current user
+                        if (profile && profile.user_id === currentUser.id) {
+                            currentUserProfile = profile;
+                            console.log('✅ Using cached profile for immediate display');
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Unable to load cached profile:', e);
+                }
+            }
+            
             updateStudentDashboardHeader();
         }
         

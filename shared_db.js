@@ -572,10 +572,12 @@ async function saveScore(variantKey, score, passed = null) {
  * 
  * CALLED BY: student-dashboard.js - updateAuthUI() (when dashboard loads)
  */
+
 async function fetchAndUpdateVariantStatuses() {
     if (window.debugLog) window.debugLog('fetchAndUpdateVariantStatuses');
+    
     if (!currentUser || !supabase) {
-        console.warn('⚠️ fetchAndUpdateVariantStatuses: No currentUser or supabase client');
+        console.warn('⚠️ fetchAndUpdateVariantStatuses: No currentUser or supabase client - skipping');
         return;
     }
     

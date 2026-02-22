@@ -13,6 +13,9 @@ let currentUserRole = null; // 'Teacher', 'Principal', or 'Administrator'
 let availableSchools = []; // Schools user can access
 let availableClasses = []; // Classes user can access
 let selectedSchoolId = null; // Currently selected school
+
+// Fixed columns in the student progress table (Student, Class, Roll No., User Code, Date of Birth)
+const FIXED_COLUMNS_COUNT = 5;
 let selectedClass = null; // Currently selected class
 let selectedSection = null; // Currently selected section
 
@@ -37,7 +40,7 @@ let collapsedOperations = {
 async function identifyUserRole(profileData, schoolsData) {
     if (window.debugLog) window.debugLog('identifyUserRole');
     
-    const userEmail = (profileData.email || currentUser.email || '').toLowerCase().trim();
+    const userEmail = (currentUser.email || '').toLowerCase().trim();
     
     if (!userEmail) {
         return 'Teacher'; // Default to Teacher if no email
@@ -66,7 +69,7 @@ async function identifyUserRole(profileData, schoolsData) {
 async function fetchAvailableSchools(profileData, userRole, schoolsData) {
     if (window.debugLog) window.debugLog('fetchAvailableSchools');
     
-    const userEmail = (profileData.email || currentUser.email || '').toLowerCase().trim();
+    const userEmail = (currentUser.email || '').toLowerCase().trim();
     const schools = [];
     
     if (userRole === 'Teacher') {
@@ -159,7 +162,7 @@ async function fetchAvailableClasses(schoolId, profileData, userRole) {
     
     if (!schoolId) return [];
     
-    const userEmail = (profileData.email || currentUser.email || '').toLowerCase().trim();
+    const userEmail = (currentUser.email || '').toLowerCase().trim();
     
     if (userRole === 'Teacher') {
         // For teachers: get classes from Classes table where teacher_email matches
@@ -373,8 +376,8 @@ async function loadStudentsForClass(schoolId, classNum, section) {
             if (hasRollA && hasRollB) {
                 return String(rollA).localeCompare(String(rollB), undefined, { numeric: true, sensitivity: 'base' });
             }
-            const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim() || a.email;
-            const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim() || b.email;
+            const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim() || a.user_code || 'N/A';
+            const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim() || b.user_code || 'N/A';
             return nameA.localeCompare(nameB);
         });
         
@@ -655,7 +658,7 @@ function buildDashboardGrid() {
     // Build header row
     const headerRow = document.createElement('tr');
     const headerColumns = [
-        'Student', 'Class', 'Roll No.', 'Email'
+        'Student', 'Class', 'Roll No.', 'User Code', 'Date of Birth'
     ];
     
     headerColumns.forEach(col => {
@@ -687,7 +690,7 @@ function buildDashboardGrid() {
         
         // Student info columns
         const nameCell = document.createElement('td');
-        nameCell.textContent = `${student.first_name || ''} ${student.last_name || ''}`.trim() || student.email;
+        nameCell.textContent = `${student.first_name || ''} ${student.last_name || ''}`.trim() || student.user_code || 'N/A';
         nameCell.className = 'fixed-column';
         row.appendChild(nameCell);
 
@@ -703,10 +706,25 @@ function buildDashboardGrid() {
         rollCell.className = 'fixed-column';
         row.appendChild(rollCell);
 
-        const emailCell = document.createElement('td');
-        emailCell.textContent = student.email || '';
-        emailCell.className = 'fixed-column';
-        row.appendChild(emailCell);
+        const userCodeCell = document.createElement('td');
+        userCodeCell.textContent = student.user_code || 'N/A';
+        userCodeCell.className = 'fixed-column';
+        row.appendChild(userCodeCell);
+
+        const dobCell = document.createElement('td');
+        // Format date of birth for display (YYYY-MM-DD to DD/MM/YYYY)
+        if (student.date_of_birth) {
+            const dob = new Date(student.date_of_birth);
+            // Format as DD/MM/YYYY
+            const day = String(dob.getDate()).padStart(2, '0');
+            const month = String(dob.getMonth() + 1).padStart(2, '0');
+            const year = dob.getFullYear();
+            dobCell.textContent = `${day}/${month}/${year}`;
+        } else {
+            dobCell.textContent = 'N/A';
+        }
+        dobCell.className = 'fixed-column';
+        row.appendChild(dobCell);
 
         // Variant status columns
         allVariants.forEach(({ operation, variant }) => {
@@ -836,7 +854,7 @@ async function exportToExcel() {
         const worksheet = workbook.addWorksheet('Student Progress');
 
         // Add header row
-        const headerRow = ['Student', 'Class', 'Roll No.', 'Email'];
+        const headerRow = ['Student', 'Class', 'Roll No.', 'User Code', 'Date of Birth'];
         allVariants.forEach(({ operation, variant }) => {
             headerRow.push(variant);
         });
@@ -866,11 +884,22 @@ async function exportToExcel() {
 
         // Add data rows
         students.forEach(student => {
+            // Format date of birth for export
+            let dobFormatted = 'N/A';
+            if (student.date_of_birth) {
+                const dob = new Date(student.date_of_birth);
+                const day = String(dob.getDate()).padStart(2, '0');
+                const month = String(dob.getMonth() + 1).padStart(2, '0');
+                const year = dob.getFullYear();
+                dobFormatted = `${day}/${month}/${year}`;
+            }
+            
             const row = [
-                `${student.first_name || ''} ${student.last_name || ''}`.trim() || student.email,
+                `${student.first_name || ''} ${student.last_name || ''}`.trim() || student.user_code || 'N/A',
                 (student.class || '') + (student.section || ''), // Combined class+section
                 student.roll_number || '',
-                student.email || ''
+                student.user_code || 'N/A',
+                dobFormatted
             ];
 
             allVariants.forEach(({ operation, variant }) => {
@@ -897,7 +926,7 @@ async function exportToExcel() {
 
             // Style status cells
             allVariants.forEach((_, index) => {
-                const cell = dataRow.getCell(5 + index); // Start after fixed columns (Student, Class, Roll No., Email)
+                const cell = dataRow.getCell(6 + index); // Start after fixed columns (Student, Class, Roll No., User Code, Date of Birth)
                 const status = getVariantStatus(student.user_id, allVariants[index].operation, allVariants[index].variant);
                 
                 if (status && typeof status === 'object' && status.type === 'active') {
@@ -935,16 +964,17 @@ async function exportToExcel() {
         worksheet.getColumn(1).width = 25; // Student
         worksheet.getColumn(2).width = 10; // Class
         worksheet.getColumn(3).width = 12; // Roll No.
-        worksheet.getColumn(4).width = 30; // Email
-        for (let i = 5; i <= 4 + allVariants.length; i++) {
+        worksheet.getColumn(4).width = 15; // User Code
+        worksheet.getColumn(5).width = 15; // Date of Birth
+        for (let i = 6; i <= 5 + allVariants.length; i++) {
             worksheet.getColumn(i).width = 8; // Variant columns
         }
 
-        // Freeze header row and first 4 columns
+        // Freeze header row and first 5 columns
         worksheet.views = [{
             state: 'frozen',
             ySplit: 1,
-            xSplit: 4
+            xSplit: 5
         }];
 
         // Generate Excel file and download
@@ -1115,10 +1145,10 @@ function updateActiveSessionCells() {
         if (rowIndex >= students.length) return;
         const student = students[rowIndex];
         
-        // Get variant cells (skip first 3 fixed columns: name, class, roll no)
+        // Get variant cells (skip first FIXED_COLUMNS_COUNT fixed columns: Student, Class, Roll No., User Code, Date of Birth)
         const cells = row.querySelectorAll('td');
         allVariants.forEach(({ operation, variant }, variantIndex) => {
-            const cellIndex = 3 + variantIndex; // First 3 are fixed columns
+            const cellIndex = FIXED_COLUMNS_COUNT + variantIndex; // Skip fixed columns before variant columns
             const cell = cells[cellIndex];
             if (!cell) return;
             
