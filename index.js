@@ -15,6 +15,7 @@
 
 // Verify script is loading
 console.log('✅ index.js script is loading...');
+window._indexJsLoaded = true; // Mark that index.js has started loading
 
 // CRITICAL: Wrap entire script in try-catch to prevent errors from stopping function definitions
 // This ensures functions are always available even if there are errors elsewhere

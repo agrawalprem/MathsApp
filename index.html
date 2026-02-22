@@ -18,14 +18,23 @@
             
             // Define stub functions that will be replaced by real functions
             window.showLogin = function() {
-                console.warn('showLogin: index.js may not be loaded yet, checking...');
-                // Try to call real function if it exists
+                console.warn('showLogin: Checking if index.js loaded...');
+                // Try multiple times to find the real function
                 if (typeof window._realShowLogin === 'function') {
                     return window._realShowLogin.apply(this, arguments);
                 }
+                if (typeof window.showLogin === 'function' && window.showLogin !== arguments.callee) {
+                    return window.showLogin.apply(this, arguments);
+                }
+                // Check if index.js loaded at all
+                if (!window._indexJsLoaded) {
+                    console.error('❌ index.js has not loaded! Check for JavaScript errors.');
+                    alert('JavaScript error detected. Please check browser console (F12) and refresh the page.');
+                    return;
+                }
                 // Fallback: show loading message
                 const msg = 'Page is still loading. Please wait a moment and try again.';
-                console.error('showLogin called but index.js not loaded yet');
+                console.error('showLogin: Real function not found even though index.js loaded');
                 alert(msg);
             };
             
@@ -33,7 +42,12 @@
                 if (typeof window._realShowRegistration === 'function') {
                     return window._realShowRegistration.apply(this, arguments);
                 }
-                console.error('showRegistration called but index.js not loaded yet');
+                if (!window._indexJsLoaded) {
+                    console.error('❌ index.js has not loaded!');
+                    alert('JavaScript error detected. Please check browser console (F12) and refresh.');
+                    return;
+                }
+                console.error('showRegistration: Real function not found');
                 alert('Page is still loading. Please wait a moment and try again.');
             };
             
@@ -41,7 +55,12 @@
                 if (typeof window._realShowAnonymousUser === 'function') {
                     return window._realShowAnonymousUser.apply(this, arguments);
                 }
-                console.error('showAnonymousUser called but index.js not loaded yet');
+                if (!window._indexJsLoaded) {
+                    console.error('❌ index.js has not loaded!');
+                    alert('JavaScript error detected. Please check browser console (F12) and refresh.');
+                    return;
+                }
+                console.error('showAnonymousUser: Real function not found');
                 alert('Page is still loading. Please wait a moment and try again.');
             };
             
@@ -49,7 +68,12 @@
                 if (typeof window._realToggleWelcome === 'function') {
                     return window._realToggleWelcome.apply(this, arguments);
                 }
-                console.error('toggleWelcome called but index.js not loaded yet');
+                if (!window._indexJsLoaded) {
+                    console.error('❌ index.js has not loaded!');
+                    alert('JavaScript error detected. Please check browser console (F12) and refresh.');
+                    return;
+                }
+                console.error('toggleWelcome: Real function not found');
                 alert('Page is still loading. Please wait a moment and try again.');
             };
             
@@ -57,7 +81,12 @@
                 if (typeof window._realShowForgotPassword === 'function') {
                     return window._realShowForgotPassword.apply(this, arguments);
                 }
-                console.error('showForgotPassword called but index.js not loaded yet');
+                if (!window._indexJsLoaded) {
+                    console.error('❌ index.js has not loaded!');
+                    alert('JavaScript error detected. Please check browser console (F12) and refresh.');
+                    return;
+                }
+                console.error('showForgotPassword: Real function not found');
                 alert('Page is still loading. Please wait a moment and try again.');
             };
             
@@ -70,21 +99,47 @@
     <script>
         // Verify functions are available after index.js loads
         (function() {
-            setTimeout(() => {
+            function checkFunctions() {
                 const criticalFunctions = ['showLogin', 'showRegistration', 'showAnonymousUser', 'toggleWelcome', 'showForgotPassword'];
-                const missing = criticalFunctions.filter(fn => typeof window[fn] !== 'function');
+                const missing = [];
+                
+                criticalFunctions.forEach(fn => {
+                    const fnObj = window[fn];
+                    if (typeof fnObj !== 'function') {
+                        missing.push(fn + ' (not a function)');
+                    } else {
+                        // Check if it's still the stub (contains "Page is still loading" or "index.js may not be loaded")
+                        const fnStr = fnObj.toString();
+                        if (fnStr.includes('Page is still loading') || fnStr.includes('index.js may not be loaded')) {
+                            missing.push(fn + ' (still stub)');
+                        }
+                    }
+                });
+                
                 if (missing.length > 0) {
-                    console.error('❌ Missing functions after script load:', missing);
-                    console.error('❌ This usually means there is a JavaScript error in index.js');
+                    console.error('❌ Missing or stub functions detected:', missing);
+                    console.error('❌ index.js loaded flag:', window._indexJsLoaded);
+                    console.error('❌ Check Network tab to verify index.js loaded (should be status 200)');
+                    console.error('❌ Check Console tab for JavaScript errors');
+                    
                     // Show error on screen
                     const errorDiv = document.createElement('div');
-                    errorDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#dc3545;color:white;padding:15px;z-index:99999;font-size:12px;';
-                    errorDiv.textContent = 'ERROR: Functions not loaded. Check console for JavaScript errors.';
+                    errorDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#dc3545;color:white;padding:15px;z-index:99999;font-size:12px;font-family:monospace;';
+                    errorDiv.innerHTML = 'ERROR: Functions not loaded properly.<br>Missing: ' + missing.join(', ') + '<br>Check browser console (F12) for details.';
                     document.body.appendChild(errorDiv);
                 } else {
-                    console.log('✅ All critical functions available');
+                    console.log('✅ All critical functions available and are real functions');
                 }
-            }, 200);
+            }
+            
+            // Check after scripts load
+            setTimeout(checkFunctions, 100);
+            // Also check when DOM is ready
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', checkFunctions);
+            } else {
+                checkFunctions();
+            }
         })();
     </script>
     <script>
