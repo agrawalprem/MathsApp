@@ -16,6 +16,29 @@
 // Verify script is loading
 console.log('✅ index.js script is loading...');
 
+// CRITICAL: Wrap entire script in try-catch to prevent errors from stopping function definitions
+// This ensures functions are always available even if there are errors elsewhere
+(function() {
+    'use strict';
+    
+    // Define a safe wrapper that ensures functions are always callable
+    const ensureFunction = function(fnName, fn) {
+        try {
+            if (typeof fn === 'function') {
+                window[fnName] = fn;
+                window['_real' + fnName.charAt(0).toUpperCase() + fnName.slice(1)] = fn;
+                return true;
+            }
+        } catch (e) {
+            console.error('Error ensuring function:', fnName, e);
+        }
+        return false;
+    };
+    
+    // Store reference for later use
+    window._ensureFunction = ensureFunction;
+})();
+
 // CALLED BY: index.html - <button onclick="showAnonymousUser()">Anonymous User</button>
 // Expose to window immediately so onclick handlers can access it
 function showAnonymousUser() {
@@ -32,8 +55,9 @@ function showAnonymousUser() {
     `;
     contentArea.style.display = 'block';
 }
-// Expose immediately after definition
+// Expose immediately after definition - use both names for compatibility
 window.showAnonymousUser = showAnonymousUser;
+window._realShowAnonymousUser = showAnonymousUser; // Backup reference
 
 // CALLED BY: index.html - <button onclick="showRegistration()">Registration</button>
 // Expose to window immediately so onclick handlers can access it
@@ -111,6 +135,7 @@ function showRegistration() {
 // Expose immediately after definition - with error handling
 try {
     window.showRegistration = showRegistration;
+    window._realShowRegistration = showRegistration; // Backup reference
     console.log('✅ showRegistration assigned');
 } catch (e) {
     console.error('❌ Error assigning showRegistration:', e);
@@ -165,6 +190,7 @@ function showLogin() {
 // CRITICAL: Expose immediately after definition - with error handling
 try {
     window.showLogin = showLogin;
+    window._realShowLogin = showLogin; // Backup reference for stub functions
     if (typeof window.showLogin !== 'function') {
         console.error('❌ CRITICAL: showLogin is not a function after assignment!');
         console.error('showLogin type:', typeof showLogin);
@@ -177,6 +203,7 @@ try {
     // Last resort: try direct assignment
     try {
         window.showLogin = showLogin;
+        window._realShowLogin = showLogin;
     } catch (e2) {
         console.error('❌ Fallback assignment also failed:', e2);
     }
@@ -221,6 +248,7 @@ function showForgotPassword() {
 // Expose immediately after definition - with error handling
 try {
     window.showForgotPassword = showForgotPassword;
+    window._realShowForgotPassword = showForgotPassword; // Backup reference
     console.log('✅ showForgotPassword assigned');
 } catch (e) {
     console.error('❌ Error assigning showForgotPassword:', e);
@@ -813,6 +841,7 @@ function toggleWelcome() {
 }
 // Expose immediately after definition
 window.toggleWelcome = toggleWelcome;
+window._realToggleWelcome = toggleWelcome; // Backup reference
 
 // CALLED BY: Password toggle buttons (onclick="togglePasswordVisibility(...)")
 function togglePasswordVisibility(inputId, button) {

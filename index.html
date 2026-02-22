@@ -15,26 +15,52 @@
         // The real functions in index.js will replace these stubs
         (function() {
             'use strict';
+            
+            // Define stub functions that will be replaced by real functions
             window.showLogin = function() {
+                console.warn('showLogin: index.js may not be loaded yet, checking...');
+                // Try to call real function if it exists
+                if (typeof window._realShowLogin === 'function') {
+                    return window._realShowLogin.apply(this, arguments);
+                }
+                // Fallback: show loading message
+                const msg = 'Page is still loading. Please wait a moment and try again.';
                 console.error('showLogin called but index.js not loaded yet');
-                alert('Page is still loading. Please wait a moment and try again.');
+                alert(msg);
             };
+            
             window.showRegistration = function() {
+                if (typeof window._realShowRegistration === 'function') {
+                    return window._realShowRegistration.apply(this, arguments);
+                }
                 console.error('showRegistration called but index.js not loaded yet');
                 alert('Page is still loading. Please wait a moment and try again.');
             };
+            
             window.showAnonymousUser = function() {
+                if (typeof window._realShowAnonymousUser === 'function') {
+                    return window._realShowAnonymousUser.apply(this, arguments);
+                }
                 console.error('showAnonymousUser called but index.js not loaded yet');
                 alert('Page is still loading. Please wait a moment and try again.');
             };
+            
             window.toggleWelcome = function() {
+                if (typeof window._realToggleWelcome === 'function') {
+                    return window._realToggleWelcome.apply(this, arguments);
+                }
                 console.error('toggleWelcome called but index.js not loaded yet');
                 alert('Page is still loading. Please wait a moment and try again.');
             };
+            
             window.showForgotPassword = function() {
+                if (typeof window._realShowForgotPassword === 'function') {
+                    return window._realShowForgotPassword.apply(this, arguments);
+                }
                 console.error('showForgotPassword called but index.js not loaded yet');
                 alert('Page is still loading. Please wait a moment and try again.');
             };
+            
             console.log('✅ Stub functions defined - buttons will not throw errors');
         })();
     </script>

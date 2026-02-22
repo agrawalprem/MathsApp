@@ -1,8 +1,8 @@
 // Service Worker for Learning Maths in Baby Steps
-// Version 1.0.22 - Updated to fix function loading issues
+// Version 1.0.23 - Force cache refresh to fix function loading
 
-const CACHE_NAME = 'maths-app-v1.0.22';
-const STATIC_CACHE_NAME = 'maths-app-static-v1.0.22';
+const CACHE_NAME = 'maths-app-v1.0.23';
+const STATIC_CACHE_NAME = 'maths-app-static-v1.0.23';
 
 // Files to cache on install
 const STATIC_FILES = [
