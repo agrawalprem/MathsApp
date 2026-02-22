@@ -37,11 +37,6 @@
     transition: all 0.3s ease;
     text-align: center;
     width: 100%;
-    /* Mobile-specific fixes for touch responsiveness */
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-    -webkit-user-select: none;
 }
 
 /* CALLED BY: index.html - hover state on .btn-auth */

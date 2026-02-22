@@ -53,11 +53,6 @@ body {
     transition: transform 0.2s;
     width: 100%;
     font-weight: 600;
-    /* Mobile-specific fixes for touch responsiveness */
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-    -webkit-user-select: none;
 }
 
 /* CALLED BY: All HTML files - hover state on .btn */

@@ -9,39 +9,7 @@
 // - Anonymous user navigation
 // ============================================================================
 
-// CRITICAL: Function declarations are hoisted, so they're available immediately
-// We'll assign them to window right after definition
-// No placeholders needed - function declarations work immediately
-
-// Verify script is loading
-console.log('✅ index.js script is loading...');
-window._indexJsLoaded = true; // Mark that index.js has started loading
-
-// CRITICAL: Wrap entire script in try-catch to prevent errors from stopping function definitions
-// This ensures functions are always available even if there are errors elsewhere
-(function() {
-    'use strict';
-    
-    // Define a safe wrapper that ensures functions are always callable
-    const ensureFunction = function(fnName, fn) {
-        try {
-            if (typeof fn === 'function') {
-                window[fnName] = fn;
-                window['_real' + fnName.charAt(0).toUpperCase() + fnName.slice(1)] = fn;
-                return true;
-            }
-        } catch (e) {
-            console.error('Error ensuring function:', fnName, e);
-        }
-        return false;
-    };
-    
-    // Store reference for later use
-    window._ensureFunction = ensureFunction;
-})();
-
 // CALLED BY: index.html - <button onclick="showAnonymousUser()">Anonymous User</button>
-// Expose to window immediately so onclick handlers can access it
 function showAnonymousUser() {
     if (window.debugLog) window.debugLog('showAnonymousUser');
     clearAuthContent();
@@ -56,12 +24,8 @@ function showAnonymousUser() {
     `;
     contentArea.style.display = 'block';
 }
-// Expose immediately after definition - use both names for compatibility
-window.showAnonymousUser = showAnonymousUser;
-window._realShowAnonymousUser = showAnonymousUser; // Backup reference
 
 // CALLED BY: index.html - <button onclick="showRegistration()">Registration</button>
-// Expose to window immediately so onclick handlers can access it
 function showRegistration() {
     if (window.debugLog) window.debugLog('showRegistration');
     clearAuthContent();
@@ -73,7 +37,7 @@ function showRegistration() {
             <form id="registrationForm" class="auth-form" onsubmit="handleRegistration(event)">
                 <p class="registration-info">Students, whose school is not registered, may join as Online Students. To get your Class, Section and Roll Number, please contact Prem Agrawal at agrawal.prem@gmail.com, or +91 98228 47682 (WhatsApp).</p>
                 <div>
-                <input type="email" id="regEmail" placeholder="Email" required>
+                    <input type="email" id="regEmail" placeholder="Email" required>
                     <div id="regEmailError" class="field-error" style="display: none;"></div>
                 </div>
                 <input type="text" id="regFirstName" placeholder="First Name" required>
@@ -96,11 +60,11 @@ function showRegistration() {
                 <input type="text" id="regSection" placeholder="Section" value="A" pattern="[A-Z]" minlength="1" maxlength="1" required>
                 <input type="number" id="regRollNumber" placeholder="Roll Number" min="1" max="99">
                 <div class="password-input-wrapper">
-                <input type="password" id="regPassword" placeholder="Password" minlength="6" required>
+                    <input type="password" id="regPassword" placeholder="Password" minlength="6" required>
                     <button type="button" class="password-toggle" onclick="togglePasswordVisibility('regPassword', this)" aria-label="Show password">👁️</button>
                 </div>
                 <div class="password-input-wrapper">
-                <input type="password" id="regPasswordConfirm" placeholder="Confirm Password" minlength="6" required>
+                    <input type="password" id="regPasswordConfirm" placeholder="Confirm Password" minlength="6" required>
                     <button type="button" class="password-toggle" onclick="togglePasswordVisibility('regPasswordConfirm', this)" aria-label="Show password">👁️</button>
                 </div>
                 <button type="submit" class="btn">Register</button>
@@ -133,21 +97,11 @@ function showRegistration() {
     // Load schools into dropdown
     loadSchoolsIntoDropdown();
 }
-// Expose immediately after definition - with error handling
-try {
-    window.showRegistration = showRegistration;
-    window._realShowRegistration = showRegistration; // Backup reference
-    console.log('✅ showRegistration assigned');
-} catch (e) {
-    console.error('❌ Error assigning showRegistration:', e);
-}
 
 // Store user email for step 2 of login
 let loginUserEmail = null;
 let loginUserProfile = null;
 
-// CALLED BY: index.html - <button onclick="showLogin()">Login</button>
-// Expose to window immediately so onclick handlers can access it
 function showLogin() {
     if (window.debugLog) window.debugLog('showLogin');
     clearAuthContent();
@@ -164,8 +118,8 @@ function showLogin() {
                 <form id="loginFormStep1" class="auth-form" onsubmit="handleLoginStep1(event)">
                     <input type="text" id="loginUserCode" placeholder="User Code (6 digits)" maxlength="6" pattern="[0-9]{6}" required>
                     <button type="submit" class="btn">Continue</button>
-            </form>
-            <div id="loginError" class="auth-error"></div>
+                </form>
+                <div id="loginError" class="auth-error"></div>
             </div>
             <div id="loginStep2" style="display: none;">
                 <div id="loginUserDetails" style="margin-bottom: 20px; padding: 15px; background: #f5f5f5; border-radius: 8px;">
@@ -187,27 +141,6 @@ function showLogin() {
             </div>
         </div>
     `;
-}
-// CRITICAL: Expose immediately after definition - with error handling
-try {
-    window.showLogin = showLogin;
-    window._realShowLogin = showLogin; // Backup reference for stub functions
-    if (typeof window.showLogin !== 'function') {
-        console.error('❌ CRITICAL: showLogin is not a function after assignment!');
-        console.error('showLogin type:', typeof showLogin);
-        console.error('window.showLogin type:', typeof window.showLogin);
-    } else {
-        console.log('✅ showLogin successfully assigned to window');
-    }
-} catch (e) {
-    console.error('❌ Error assigning showLogin:', e);
-    // Last resort: try direct assignment
-    try {
-        window.showLogin = showLogin;
-        window._realShowLogin = showLogin;
-    } catch (e2) {
-        console.error('❌ Fallback assignment also failed:', e2);
-    }
 }
 
 // CALLED BY: index.html - <button onclick="showForgotPassword()">Forgot Password</button>
@@ -232,11 +165,11 @@ function showForgotPassword() {
                 <p style="margin-bottom: 20px; color: #666;">Enter your new password.</p>
                 <form id="resetPasswordForm" class="auth-form" onsubmit="handleResetPasswordForm(event)">
                     <div class="password-input-wrapper">
-                    <input type="password" id="resetNewPassword" placeholder="New Password" minlength="6" required>
+                        <input type="password" id="resetNewPassword" placeholder="New Password" minlength="6" required>
                         <button type="button" class="password-toggle" onclick="togglePasswordVisibility('resetNewPassword', this)" aria-label="Show password">👁️</button>
                     </div>
                     <div class="password-input-wrapper">
-                    <input type="password" id="resetConfirmPassword" placeholder="Confirm New Password" minlength="6" required>
+                        <input type="password" id="resetConfirmPassword" placeholder="Confirm New Password" minlength="6" required>
                         <button type="button" class="password-toggle" onclick="togglePasswordVisibility('resetConfirmPassword', this)" aria-label="Show password">👁️</button>
                     </div>
                     <button type="submit" class="btn">Update Password</button>
@@ -245,14 +178,6 @@ function showForgotPassword() {
             </div>
         </div>
     `;
-}
-// Expose immediately after definition - with error handling
-try {
-    window.showForgotPassword = showForgotPassword;
-    window._realShowForgotPassword = showForgotPassword; // Backup reference
-    console.log('✅ showForgotPassword assigned');
-} catch (e) {
-    console.error('❌ Error assigning showForgotPassword:', e);
 }
 
 // CALLED BY: index.js - showAnonymousUser(), showRegistration(), showLogin(), showForgotPassword() (clears previous content before showing new form)
@@ -288,8 +213,6 @@ async function startAsAnonymous() {
     
     window.location.href = 'student-dashboard.html';
 }
-// Expose immediately after definition
-window.startAsAnonymous = startAsAnonymous;
 
 // CALLED BY: index.js - showRegistration() (loads schools into dropdown when registration form is shown)
 async function loadSchoolsIntoDropdown() {
@@ -381,8 +304,6 @@ function updateSignupFieldsBasedOnUserType() {
         rollNumberField.placeholder = 'Roll Number';
     }
 }
-// Expose immediately after definition
-window.updateSignupFieldsBasedOnUserType = updateSignupFieldsBasedOnUserType;
 
 // CALLED BY: index.js - showRegistration() (adds event listener: emailInput.addEventListener('blur', checkEmailExists))
 async function checkEmailExists(event) {
@@ -436,8 +357,6 @@ async function checkEmailExists(event) {
         emailErrorEl.style.display = 'none';
     }
 }
-// Expose immediately after definition
-window.checkEmailExists = checkEmailExists;
 
 // CALLED BY: index.html - <form onsubmit="handleRegistration(event)"> (dynamically inserted by showRegistration())
 async function handleRegistration(event) {
@@ -584,15 +503,15 @@ async function handleRegistration(event) {
             // Profile already exists, update it instead
             // Note: Don't update user_code if it already exists (preserve existing code)
             const updateData = {
-                    first_name: firstName,
-                    last_name: lastName || null,
-                    user_type: userType,
-                    gender: gender,
+                first_name: firstName,
+                last_name: lastName || null,
+                user_type: userType,
+                gender: gender,
                 date_of_birth: dateOfBirth || null,
-                    school_id: schoolId,
-                    class: classNum,
-                    section: section,
-                    roll_number: rollNumber
+                school_id: schoolId,
+                class: classNum,
+                section: section,
+                roll_number: rollNumber
             };
             
             // Only generate user_code if it doesn't exist
@@ -641,8 +560,6 @@ async function handleRegistration(event) {
         errorEl.textContent = error.message || 'Registration failed';
     }
 }
-// Expose immediately after definition
-window.handleRegistration = handleRegistration;
 
 // CALLED BY: index.js - showLogin() (Step 1: User Code lookup)
 async function handleLoginStep1(event) {
@@ -715,8 +632,6 @@ async function handleLoginStep1(event) {
         errorEl.textContent = 'User Code not Found';
     }
 }
-// Expose immediately after definition
-window.handleLoginStep1 = handleLoginStep1;
 
 // CALLED BY: index.js - showLogin() (Step 2: Password entry)
 async function handleLoginForm(event) {
@@ -760,8 +675,6 @@ async function handleLoginForm(event) {
         errorEl.textContent = error.message || 'Login failed';
     }
 }
-// Expose immediately after definition
-window.handleLoginForm = handleLoginForm;
 
 // CALLED BY: index.html - <form onsubmit="handleForgotPasswordForm(event)"> (dynamically inserted by showForgotPassword())
 async function handleForgotPasswordForm(event) {
@@ -787,8 +700,6 @@ async function handleForgotPasswordForm(event) {
         errorEl.textContent = error.message || 'Failed to send reset link';
     }
 }
-// Expose immediately after definition
-window.handleForgotPasswordForm = handleForgotPasswordForm;
 
 // CALLED BY: index.html - <form onsubmit="handleResetPasswordForm(event)"> (dynamically inserted by showForgotPassword())
 async function handleResetPasswordForm(event) {
@@ -828,11 +739,8 @@ async function handleResetPasswordForm(event) {
         errorEl.textContent = error.message || 'Failed to update password';
     }
 }
-// Expose immediately after definition
-window.handleResetPasswordForm = handleResetPasswordForm;
 
 // CALLED BY: index.html - <button onclick="toggleWelcome()">Welcome</button>
-// Expose to window immediately so onclick handlers can access it
 function toggleWelcome() {
     if (window.debugLog) window.debugLog('toggleWelcome');
     const welcomeContent = document.getElementById('welcomeContent');
@@ -840,9 +748,6 @@ function toggleWelcome() {
         welcomeContent.classList.toggle('hidden');
     }
 }
-// Expose immediately after definition
-window.toggleWelcome = toggleWelcome;
-window._realToggleWelcome = toggleWelcome; // Backup reference
 
 // CALLED BY: Password toggle buttons (onclick="togglePasswordVisibility(...)")
 function togglePasswordVisibility(inputId, button) {
@@ -860,167 +765,28 @@ function togglePasswordVisibility(inputId, button) {
         button.setAttribute('aria-label', 'Show password');
     }
 }
-// Expose immediately after definition
-window.togglePasswordVisibility = togglePasswordVisibility;
 
-// CALLED BY: index.html - <button onclick="handleLogout()">Logout</button>
-// Also called by: shared_db.js - onAuthStateChange (when user signs out)
-async function handleLogout() {
-    if (window.debugLog) window.debugLog('handleLogout');
-    // Clear active session tracking
-    if (typeof window.clearActiveSession === 'function') {
-        await window.clearActiveSession();
-    }
-    // Clear session timeout
-    if (typeof window.clearSessionTimeout === 'function') {
-        window.clearSessionTimeout();
-    }
-    // Stop inactivity tracking
-    if (typeof window.stopInactivityTracking === 'function') {
-        window.stopInactivityTracking();
-    }
-    // Access supabase from global scope (defined in shared_db.js)
-    const supabaseClient = typeof supabase !== 'undefined' ? supabase : null;
-    if (supabaseClient) {
-        await supabaseClient.auth.signOut();
-    }
-    // Clear auth content and show login form
-    clearAuthContent();
-    showLogin();
-}
-// Expose immediately after definition
-window.handleLogout = handleLogout;
-
-// CALLED BY: shared_db.js - initSupabase() and onAuthStateChange (updates UI based on auth state)
-// This function is called when user logs in or out to update the UI accordingly
-async function updateAuthUI(skipPageSwitch = false) {
-    if (window.debugLog) window.debugLog('updateAuthUI', `(skipPageSwitch=${skipPageSwitch})`);
-    const loginBtn = document.getElementById('loginBtnTop');
-    const logoutBtn = document.getElementById('logoutBtnTop');
-    
-    // Access currentUser and currentUserProfile from global scope (defined in shared_db.js)
-    const user = typeof currentUser !== 'undefined' ? currentUser : null;
-    const profile = typeof currentUserProfile !== 'undefined' ? currentUserProfile : null;
-    
-    if (user && profile) {
-        // User is logged in - show logout button, hide login button
-        if (loginBtn) loginBtn.classList.add('hidden');
-        if (logoutBtn) logoutBtn.classList.remove('hidden');
-        
-        // Clear auth content area
-        clearAuthContent();
-        
-        // If not skipping page switch, redirect to appropriate dashboard
-        if (!skipPageSwitch) {
-            if (profile.user_type === 'teacher') {
-                window.location.href = 'teacher-dashboard.html';
-            } else {
-                window.location.href = 'student-dashboard.html';
-            }
-        }
-    } else {
-        // User is not logged in - show login button, hide logout button
-        if (loginBtn) loginBtn.classList.remove('hidden');
-        if (logoutBtn) logoutBtn.classList.add('hidden');
-        
-        // Clear auth content area
-        clearAuthContent();
-    }
-}
-// Expose immediately after definition
-window.updateAuthUI = updateAuthUI;
-
-// Expose functions globally IMMEDIATELY (backup - functions already exposed above)
+// Expose functions globally
 // CALLED BY: index.html - All onclick and onsubmit handlers access these via window object
-// Wrap in try-catch to ensure functions are exposed even if there are errors elsewhere
-try {
 window.showAnonymousUser = showAnonymousUser;
 window.showRegistration = showRegistration;
 window.showLogin = showLogin;
 window.showForgotPassword = showForgotPassword;
-    window.toggleWelcome = toggleWelcome;
-    window.togglePasswordVisibility = togglePasswordVisibility;
+window.toggleWelcome = toggleWelcome;
+window.togglePasswordVisibility = togglePasswordVisibility;
 window.startAsAnonymous = startAsAnonymous;
 window.handleRegistration = handleRegistration;
-    window.handleLoginStep1 = handleLoginStep1;
+window.handleLoginStep1 = handleLoginStep1;
 window.handleLoginForm = handleLoginForm;
 window.handleForgotPasswordForm = handleForgotPasswordForm;
 window.handleResetPasswordForm = handleResetPasswordForm;
 window.updateSignupFieldsBasedOnUserType = updateSignupFieldsBasedOnUserType;
-    window.checkEmailExists = checkEmailExists;
-    window.handleLogout = handleLogout;
-    window.updateAuthUI = updateAuthUI;
-    console.log('✅ Functions exposed to window');
-} catch (e) {
-    console.error('❌ Error exposing functions to window:', e);
-    // Fallback: try to expose at least the critical functions
-    if (typeof showLogin === 'function') window.showLogin = showLogin;
-    if (typeof showRegistration === 'function') window.showRegistration = showRegistration;
-    if (typeof showAnonymousUser === 'function') window.showAnonymousUser = showAnonymousUser;
-    if (typeof toggleWelcome === 'function') window.toggleWelcome = toggleWelcome;
-    if (typeof handleLogout === 'function') window.handleLogout = handleLogout;
-    if (typeof updateAuthUI === 'function') window.updateAuthUI = updateAuthUI;
-}
-
-// Debug: Verify functions are available (check in console)
-console.log('✅ Auth functions loaded:', {
-    showAnonymousUser: typeof window.showAnonymousUser,
-    showRegistration: typeof window.showRegistration,
-    showLogin: typeof window.showLogin,
-    showForgotPassword: typeof window.showForgotPassword,
-    toggleWelcome: typeof window.toggleWelcome
-});
-
-// Immediate verification - check if functions are actually callable
-if (typeof window.showLogin !== 'function') {
-    console.error('❌ CRITICAL: showLogin is not a function! Script may have errors above this line.');
-}
+window.checkEmailExists = checkEmailExists;
 
 // Initialize on page load
 // CALLED BY: index.html - Automatically executed when DOMContentLoaded event fires
 window.addEventListener('DOMContentLoaded', () => {
-    console.log('✅ DOMContentLoaded fired - index.js');
     if (window.debugLog) window.debugLog('DOMContentLoaded(index.js)');
-    
-    // Debug: Check if buttons exist
-    const buttons = {
-        welcome: document.querySelector('button[onclick="toggleWelcome()"]'),
-        anonymous: document.querySelector('button[onclick="showAnonymousUser()"]'),
-        registration: document.querySelector('button[onclick="showRegistration()"]'),
-        login: document.querySelector('button[onclick="showLogin()"]'),
-        forgotPassword: document.querySelector('button[onclick="showForgotPassword()"]')
-    };
-    console.log('✅ Buttons found:', Object.keys(buttons).filter(key => buttons[key] !== null));
-    
-    // Compatibility fix for devices where onclick doesn't work properly in PWA mode
-    // This is a fallback that works on ALL devices (including Panasonic P110)
-    // It adds explicit event listeners without removing onclick (so both work)
-    const attachCompatHandlers = (selector, handler) => {
-        const btn = document.querySelector(selector);
-        if (btn && !btn.dataset.compatHandlerAttached) {
-            // Add touch event listeners as fallback (onclick still works for newer devices)
-            btn.addEventListener('touchend', (e) => {
-                // Only trigger if onclick didn't fire (for compatibility)
-                setTimeout(() => {
-                    if (typeof handler === 'function') {
-                        handler();
-                    }
-                }, 0);
-            }, { passive: true });
-            
-            btn.dataset.compatHandlerAttached = 'true';
-        }
-    };
-    
-    // Attach compatibility handlers for all auth buttons (works on all devices)
-    attachCompatHandlers('button[onclick="toggleWelcome()"]', window.toggleWelcome);
-    attachCompatHandlers('button[onclick="showAnonymousUser()"]', window.showAnonymousUser);
-    attachCompatHandlers('button[onclick="showRegistration()"]', window.showRegistration);
-    attachCompatHandlers('button[onclick="showLogin()"]', window.showLogin);
-    attachCompatHandlers('button[onclick="showForgotPassword()"]', window.showForgotPassword);
-    
-    console.log('✅ Compatibility handlers attached for all devices');
-    
     let type = null;
     let accessToken = null;
     
@@ -1068,27 +834,4 @@ window.addEventListener('DOMContentLoaded', () => {
     
     // Initialize Supabase normally - it will process recovery token, but we'll handle it specially
     tryInitSupabase();
-    
-    // Final verification - ensure all critical functions are available
-    const finalCheck = {
-        showLogin: typeof window.showLogin,
-        showRegistration: typeof window.showRegistration,
-        showAnonymousUser: typeof window.showAnonymousUser,
-        toggleWelcome: typeof window.toggleWelcome,
-        showForgotPassword: typeof window.showForgotPassword,
-        handleLogout: typeof window.handleLogout
-    };
-    console.log('✅ Final function check:', finalCheck);
-    
-    const missing = Object.keys(finalCheck).filter(key => finalCheck[key] !== 'function');
-    if (missing.length > 0) {
-        console.error('❌ CRITICAL: Missing functions:', missing);
-        // Try to re-expose functions as last resort
-        if (typeof showLogin === 'function') window.showLogin = showLogin;
-        if (typeof showRegistration === 'function') window.showRegistration = showRegistration;
-        if (typeof showAnonymousUser === 'function') window.showAnonymousUser = showAnonymousUser;
-        if (typeof toggleWelcome === 'function') window.toggleWelcome = toggleWelcome;
-        if (typeof showForgotPassword === 'function') window.showForgotPassword = showForgotPassword;
-        if (typeof handleLogout === 'function') window.handleLogout = handleLogout;
-    }
 });
