@@ -144,6 +144,8 @@ function showLogin() {
         </div>
     `;
 }
+// Expose immediately - critical for mobile browsers
+window.showLogin = showLogin;
 
 // CALLED BY: index.html - <button onclick="showForgotPassword()">Forgot Password</button>
 function showForgotPassword() {
