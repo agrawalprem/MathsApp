@@ -9,8 +9,51 @@
 // - Anonymous user navigation
 // ============================================================================
 
-// CRITICAL: Use function declarations (not expressions) so they're hoisted
-// This ensures functions are available even if assignment to window fails
+// CRITICAL: Pre-assign placeholder functions to window IMMEDIATELY
+// This ensures onclick handlers can find them even if there are errors later
+// The actual functions will replace these placeholders when they're defined
+(function() {
+    'use strict';
+    // Create placeholder functions that will be replaced by actual functions
+    // This runs immediately when the script loads, before any other code
+    window.showLogin = function() {
+        console.error('showLogin placeholder called - actual function not yet loaded');
+        // If actual function exists, call it
+        var actualFn = window._showLoginActual;
+        if (typeof actualFn === 'function') {
+            return actualFn.apply(this, arguments);
+        }
+    };
+    window.showRegistration = function() {
+        console.error('showRegistration placeholder called - actual function not yet loaded');
+        var actualFn = window._showRegistrationActual;
+        if (typeof actualFn === 'function') {
+            return actualFn.apply(this, arguments);
+        }
+    };
+    window.showAnonymousUser = function() {
+        console.error('showAnonymousUser placeholder called - actual function not yet loaded');
+        var actualFn = window._showAnonymousUserActual;
+        if (typeof actualFn === 'function') {
+            return actualFn.apply(this, arguments);
+        }
+    };
+    window.showForgotPassword = function() {
+        console.error('showForgotPassword placeholder called - actual function not yet loaded');
+        var actualFn = window._showForgotPasswordActual;
+        if (typeof actualFn === 'function') {
+            return actualFn.apply(this, arguments);
+        }
+    };
+    window.toggleWelcome = function() {
+        console.error('toggleWelcome placeholder called - actual function not yet loaded');
+        var actualFn = window._toggleWelcomeActual;
+        if (typeof actualFn === 'function') {
+            return actualFn.apply(this, arguments);
+        }
+    };
+    console.log('✅ Placeholder functions assigned to window');
+})();
 
 // CALLED BY: index.html - <button onclick="showAnonymousUser()">Anonymous User</button>
 // Expose to window immediately so onclick handlers can access it
@@ -153,16 +196,16 @@ function showLogin() {
         </div>
     `;
 }
-// CRITICAL: Expose immediately after definition - wrap in try-catch to prevent errors from blocking
-try {
-    window.showLogin = showLogin;
-    if (typeof window.showLogin !== 'function') {
-        console.error('❌ Failed to expose showLogin to window');
-    }
-} catch (e) {
-    console.error('❌ Error exposing showLogin:', e);
-    // Fallback: try direct assignment
-    window.showLogin = showLogin;
+// CRITICAL: Expose immediately after definition
+// Function is hoisted, so showLogin exists here
+window.showLogin = showLogin;
+// Verify it worked
+if (typeof window.showLogin !== 'function') {
+    console.error('❌ CRITICAL: showLogin is not a function after assignment!');
+    console.error('showLogin type:', typeof showLogin);
+    console.error('window.showLogin type:', typeof window.showLogin);
+} else {
+    console.log('✅ showLogin successfully assigned to window');
 }
 
 // CALLED BY: index.html - <button onclick="showForgotPassword()">Forgot Password</button>
