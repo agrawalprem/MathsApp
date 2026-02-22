@@ -102,6 +102,7 @@ function showRegistration() {
 let loginUserEmail = null;
 let loginUserProfile = null;
 
+// Expose showLogin immediately (before full script loads) for onclick handlers
 function showLogin() {
     if (window.debugLog) window.debugLog('showLogin');
     clearAuthContent();
@@ -766,22 +767,33 @@ function togglePasswordVisibility(inputId, button) {
     }
 }
 
-// Expose functions globally
+// Expose functions globally IMMEDIATELY
 // CALLED BY: index.html - All onclick and onsubmit handlers access these via window object
-window.showAnonymousUser = showAnonymousUser;
-window.showRegistration = showRegistration;
-window.showLogin = showLogin;
-window.showForgotPassword = showForgotPassword;
-window.toggleWelcome = toggleWelcome;
-window.togglePasswordVisibility = togglePasswordVisibility;
-window.startAsAnonymous = startAsAnonymous;
-window.handleRegistration = handleRegistration;
-window.handleLoginStep1 = handleLoginStep1;
-window.handleLoginForm = handleLoginForm;
-window.handleForgotPasswordForm = handleForgotPasswordForm;
-window.handleResetPasswordForm = handleResetPasswordForm;
-window.updateSignupFieldsBasedOnUserType = updateSignupFieldsBasedOnUserType;
-window.checkEmailExists = checkEmailExists;
+// Wrap in try-catch to ensure functions are exposed even if there are errors elsewhere
+try {
+    window.showAnonymousUser = showAnonymousUser;
+    window.showRegistration = showRegistration;
+    window.showLogin = showLogin;
+    window.showForgotPassword = showForgotPassword;
+    window.toggleWelcome = toggleWelcome;
+    window.togglePasswordVisibility = togglePasswordVisibility;
+    window.startAsAnonymous = startAsAnonymous;
+    window.handleRegistration = handleRegistration;
+    window.handleLoginStep1 = handleLoginStep1;
+    window.handleLoginForm = handleLoginForm;
+    window.handleForgotPasswordForm = handleForgotPasswordForm;
+    window.handleResetPasswordForm = handleResetPasswordForm;
+    window.updateSignupFieldsBasedOnUserType = updateSignupFieldsBasedOnUserType;
+    window.checkEmailExists = checkEmailExists;
+    console.log('✅ Functions exposed to window');
+} catch (e) {
+    console.error('❌ Error exposing functions to window:', e);
+    // Fallback: try to expose at least the critical functions
+    if (typeof showLogin === 'function') window.showLogin = showLogin;
+    if (typeof showRegistration === 'function') window.showRegistration = showRegistration;
+    if (typeof showAnonymousUser === 'function') window.showAnonymousUser = showAnonymousUser;
+    if (typeof toggleWelcome === 'function') window.toggleWelcome = toggleWelcome;
+}
 
 // Debug: Verify functions are available (check in console)
 console.log('✅ Auth functions loaded:', {
@@ -791,6 +803,11 @@ console.log('✅ Auth functions loaded:', {
     showForgotPassword: typeof window.showForgotPassword,
     toggleWelcome: typeof window.toggleWelcome
 });
+
+// Immediate verification - check if functions are actually callable
+if (typeof window.showLogin !== 'function') {
+    console.error('❌ CRITICAL: showLogin is not a function! Script may have errors above this line.');
+}
 
 // Initialize on page load
 // CALLED BY: index.html - Automatically executed when DOMContentLoaded event fires

@@ -13,6 +13,28 @@
     <script src="shared_db.js"></script>
     <script src="index.js"></script>
     <script>
+        // Immediate safety check: Verify functions are available right after script loads
+        // This runs synchronously, not waiting for DOMContentLoaded
+        (function() {
+            // Wait a tiny bit for script to execute
+            setTimeout(() => {
+                const criticalFunctions = ['showLogin', 'showRegistration', 'showAnonymousUser', 'toggleWelcome', 'showForgotPassword'];
+                const missing = criticalFunctions.filter(fn => typeof window[fn] !== 'function');
+                if (missing.length > 0) {
+                    console.error('❌ Missing functions after script load:', missing);
+                    console.error('❌ This usually means there is a JavaScript error in index.js before functions are exposed');
+                    // Show error on screen
+                    const errorDiv = document.createElement('div');
+                    errorDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#dc3545;color:white;padding:15px;z-index:99999;font-size:12px;';
+                    errorDiv.textContent = 'ERROR: Functions not loaded. Check console for JavaScript errors.';
+                    document.body.appendChild(errorDiv);
+                } else {
+                    console.log('✅ All critical functions available');
+                }
+            }, 100);
+        })();
+    </script>
+    <script>
         // Device and browser detection for compatibility
         window.deviceInfo = {
             userAgent: navigator.userAgent,
