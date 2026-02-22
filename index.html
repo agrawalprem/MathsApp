@@ -9,20 +9,47 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="shared.css">
     <link rel="stylesheet" href="index.css">
+    <script>
+        // CRITICAL: Define stub functions IMMEDIATELY before loading index.js
+        // This ensures onclick handlers never throw "function not defined" errors
+        // The real functions in index.js will replace these stubs
+        (function() {
+            'use strict';
+            window.showLogin = function() {
+                console.error('showLogin called but index.js not loaded yet');
+                alert('Page is still loading. Please wait a moment and try again.');
+            };
+            window.showRegistration = function() {
+                console.error('showRegistration called but index.js not loaded yet');
+                alert('Page is still loading. Please wait a moment and try again.');
+            };
+            window.showAnonymousUser = function() {
+                console.error('showAnonymousUser called but index.js not loaded yet');
+                alert('Page is still loading. Please wait a moment and try again.');
+            };
+            window.toggleWelcome = function() {
+                console.error('toggleWelcome called but index.js not loaded yet');
+                alert('Page is still loading. Please wait a moment and try again.');
+            };
+            window.showForgotPassword = function() {
+                console.error('showForgotPassword called but index.js not loaded yet');
+                alert('Page is still loading. Please wait a moment and try again.');
+            };
+            console.log('✅ Stub functions defined - buttons will not throw errors');
+        })();
+    </script>
     <script src="shared.js"></script>
     <script src="shared_db.js"></script>
     <script src="index.js"></script>
     <script>
-        // Immediate safety check: Verify functions are available right after script loads
-        // This runs synchronously, not waiting for DOMContentLoaded
+        // Verify functions are available after index.js loads
         (function() {
-            // Wait a tiny bit for script to execute
             setTimeout(() => {
                 const criticalFunctions = ['showLogin', 'showRegistration', 'showAnonymousUser', 'toggleWelcome', 'showForgotPassword'];
                 const missing = criticalFunctions.filter(fn => typeof window[fn] !== 'function');
                 if (missing.length > 0) {
                     console.error('❌ Missing functions after script load:', missing);
-                    console.error('❌ This usually means there is a JavaScript error in index.js before functions are exposed');
+                    console.error('❌ This usually means there is a JavaScript error in index.js');
                     // Show error on screen
                     const errorDiv = document.createElement('div');
                     errorDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#dc3545;color:white;padding:15px;z-index:99999;font-size:12px;';
@@ -31,7 +58,7 @@
                 } else {
                     console.log('✅ All critical functions available');
                 }
-            }, 100);
+            }, 200);
         })();
     </script>
     <script>
