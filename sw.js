@@ -1,8 +1,7 @@
 // Service Worker for Learning Maths in Baby Steps
-// Version 1.0.34 - Add diagnostic logging to track index.js execution and function exposure
 
-const CACHE_NAME = 'maths-app-v1.0.34';
-const STATIC_CACHE_NAME = 'maths-app-static-v1.0.34';
+const CACHE_NAME = 'maths-app-v1';
+const STATIC_CACHE_NAME = 'maths-app-static-v1';
 
 // Files to cache on install
 const STATIC_FILES = [

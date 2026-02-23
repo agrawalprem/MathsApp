@@ -9,60 +9,8 @@
 // - Anonymous user navigation
 // ============================================================================
 
-// CRITICAL: Test if script is executing at all
-window.indexJsExecuting = true;
-if (window.debugErrors) {
-    window.debugErrors.push({message: 'index.js script started executing', filename: 'index.js', lineno: 0});
-    if (window.updateDebugDisplay) window.updateDebugDisplay();
-}
-console.log('✅ index.js: Script started executing');
-
-// CRITICAL: Expose function stubs immediately to prevent "not defined" errors
-// These will be overwritten when functions are actually defined
-try {
-    window.showAnonymousUser = function() { 
-        if (window.debugErrors) {
-            window.debugErrors.push({message: 'showAnonymousUser called but not loaded', filename: 'index.js', lineno: 0});
-            if (window.updateDebugDisplay) window.updateDebugDisplay();
-        }
-        console.error('showAnonymousUser not yet loaded');
-    };
-    window.showRegistration = function() { 
-        if (window.debugErrors) {
-            window.debugErrors.push({message: 'showRegistration called but not loaded', filename: 'index.js', lineno: 0});
-            if (window.updateDebugDisplay) window.updateDebugDisplay();
-        }
-        console.error('showRegistration not yet loaded');
-    };
-    window.showLogin = function() { 
-        if (window.debugErrors) {
-            window.debugErrors.push({message: 'showLogin called but not loaded', filename: 'index.js', lineno: 0});
-            if (window.updateDebugDisplay) window.updateDebugDisplay();
-        }
-        console.error('showLogin not yet loaded');
-    };
-    window.showForgotPassword = function() { 
-        if (window.debugErrors) {
-            window.debugErrors.push({message: 'showForgotPassword called but not loaded', filename: 'index.js', lineno: 0});
-            if (window.updateDebugDisplay) window.updateDebugDisplay();
-        }
-        console.error('showForgotPassword not yet loaded');
-    };
-    window.toggleWelcome = function() { 
-        if (window.debugErrors) {
-            window.debugErrors.push({message: 'toggleWelcome called but not loaded', filename: 'index.js', lineno: 0});
-            if (window.updateDebugDisplay) window.updateDebugDisplay();
-        }
-        console.error('toggleWelcome not yet loaded');
-    };
-    console.log('✅ index.js: Function stubs created');
-} catch (e) {
-    console.error('❌ index.js: Failed to create function stubs:', e);
-}
-
 // CALLED BY: index.html - <button onclick="showAnonymousUser()">Anonymous User</button>
 function showAnonymousUser() {
-    if (window.debugLog) window.debugLog('showAnonymousUser');
     clearAuthContent();
     const contentArea = document.getElementById('authContentArea');
     contentArea.innerHTML = `
@@ -80,7 +28,6 @@ window.showAnonymousUser = showAnonymousUser;
 
 // CALLED BY: index.html - <button onclick="showRegistration()">Registration</button>
 function showRegistration() {
-    if (window.debugLog) window.debugLog('showRegistration');
     clearAuthContent();
     const contentArea = document.getElementById('authContentArea');
     contentArea.style.display = 'block';
@@ -171,11 +118,10 @@ function showRegistration() {
 }
 
 // Store user email for step 2 of login
-var loginUserEmail = null;
-var loginUserProfile = null;
+let loginUserEmail = null;
+let loginUserProfile = null;
 
 function showLogin() {
-    if (window.debugLog) window.debugLog('showLogin');
     clearAuthContent();
     // Reset login state
     loginUserEmail = null;
@@ -219,7 +165,6 @@ window.showLogin = showLogin;
 
 // CALLED BY: index.html - <button onclick="showForgotPassword()">Forgot Password</button>
 function showForgotPassword() {
-    if (window.debugLog) window.debugLog('showForgotPassword');
     clearAuthContent();
     const contentArea = document.getElementById('authContentArea');
     contentArea.style.display = 'block';
@@ -256,7 +201,6 @@ function showForgotPassword() {
 
 // CALLED BY: index.js - showAnonymousUser(), showRegistration(), showLogin(), showForgotPassword() (clears previous content before showing new form)
 function clearAuthContent() {
-    if (window.debugLog) window.debugLog('clearAuthContent');
     const contentArea = document.getElementById('authContentArea');
     contentArea.innerHTML = '';
     contentArea.style.display = 'none';
@@ -270,7 +214,6 @@ function clearAuthContent() {
 
 // CALLED BY: index.html - <button onclick="startAsAnonymous()">Continue as Anonymous</button> (dynamically inserted by showAnonymousUser())
 async function startAsAnonymous() {
-    if (window.debugLog) window.debugLog('startAsAnonymous');
     
     // Clear any existing session before starting as anonymous
     if (supabase && currentUser) {
@@ -290,7 +233,6 @@ async function startAsAnonymous() {
 
 // CALLED BY: index.js - showRegistration() (loads schools into dropdown when registration form is shown)
 async function loadSchoolsIntoDropdown() {
-    if (window.debugLog) window.debugLog('loadSchoolsIntoDropdown');
     const schoolSelect = document.getElementById('regSchoolId');
     if (!schoolSelect) {
         return;
@@ -376,7 +318,6 @@ async function loadSchoolsIntoDropdown() {
 
 // CALLED BY: index.js - showRegistration() (generates and displays next user code)
 async function generateAndDisplayUserCode() {
-    if (window.debugLog) window.debugLog('generateAndDisplayUserCode');
     const userCodeField = document.getElementById('regUserCode');
     if (!userCodeField) return;
     
@@ -419,7 +360,6 @@ async function generateAndDisplayUserCode() {
 
 // CALLED BY: index.js - showRegistration() (adds event listener: document.getElementById('regUserType').addEventListener('change', updateSignupFieldsBasedOnUserType))
 function updateSignupFieldsBasedOnUserType() {
-    if (window.debugLog) window.debugLog('updateSignupFieldsBasedOnUserType');
     const userType = document.getElementById('regUserType')?.value;
     const schoolIdSelect = document.getElementById('regSchoolId');
     const schoolId = schoolIdSelect ? schoolIdSelect.value.trim() : null;
@@ -465,7 +405,6 @@ function updateSignupFieldsBasedOnUserType() {
 
 // CALLED BY: index.js - updateSignupFieldsBasedOnUserType() (generates roll number for online users)
 async function generateRollNumberForOnlineUser() {
-    if (window.debugLog) window.debugLog('generateRollNumberForOnlineUser');
     const rollNumberField = document.getElementById('regRollNumber');
     if (!rollNumberField) return;
     
@@ -509,7 +448,6 @@ async function generateRollNumberForOnlineUser() {
 
 // CALLED BY: index.js - showRegistration() (adds event listener: emailInput.addEventListener('blur', checkEmailExists))
 async function checkEmailExists(event) {
-    if (window.debugLog) window.debugLog('checkEmailExists');
     const emailInput = event.target;
     const email = emailInput.value.trim();
     const errorEl = document.getElementById('regError');
@@ -562,7 +500,6 @@ async function checkEmailExists(event) {
 
 // CALLED BY: index.html - <form onsubmit="handleRegistration(event)"> (dynamically inserted by showRegistration())
 async function handleRegistration(event) {
-    if (window.debugLog) window.debugLog('handleRegistration');
     event.preventDefault();
     const errorEl = document.getElementById('regError');
     const emailInput = document.getElementById('regEmail');
@@ -765,7 +702,6 @@ async function handleRegistration(event) {
 
 // CALLED BY: index.js - showLogin() (Step 1: User Code lookup)
 async function handleLoginStep1(event) {
-    if (window.debugLog) window.debugLog('handleLoginStep1');
     event.preventDefault();
     const errorEl = document.getElementById('loginError');
     errorEl.textContent = '';
@@ -837,7 +773,6 @@ async function handleLoginStep1(event) {
 
 // CALLED BY: index.js - showLogin() (Step 2: Password entry)
 async function handleLoginForm(event) {
-    if (window.debugLog) window.debugLog('handleLoginForm');
     event.preventDefault();
     const errorEl = document.getElementById('loginErrorStep2');
     errorEl.textContent = '';
@@ -880,7 +815,6 @@ async function handleLoginForm(event) {
 
 // CALLED BY: index.html - <form onsubmit="handleForgotPasswordForm(event)"> (dynamically inserted by showForgotPassword())
 async function handleForgotPasswordForm(event) {
-    if (window.debugLog) window.debugLog('handleForgotPasswordForm');
     event.preventDefault();
     const errorEl = document.getElementById('forgotError');
     const successEl = document.getElementById('forgotSuccess');
@@ -905,7 +839,6 @@ async function handleForgotPasswordForm(event) {
 
 // CALLED BY: index.html - <form onsubmit="handleResetPasswordForm(event)"> (dynamically inserted by showForgotPassword())
 async function handleResetPasswordForm(event) {
-    if (window.debugLog) window.debugLog('handleResetPasswordForm');
     event.preventDefault();
     const errorEl = document.getElementById('resetError');
     errorEl.textContent = '';
@@ -944,7 +877,6 @@ async function handleResetPasswordForm(event) {
 
 // CALLED BY: index.html - <button onclick="toggleWelcome()">Welcome</button>
 function toggleWelcome() {
-    if (window.debugLog) window.debugLog('toggleWelcome');
     const welcomeContent = document.getElementById('welcomeContent');
     if (welcomeContent) {
         welcomeContent.classList.toggle('hidden');
@@ -955,7 +887,6 @@ window.toggleWelcome = toggleWelcome;
 
 // CALLED BY: Password toggle buttons (onclick="togglePasswordVisibility(...)")
 function togglePasswordVisibility(inputId, button) {
-    if (window.debugLog) window.debugLog('togglePasswordVisibility', `(${inputId})`);
     const passwordInput = document.getElementById(inputId);
     if (!passwordInput) return;
     
@@ -970,30 +901,19 @@ function togglePasswordVisibility(inputId, button) {
     }
 }
 
-// Expose functions globally - CRITICAL: Do this in try-catch to ensure it always happens
+// Expose functions globally
 // CALLED BY: index.html - All onclick and onsubmit handlers access these via window object
-try {
-    window.showAnonymousUser = showAnonymousUser;
-    window.showRegistration = showRegistration;
-    window.showLogin = showLogin;
-    window.showForgotPassword = showForgotPassword;
-    window.toggleWelcome = toggleWelcome;
-    window.togglePasswordVisibility = togglePasswordVisibility;
-    window.startAsAnonymous = startAsAnonymous;
-    window.handleRegistration = handleRegistration;
-    window.handleLoginStep1 = handleLoginStep1;
-    window.handleLoginForm = handleLoginForm;
-    window.handleForgotPasswordForm = handleForgotPasswordForm;
-    console.log('✅ index.js: All functions exposed to window');
-} catch (e) {
-    console.error('❌ index.js: Failed to expose functions:', e);
-    // Try to expose functions individually as fallback
-    try { if (typeof showAnonymousUser === 'function') window.showAnonymousUser = showAnonymousUser; } catch(e2) {}
-    try { if (typeof showRegistration === 'function') window.showRegistration = showRegistration; } catch(e2) {}
-    try { if (typeof showLogin === 'function') window.showLogin = showLogin; } catch(e2) {}
-    try { if (typeof showForgotPassword === 'function') window.showForgotPassword = showForgotPassword; } catch(e2) {}
-    try { if (typeof toggleWelcome === 'function') window.toggleWelcome = toggleWelcome; } catch(e2) {}
-}
+window.showAnonymousUser = showAnonymousUser;
+window.showRegistration = showRegistration;
+window.showLogin = showLogin;
+window.showForgotPassword = showForgotPassword;
+window.toggleWelcome = toggleWelcome;
+window.togglePasswordVisibility = togglePasswordVisibility;
+window.startAsAnonymous = startAsAnonymous;
+window.handleRegistration = handleRegistration;
+window.handleLoginStep1 = handleLoginStep1;
+window.handleLoginForm = handleLoginForm;
+window.handleForgotPasswordForm = handleForgotPasswordForm;
 window.handleResetPasswordForm = handleResetPasswordForm;
 window.updateSignupFieldsBasedOnUserType = updateSignupFieldsBasedOnUserType;
 window.checkEmailExists = checkEmailExists;
@@ -1001,8 +921,6 @@ window.checkEmailExists = checkEmailExists;
 // Initialize on page load
 // CALLED BY: index.html - Automatically executed when DOMContentLoaded event fires
 window.addEventListener('DOMContentLoaded', function() {
-    try {
-        if (window.debugLog) window.debugLog('DOMContentLoaded(index.js)');
     let type = null;
     let accessToken = null;
     
@@ -1037,30 +955,16 @@ window.addEventListener('DOMContentLoaded', function() {
     }
     
     // CALLED BY: index.js - DOMContentLoaded listener (internal function to retry Supabase initialization)
-    function tryInitSupabase(attempts) {
-        attempts = attempts || 0; // ES5 compatible - no default parameters
-        if (window.debugLog) window.debugLog('tryInitSupabase', '(attempts=' + attempts + ')');
+    function tryInitSupabase(attempts = 0) {
         if (window.supabase && window.supabase.createClient) {
             initSupabase(); // CALLED BY: index.js - tryInitSupabase() (calls shared_db.js function)
         } else if (attempts < 5) {
-            setTimeout(function() { tryInitSupabase(attempts + 1); }, 1000);
+            setTimeout(() => { tryInitSupabase(attempts + 1); }, 1000);
         } else {
-            console.error('❌ Supabase library failed to load');
+            console.error('Supabase library failed to load');
         }
     }
     
     // Initialize Supabase normally - it will process recovery token, but we'll handle it specially
     tryInitSupabase();
-    } catch (e) {
-        console.error('❌ index.js: DOMContentLoaded handler error:', e);
-        // Log to debug display if available
-        if (window.debugErrors) {
-            window.debugErrors.push({
-                message: 'DOMContentLoaded error: ' + (e.message || e),
-                filename: 'index.js',
-                lineno: 0
-            });
-            if (window.updateDebugDisplay) window.updateDebugDisplay();
-        }
-    }
 });
