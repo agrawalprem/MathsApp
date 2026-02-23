@@ -1,8 +1,8 @@
 // Service Worker for Learning Maths in Baby Steps
-// Version 1.0.27 - Registration form updates: User Code display, Date of Birth label, Online students support
+// Version 1.0.28 - Fix: Network-first strategy for HTML/JS/CSS to prevent serving stale cached files
 
-const CACHE_NAME = 'maths-app-v1.0.27';
-const STATIC_CACHE_NAME = 'maths-app-static-v1.0.27';
+const CACHE_NAME = 'maths-app-v1.0.28';
+const STATIC_CACHE_NAME = 'maths-app-static-v1.0.28';
 
 // Files to cache on install
 const STATIC_FILES = [
@@ -69,7 +69,7 @@ self.addEventListener('activate', (event) => {
   return self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - network first for HTML/JS/CSS to ensure updates, cache first for other assets
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -82,15 +82,14 @@ self.addEventListener('fetch', (event) => {
   }
   
   // For same-origin requests (our static files)
-  event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      if (cachedResponse) {
-        // Return cached version
-        return cachedResponse;
-      }
-      
-      // Fetch from network
-      return fetch(request).then((response) => {
+  const isHTML = request.headers.get('accept').includes('text/html');
+  const isJS = url.pathname.endsWith('.js');
+  const isCSS = url.pathname.endsWith('.css');
+  
+  // Network-first strategy for HTML, JS, and CSS to ensure immediate updates
+  if (isHTML || isJS || isCSS) {
+    event.respondWith(
+      fetch(request).then((response) => {
         // Don't cache non-successful responses
         if (!response || response.status !== 200 || response.type !== 'basic') {
           return response;
@@ -99,18 +98,55 @@ self.addEventListener('fetch', (event) => {
         // Clone the response (stream can only be consumed once)
         const responseToCache = response.clone();
         
-        // Cache the response for future use
+        // Cache the response in CURRENT cache version only
         caches.open(STATIC_CACHE_NAME).then((cache) => {
           cache.put(request, responseToCache);
         });
         
         return response;
       }).catch(() => {
-        // If network fails and no cache, return offline page if available
-        if (request.headers.get('accept').includes('text/html')) {
-          return caches.match('/index.html');
-        }
-      });
-    })
-  );
+        // Network failed - try to serve from CURRENT cache only
+        return caches.open(STATIC_CACHE_NAME).then((cache) => {
+          return cache.match(request).then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            // If no cache and it's HTML, return index.html
+            if (isHTML) {
+              return cache.match('/index.html');
+            }
+            throw new Error('No cache available');
+          });
+        });
+      })
+    );
+  } else {
+    // Cache-first strategy for other assets (images, fonts, etc.)
+    event.respondWith(
+      caches.open(STATIC_CACHE_NAME).then((cache) => {
+        return cache.match(request).then((cachedResponse) => {
+          if (cachedResponse) {
+            // Return cached version from CURRENT cache
+            return cachedResponse;
+          }
+          
+          // Fetch from network
+          return fetch(request).then((response) => {
+            // Don't cache non-successful responses
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+            
+            // Clone the response (stream can only be consumed once)
+            const responseToCache = response.clone();
+            
+            // Cache the response in CURRENT cache version only
+            cache.put(request, responseToCache);
+            
+            return response;
+          });
+        });
+      })
+    );
+  }
 });
