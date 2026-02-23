@@ -13,7 +13,7 @@
     <script>
         // Initialize IMMEDIATELY - before any other scripts
         window.debugErrors = [];
-        window.swVersion = 'v1.0.30 (Checking...)';
+        window.swVersion = 'v1.0.31 (Checking...)';
         
         // Create debug display container as early as possible
         (function() {
@@ -137,7 +137,16 @@
     
     <script src="shared.js"></script>
     <script src="shared_db.js"></script>
-    <script src="index.js"></script>
+    <script src="index.js" onerror="window.indexJsLoadError = 'Failed to load index.js'; if(window.updateDebugDisplay) window.updateDebugDisplay();"></script>
+    <script>
+        // Check if index.js loaded after a delay
+        setTimeout(function() {
+            if (typeof window.showLogin !== 'function') {
+                window.indexJsLoadError = window.indexJsLoadError || 'index.js loaded but functions not defined';
+                if (window.updateDebugDisplay) window.updateDebugDisplay();
+            }
+        }, 2000);
+    </script>
     <script>
         // Register Service Worker (version tracking in debug display below)
         if ('serviceWorker' in navigator) {
@@ -147,17 +156,17 @@
                         console.log('Service Worker registered:', registration.scope);
                         // Update version display
                         if (registration.active) {
-                            window.swVersion = 'v1.0.30 (Active)';
+                            window.swVersion = 'v1.0.31 (Active)';
                         } else if (registration.installing) {
-                            window.swVersion = 'v1.0.30 (Installing)';
+                            window.swVersion = 'v1.0.31 (Installing)';
                         } else if (registration.waiting) {
-                            window.swVersion = 'v1.0.30 (Waiting)';
+                            window.swVersion = 'v1.0.31 (Waiting)';
                         }
                         if (window.updateDebugDisplay) window.updateDebugDisplay();
                         // Check for updates
                         registration.addEventListener('updatefound', () => {
                             console.log('Service Worker update found');
-                            window.swVersion = 'v1.0.30 (Updating)';
+                            window.swVersion = 'v1.0.31 (Updating)';
                             if (window.updateDebugDisplay) window.updateDebugDisplay();
                         });
                     })
@@ -318,7 +327,7 @@
                 const errors = window.debugErrors || [];
                 const errorCount = errors.length;
                 
-                var html = '<div style="margin-bottom:6px;padding:4px;background:rgba(255,255,255,0.1);border-radius:3px;"><strong>SW Version:</strong> ' + (window.swVersion || 'v1.0.30 (Unknown)') + '</div>';
+                var html = '<div style="margin-bottom:6px;padding:4px;background:rgba(255,255,255,0.1);border-radius:3px;"><strong>SW Version:</strong> ' + (window.swVersion || 'v1.0.31 (Unknown)') + '</div>';
                 html += '<div style="margin-bottom:6px;"><strong>Errors:</strong> <span style="color:' + (errorCount > 0 ? '#ff6666' : '#66ff66') + '">' + errorCount + '</span></div>';
                 
                 if (errorCount > 0) {
@@ -341,8 +350,26 @@
                 if (missing.length > 0) {
                     html += '<div style="margin-top:8px;color:#ffaa00;font-weight:bold;">⚠️ Missing Functions:</div>';
                     html += '<div style="margin-left:10px;color:#ffaa00;font-size:10px;">' + missing.join(', ') + '</div>';
+                    if (window.indexJsLoadError) {
+                        html += '<div style="margin-top:5px;color:#ff6666;font-size:10px;font-weight:bold;">❌ index.js Error: ' + window.indexJsLoadError + '</div>';
+                    } else {
+                        html += '<div style="margin-top:5px;color:#ffaa00;font-size:10px;">Checking if index.js loaded...</div>';
+                    }
                 } else {
                     html += '<div style="margin-top:8px;color:#66ff66;">✅ All functions loaded</div>';
+                }
+                
+                // Check if scripts are loaded
+                var scripts = document.getElementsByTagName('script');
+                var indexJsFound = false;
+                for (var k = 0; k < scripts.length; k++) {
+                    if (scripts[k].src && scripts[k].src.includes('index.js')) {
+                        indexJsFound = true;
+                        break;
+                    }
+                }
+                if (!indexJsFound && missing.length > 0) {
+                    html += '<div style="margin-top:5px;color:#ff6666;font-size:10px;">⚠️ index.js script tag not found in DOM</div>';
                 }
                 
                 content.innerHTML = html;

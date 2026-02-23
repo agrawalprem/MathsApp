@@ -1,8 +1,8 @@
 // Service Worker for Learning Maths in Baby Steps
-// Version 1.0.30 - Fix: Debug display created in head section to catch early errors
+// Version 1.0.31 - Add index.js load error detection in debug display
 
-const CACHE_NAME = 'maths-app-v1.0.30';
-const STATIC_CACHE_NAME = 'maths-app-static-v1.0.30';
+const CACHE_NAME = 'maths-app-v1.0.31';
+const STATIC_CACHE_NAME = 'maths-app-static-v1.0.31';
 
 // Files to cache on install
 const STATIC_FILES = [
