@@ -13,7 +13,7 @@
     <script>
         // Initialize IMMEDIATELY - before any other scripts
         window.debugErrors = [];
-        window.swVersion = 'v1.0.32 (Checking...)';
+        window.swVersion = 'v1.0.33 (Checking...)';
         
         // Create debug display container as early as possible
         (function() {
@@ -156,17 +156,17 @@
                         console.log('Service Worker registered:', registration.scope);
                         // Update version display
                         if (registration.active) {
-                            window.swVersion = 'v1.0.32 (Active)';
+                            window.swVersion = 'v1.0.33 (Active)';
                         } else if (registration.installing) {
-                            window.swVersion = 'v1.0.32 (Installing)';
+                            window.swVersion = 'v1.0.33 (Installing)';
                         } else if (registration.waiting) {
-                            window.swVersion = 'v1.0.32 (Waiting)';
+                            window.swVersion = 'v1.0.33 (Waiting)';
                         }
                         if (window.updateDebugDisplay) window.updateDebugDisplay();
                         // Check for updates
-                        registration.addEventListener('updatefound', () => {
+                        registration.addEventListener('updatefound', function() {
                             console.log('Service Worker update found');
-                            window.swVersion = 'v1.0.32 (Updating)';
+                            window.swVersion = 'v1.0.33 (Updating)';
                             if (window.updateDebugDisplay) window.updateDebugDisplay();
                         });
                     })
@@ -327,7 +327,7 @@
                 const errors = window.debugErrors || [];
                 const errorCount = errors.length;
                 
-                var html = '<div style="margin-bottom:6px;padding:4px;background:rgba(255,255,255,0.1);border-radius:3px;"><strong>SW Version:</strong> ' + (window.swVersion || 'v1.0.32 (Unknown)') + '</div>';
+                var html = '<div style="margin-bottom:6px;padding:4px;background:rgba(255,255,255,0.1);border-radius:3px;"><strong>SW Version:</strong> ' + (window.swVersion || 'v1.0.33 (Unknown)') + '</div>';
                 html += '<div style="margin-bottom:6px;"><strong>Errors:</strong> <span style="color:' + (errorCount > 0 ? '#ff6666' : '#66ff66') + '">' + errorCount + '</span></div>';
                 
                 if (errorCount > 0) {

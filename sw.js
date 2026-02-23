@@ -1,8 +1,8 @@
 // Service Worker for Learning Maths in Baby Steps
-// Version 1.0.32 - Fix: Add try-catch around function exposure in index.js
+// Version 1.0.33 - Fix: Add function stubs at start of index.js, convert arrow functions to ES5, add null checks
 
-const CACHE_NAME = 'maths-app-v1.0.32';
-const STATIC_CACHE_NAME = 'maths-app-static-v1.0.32';
+const CACHE_NAME = 'maths-app-v1.0.33';
+const STATIC_CACHE_NAME = 'maths-app-static-v1.0.33';
 
 // Files to cache on install
 const STATIC_FILES = [

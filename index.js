@@ -9,6 +9,14 @@
 // - Anonymous user navigation
 // ============================================================================
 
+// CRITICAL: Expose function stubs immediately to prevent "not defined" errors
+// These will be overwritten when functions are actually defined
+window.showAnonymousUser = function() { console.error('showAnonymousUser not yet loaded'); };
+window.showRegistration = function() { console.error('showRegistration not yet loaded'); };
+window.showLogin = function() { console.error('showLogin not yet loaded'); };
+window.showForgotPassword = function() { console.error('showForgotPassword not yet loaded'); };
+window.toggleWelcome = function() { console.error('toggleWelcome not yet loaded'); };
+
 // CALLED BY: index.html - <button onclick="showAnonymousUser()">Anonymous User</button>
 function showAnonymousUser() {
     if (window.debugLog) window.debugLog('showAnonymousUser');
@@ -85,14 +93,14 @@ function showRegistration() {
     if (emailInput) {
         emailInput.addEventListener('blur', checkEmailExists);
             // Clear error when user starts typing
-            emailInput.addEventListener('input', () => {
-                const errorEl = document.getElementById('regError');
-                const emailErrorEl = document.getElementById('regEmailError');
-                if (errorEl && errorEl.textContent.includes('This email id is used by')) {
+            emailInput.addEventListener('input', function() {
+                var errorEl = document.getElementById('regError');
+                var emailErrorEl = document.getElementById('regEmailError');
+                if (errorEl && errorEl.textContent && errorEl.textContent.indexOf('This email id is used by') !== -1) {
                     errorEl.textContent = '';
                     errorEl.style.color = '';
                 }
-                if (emailErrorEl && emailErrorEl.textContent.includes('This email id is used by')) {
+                if (emailErrorEl && emailErrorEl.textContent && emailErrorEl.textContent.indexOf('This email id is used by') !== -1) {
                     emailErrorEl.textContent = '';
                     emailErrorEl.style.display = 'none';
                 }
@@ -101,22 +109,27 @@ function showRegistration() {
             });
     }
     
-    document.getElementById('regUserType').addEventListener('change', updateSignupFieldsBasedOnUserType);
+    var regUserTypeEl = document.getElementById('regUserType');
+    if (regUserTypeEl) {
+        regUserTypeEl.addEventListener('change', updateSignupFieldsBasedOnUserType);
+    }
     // Load schools into dropdown
-    loadSchoolsIntoDropdown().then(() => {
+    loadSchoolsIntoDropdown().then(function() {
         // After schools load, add listener for school selection changes
-        const schoolSelect = document.getElementById('regSchoolId');
+        var schoolSelect = document.getElementById('regSchoolId');
         if (schoolSelect) {
             schoolSelect.addEventListener('change', updateSignupFieldsBasedOnUserType);
         }
+    }).catch(function(err) {
+        console.error('Error loading schools:', err);
     });
     // Generate and display user code
     generateAndDisplayUserCode();
 }
 
 // Store user email for step 2 of login
-let loginUserEmail = null;
-let loginUserProfile = null;
+var loginUserEmail = null;
+var loginUserProfile = null;
 
 function showLogin() {
     if (window.debugLog) window.debugLog('showLogin');
