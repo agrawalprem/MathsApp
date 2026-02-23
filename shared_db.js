@@ -165,7 +165,26 @@ async function initSupabase() {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-            console.error('❌ Error getting session:', sessionError);
+            // Handle invalid refresh token error gracefully
+            if (sessionError.message && sessionError.message.includes('Refresh Token')) {
+                console.warn('⚠️ Invalid refresh token detected - clearing stale session');
+                // Clear invalid tokens from localStorage
+                try {
+                    const storageKey = `sb-${SUPABASE_URL.split('//')[1].split('.')[0]}-auth-token`;
+                    localStorage.removeItem(storageKey);
+                    // Also try the standard Supabase storage key format
+                    Object.keys(localStorage).forEach(key => {
+                        if (key.includes('supabase.auth.token')) {
+                            localStorage.removeItem(key);
+                        }
+                    });
+                    console.log('✅ Cleared invalid tokens from localStorage');
+                } catch (e) {
+                    console.warn('⚠️ Could not clear localStorage:', e);
+                }
+            } else {
+                console.error('❌ Error getting session:', sessionError);
+            }
         }
         
         if (session) {
