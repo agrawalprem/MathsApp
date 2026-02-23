@@ -9,13 +9,56 @@
 // - Anonymous user navigation
 // ============================================================================
 
+// CRITICAL: Test if script is executing at all
+window.indexJsExecuting = true;
+if (window.debugErrors) {
+    window.debugErrors.push({message: 'index.js script started executing', filename: 'index.js', lineno: 0});
+    if (window.updateDebugDisplay) window.updateDebugDisplay();
+}
+console.log('✅ index.js: Script started executing');
+
 // CRITICAL: Expose function stubs immediately to prevent "not defined" errors
 // These will be overwritten when functions are actually defined
-window.showAnonymousUser = function() { console.error('showAnonymousUser not yet loaded'); };
-window.showRegistration = function() { console.error('showRegistration not yet loaded'); };
-window.showLogin = function() { console.error('showLogin not yet loaded'); };
-window.showForgotPassword = function() { console.error('showForgotPassword not yet loaded'); };
-window.toggleWelcome = function() { console.error('toggleWelcome not yet loaded'); };
+try {
+    window.showAnonymousUser = function() { 
+        if (window.debugErrors) {
+            window.debugErrors.push({message: 'showAnonymousUser called but not loaded', filename: 'index.js', lineno: 0});
+            if (window.updateDebugDisplay) window.updateDebugDisplay();
+        }
+        console.error('showAnonymousUser not yet loaded');
+    };
+    window.showRegistration = function() { 
+        if (window.debugErrors) {
+            window.debugErrors.push({message: 'showRegistration called but not loaded', filename: 'index.js', lineno: 0});
+            if (window.updateDebugDisplay) window.updateDebugDisplay();
+        }
+        console.error('showRegistration not yet loaded');
+    };
+    window.showLogin = function() { 
+        if (window.debugErrors) {
+            window.debugErrors.push({message: 'showLogin called but not loaded', filename: 'index.js', lineno: 0});
+            if (window.updateDebugDisplay) window.updateDebugDisplay();
+        }
+        console.error('showLogin not yet loaded');
+    };
+    window.showForgotPassword = function() { 
+        if (window.debugErrors) {
+            window.debugErrors.push({message: 'showForgotPassword called but not loaded', filename: 'index.js', lineno: 0});
+            if (window.updateDebugDisplay) window.updateDebugDisplay();
+        }
+        console.error('showForgotPassword not yet loaded');
+    };
+    window.toggleWelcome = function() { 
+        if (window.debugErrors) {
+            window.debugErrors.push({message: 'toggleWelcome called but not loaded', filename: 'index.js', lineno: 0});
+            if (window.updateDebugDisplay) window.updateDebugDisplay();
+        }
+        console.error('toggleWelcome not yet loaded');
+    };
+    console.log('✅ index.js: Function stubs created');
+} catch (e) {
+    console.error('❌ index.js: Failed to create function stubs:', e);
+}
 
 // CALLED BY: index.html - <button onclick="showAnonymousUser()">Anonymous User</button>
 function showAnonymousUser() {

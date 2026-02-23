@@ -13,7 +13,7 @@
     <script>
         // Initialize IMMEDIATELY - before any other scripts
         window.debugErrors = [];
-        window.swVersion = 'v1.0.33 (Checking...)';
+        window.swVersion = 'v1.0.34 (Checking...)';
         
         // Create debug display container as early as possible
         (function() {
@@ -156,17 +156,17 @@
                         console.log('Service Worker registered:', registration.scope);
                         // Update version display
                         if (registration.active) {
-                            window.swVersion = 'v1.0.33 (Active)';
+                            window.swVersion = 'v1.0.34 (Active)';
                         } else if (registration.installing) {
-                            window.swVersion = 'v1.0.33 (Installing)';
+                            window.swVersion = 'v1.0.34 (Installing)';
                         } else if (registration.waiting) {
-                            window.swVersion = 'v1.0.33 (Waiting)';
+                            window.swVersion = 'v1.0.34 (Waiting)';
                         }
                         if (window.updateDebugDisplay) window.updateDebugDisplay();
                         // Check for updates
                         registration.addEventListener('updatefound', function() {
                             console.log('Service Worker update found');
-                            window.swVersion = 'v1.0.33 (Updating)';
+                            window.swVersion = 'v1.0.34 (Updating)';
                             if (window.updateDebugDisplay) window.updateDebugDisplay();
                         });
                     })
@@ -327,7 +327,17 @@
                 const errors = window.debugErrors || [];
                 const errorCount = errors.length;
                 
-                var html = '<div style="margin-bottom:6px;padding:4px;background:rgba(255,255,255,0.1);border-radius:3px;"><strong>SW Version:</strong> ' + (window.swVersion || 'v1.0.33 (Unknown)') + '</div>';
+                var html = '<div style="margin-bottom:6px;padding:4px;background:rgba(255,255,255,0.1);border-radius:3px;"><strong>SW Version:</strong> ' + (window.swVersion || 'v1.0.34 (Unknown)') + '</div>';
+                if (window.indexJsExecuting) {
+                    html += '<div style="margin-bottom:6px;color:#66ff66;">✅ index.js executing</div>';
+                } else {
+                    html += '<div style="margin-bottom:6px;color:#ff6666;">❌ index.js NOT executing</div>';
+                }
+                if (window.indexJsFunctionsExposed === true) {
+                    html += '<div style="margin-bottom:6px;color:#66ff66;">✅ Functions exposed</div>';
+                } else if (window.indexJsFunctionsExposed === false) {
+                    html += '<div style="margin-bottom:6px;color:#ff6666;">❌ Functions exposure failed</div>';
+                }
                 html += '<div style="margin-bottom:6px;"><strong>Errors:</strong> <span style="color:' + (errorCount > 0 ? '#ff6666' : '#66ff66') + '">' + errorCount + '</span></div>';
                 
                 if (errorCount > 0) {

@@ -1,8 +1,8 @@
 // Service Worker for Learning Maths in Baby Steps
-// Version 1.0.33 - Fix: Add function stubs at start of index.js, convert arrow functions to ES5, add null checks
+// Version 1.0.34 - Add diagnostic logging to track index.js execution and function exposure
 
-const CACHE_NAME = 'maths-app-v1.0.33';
-const STATIC_CACHE_NAME = 'maths-app-static-v1.0.33';
+const CACHE_NAME = 'maths-app-v1.0.34';
+const STATIC_CACHE_NAME = 'maths-app-static-v1.0.34';
 
 // Files to cache on install
 const STATIC_FILES = [
