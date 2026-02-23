@@ -914,27 +914,39 @@ function togglePasswordVisibility(inputId, button) {
     }
 }
 
-// Expose functions globally
+// Expose functions globally - CRITICAL: Do this in try-catch to ensure it always happens
 // CALLED BY: index.html - All onclick and onsubmit handlers access these via window object
-window.showAnonymousUser = showAnonymousUser;
-window.showRegistration = showRegistration;
-window.showLogin = showLogin;
-window.showForgotPassword = showForgotPassword;
-window.toggleWelcome = toggleWelcome;
-window.togglePasswordVisibility = togglePasswordVisibility;
-window.startAsAnonymous = startAsAnonymous;
-window.handleRegistration = handleRegistration;
-window.handleLoginStep1 = handleLoginStep1;
-window.handleLoginForm = handleLoginForm;
-window.handleForgotPasswordForm = handleForgotPasswordForm;
+try {
+    window.showAnonymousUser = showAnonymousUser;
+    window.showRegistration = showRegistration;
+    window.showLogin = showLogin;
+    window.showForgotPassword = showForgotPassword;
+    window.toggleWelcome = toggleWelcome;
+    window.togglePasswordVisibility = togglePasswordVisibility;
+    window.startAsAnonymous = startAsAnonymous;
+    window.handleRegistration = handleRegistration;
+    window.handleLoginStep1 = handleLoginStep1;
+    window.handleLoginForm = handleLoginForm;
+    window.handleForgotPasswordForm = handleForgotPasswordForm;
+    console.log('✅ index.js: All functions exposed to window');
+} catch (e) {
+    console.error('❌ index.js: Failed to expose functions:', e);
+    // Try to expose functions individually as fallback
+    try { if (typeof showAnonymousUser === 'function') window.showAnonymousUser = showAnonymousUser; } catch(e2) {}
+    try { if (typeof showRegistration === 'function') window.showRegistration = showRegistration; } catch(e2) {}
+    try { if (typeof showLogin === 'function') window.showLogin = showLogin; } catch(e2) {}
+    try { if (typeof showForgotPassword === 'function') window.showForgotPassword = showForgotPassword; } catch(e2) {}
+    try { if (typeof toggleWelcome === 'function') window.toggleWelcome = toggleWelcome; } catch(e2) {}
+}
 window.handleResetPasswordForm = handleResetPasswordForm;
 window.updateSignupFieldsBasedOnUserType = updateSignupFieldsBasedOnUserType;
 window.checkEmailExists = checkEmailExists;
 
 // Initialize on page load
 // CALLED BY: index.html - Automatically executed when DOMContentLoaded event fires
-window.addEventListener('DOMContentLoaded', () => {
-    if (window.debugLog) window.debugLog('DOMContentLoaded(index.js)');
+window.addEventListener('DOMContentLoaded', function() {
+    try {
+        if (window.debugLog) window.debugLog('DOMContentLoaded(index.js)');
     let type = null;
     let accessToken = null;
     
@@ -969,12 +981,13 @@ window.addEventListener('DOMContentLoaded', () => {
     }
     
     // CALLED BY: index.js - DOMContentLoaded listener (internal function to retry Supabase initialization)
-    function tryInitSupabase(attempts = 0) {
-        if (window.debugLog) window.debugLog('tryInitSupabase', `(attempts=${attempts})`);
+    function tryInitSupabase(attempts) {
+        attempts = attempts || 0; // ES5 compatible - no default parameters
+        if (window.debugLog) window.debugLog('tryInitSupabase', '(attempts=' + attempts + ')');
         if (window.supabase && window.supabase.createClient) {
             initSupabase(); // CALLED BY: index.js - tryInitSupabase() (calls shared_db.js function)
         } else if (attempts < 5) {
-            setTimeout(() => tryInitSupabase(attempts + 1), 1000);
+            setTimeout(function() { tryInitSupabase(attempts + 1); }, 1000);
         } else {
             console.error('❌ Supabase library failed to load');
         }
@@ -982,4 +995,16 @@ window.addEventListener('DOMContentLoaded', () => {
     
     // Initialize Supabase normally - it will process recovery token, but we'll handle it specially
     tryInitSupabase();
+    } catch (e) {
+        console.error('❌ index.js: DOMContentLoaded handler error:', e);
+        // Log to debug display if available
+        if (window.debugErrors) {
+            window.debugErrors.push({
+                message: 'DOMContentLoaded error: ' + (e.message || e),
+                filename: 'index.js',
+                lineno: 0
+            });
+            if (window.updateDebugDisplay) window.updateDebugDisplay();
+        }
+    }
 });

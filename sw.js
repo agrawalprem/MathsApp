@@ -1,8 +1,8 @@
 // Service Worker for Learning Maths in Baby Steps
-// Version 1.0.31 - Add index.js load error detection in debug display
+// Version 1.0.32 - Fix: Add try-catch around function exposure in index.js
 
-const CACHE_NAME = 'maths-app-v1.0.31';
-const STATIC_CACHE_NAME = 'maths-app-static-v1.0.31';
+const CACHE_NAME = 'maths-app-v1.0.32';
+const STATIC_CACHE_NAME = 'maths-app-static-v1.0.32';
 
 // Files to cache on install
 const STATIC_FILES = [
