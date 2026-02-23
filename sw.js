@@ -1,7 +1,7 @@
 // Service Worker for Learning Maths in Baby Steps
 
-const CACHE_NAME = 'maths-app-v1';
-const STATIC_CACHE_NAME = 'maths-app-static-v1';
+const CACHE_NAME = 'maths-app-v2';
+const STATIC_CACHE_NAME = 'maths-app-static-v2';
 
 // Files to cache on install
 const STATIC_FILES = [
@@ -84,9 +84,11 @@ self.addEventListener('fetch', (event) => {
   const isHTML = request.headers.get('accept').includes('text/html');
   const isJS = url.pathname.endsWith('.js');
   const isCSS = url.pathname.endsWith('.css');
+  const isManifest = url.pathname.endsWith('/manifest.json') || url.pathname.endsWith('manifest.json');
   
-  // Network-first strategy for HTML, JS, and CSS to ensure immediate updates
-  if (isHTML || isJS || isCSS) {
+  // Network-first strategy for HTML, JS, CSS, and manifest.json to ensure immediate updates
+  // manifest.json must be fresh for PWA installability checks
+  if (isHTML || isJS || isCSS || isManifest) {
     event.respondWith(
       fetch(request).then((response) => {
         // Don't cache non-successful responses

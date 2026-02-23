@@ -66,12 +66,12 @@ function showRegistration() {
                 <input type="text" id="regSection" placeholder="Section" value="A" pattern="[A-Z]" minlength="1" maxlength="1" required>
                 <input type="number" id="regRollNumber" placeholder="Roll Number" min="1" max="99">
                 <div class="password-input-wrapper">
-                    <input type="password" id="regPassword" placeholder="Password" minlength="6" required>
-                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('regPassword', this)" aria-label="Show password">👁️</button>
+                    <input type="text" id="regPassword" placeholder="Password" minlength="6" required>
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('regPassword', this)" aria-label="Hide password">🙈</button>
                 </div>
                 <div class="password-input-wrapper">
-                    <input type="password" id="regPasswordConfirm" placeholder="Confirm Password" minlength="6" required>
-                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('regPasswordConfirm', this)" aria-label="Show password">👁️</button>
+                    <input type="text" id="regPasswordConfirm" placeholder="Confirm Password" minlength="6" required>
+                    <button type="button" class="password-toggle" onclick="togglePasswordVisibility('regPasswordConfirm', this)" aria-label="Hide password">🙈</button>
                 </div>
                 <button type="submit" class="btn">Register</button>
             </form>
@@ -149,8 +149,8 @@ function showLogin() {
                 </div>
                 <form id="loginFormStep2" class="auth-form" onsubmit="handleLoginForm(event)">
                     <div class="password-input-wrapper">
-                        <input type="password" id="loginPassword" placeholder="Password" required>
-                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('loginPassword', this)" aria-label="Show password">👁️</button>
+                        <input type="text" id="loginPassword" placeholder="Password" required>
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('loginPassword', this)" aria-label="Hide password">🙈</button>
                     </div>
                     <button type="submit" class="btn">Log In</button>
                     <button type="button" class="btn" style="background: #6c757d; margin-top: 10px;" onclick="showLogin()">Back</button>
@@ -184,12 +184,12 @@ function showForgotPassword() {
                 <p style="margin-bottom: 20px; color: #666;">Enter your new password.</p>
                 <form id="resetPasswordForm" class="auth-form" onsubmit="handleResetPasswordForm(event)">
                     <div class="password-input-wrapper">
-                        <input type="password" id="resetNewPassword" placeholder="New Password" minlength="6" required>
-                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('resetNewPassword', this)" aria-label="Show password">👁️</button>
+                        <input type="text" id="resetNewPassword" placeholder="New Password" minlength="6" required>
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('resetNewPassword', this)" aria-label="Hide password">🙈</button>
                     </div>
                     <div class="password-input-wrapper">
-                        <input type="password" id="resetConfirmPassword" placeholder="Confirm New Password" minlength="6" required>
-                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('resetConfirmPassword', this)" aria-label="Show password">👁️</button>
+                        <input type="text" id="resetConfirmPassword" placeholder="Confirm New Password" minlength="6" required>
+                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('resetConfirmPassword', this)" aria-label="Hide password">🙈</button>
                     </div>
                     <button type="submit" class="btn">Update Password</button>
                 </form>
@@ -224,6 +224,26 @@ async function startAsAnonymous() {
                 await window.clearActiveSession();
             }
         } catch (error) {
+            // Continue anyway - navigate to dashboard
+        }
+    }
+    
+    // Sign in anonymously to create a Supabase auth user with is_anonymous = true
+    // This allows anonymous users to save scores and see variant statuses
+    if (supabase) {
+        try {
+            const { data, error } = await supabase.auth.signInAnonymously();
+            if (error) {
+                console.error('Error signing in anonymously:', error);
+                // Continue anyway - navigate to dashboard without auth
+            } else {
+                console.log('✅ Anonymous user signed in:', data.user?.id);
+                // Set currentUser immediately (auth state change listener will also fire)
+                currentUser = data.user;
+                // Note: currentUserProfile will be null for anonymous users (no entry in user_profiles)
+            }
+        } catch (error) {
+            console.error('Error signing in anonymously:', error);
             // Continue anyway - navigate to dashboard
         }
     }

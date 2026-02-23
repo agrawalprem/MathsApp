@@ -28,8 +28,16 @@ function updateUserDisplay(profile) {
             userRollDisplay.textContent = `Roll Number: ${profile.roll_number || 'N/A'}`;
         }
     } else if (currentUser) {
+        // Anonymous users have currentUser but no profile
+        // Check if user is anonymous (no email, or is_anonymous flag if available)
+        const isAnonymous = !currentUser.email || (currentUser.is_anonymous === true);
+        
         if (userNameDisplay) {
-            userNameDisplay.textContent = `Name: ${currentUser.email || 'N/A'}`;
+            if (isAnonymous) {
+                userNameDisplay.textContent = 'Name: Anonymous User';
+            } else {
+                userNameDisplay.textContent = `Name: ${currentUser.email || 'N/A'}`;
+            }
         }
         if (userClassDisplay) {
             userClassDisplay.textContent = `Class: N/A`;
@@ -111,6 +119,16 @@ async function updateAuthUI(skipPageSwitch = false) {
         
         updateStudentDashboardHeader();
     } else {
+        // No currentUser - redirect to welcome page
+        // This ensures we always have a currentUser after the welcome page
+        const isOnStudentDashboard = window.location.pathname.includes('student-dashboard.html');
+        if (isOnStudentDashboard) {
+            console.log('⚠️ No currentUser on student-dashboard.html - redirecting to welcome page');
+            window.location.href = 'index.html';
+            return;
+        }
+        
+        // On other pages (index.html, etc.) - clear everything
         currentUserProfile = null;
         
         // Hide Teacher Dashboard button when logged out
