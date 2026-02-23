@@ -1,8 +1,8 @@
 // Service Worker for Learning Maths in Baby Steps
-// Version 1.0.26 - Mobile fix: functions exposed immediately after definition
+// Version 1.0.27 - Registration form updates: User Code display, Date of Birth label, Online students support
 
-const CACHE_NAME = 'maths-app-v1.0.26';
-const STATIC_CACHE_NAME = 'maths-app-static-v1.0.26';
+const CACHE_NAME = 'maths-app-v1.0.27';
+const STATIC_CACHE_NAME = 'maths-app-static-v1.0.27';
 
 // Files to cache on install
 const STATIC_FILES = [

@@ -35,15 +35,22 @@ function showRegistration() {
     contentArea.style.display = 'block';
     contentArea.innerHTML = `
         <div class="auth-form-container">
-            <h3>Registration</h3>
+            <h3>Registration for Online Students</h3>
+            <p style="font-size: 0.9em; color: #666; margin-bottom: 15px;">(School students registration will be done in batch upload)</p>
             <form id="registrationForm" class="auth-form" onsubmit="handleRegistration(event)">
                 <p class="registration-info">Students, whose school is not registered, may join as Online Students. To get your Class, Section and Roll Number, please contact Prem Agrawal at agrawal.prem@gmail.com, or +91 98228 47682 (WhatsApp).</p>
                 <div>
                     <input type="email" id="regEmail" placeholder="Email" required>
                     <div id="regEmailError" class="field-error" style="display: none;"></div>
                 </div>
+                <div>
+                    <label for="regUserCode" style="display: block; margin-top: 10px; margin-bottom: 5px; color: #666; font-size: 14px;">User Code:</label>
+                    <input type="text" id="regUserCode" placeholder="User Code" readonly style="background-color: #f5f5f5; cursor: not-allowed;">
+                </div>
                 <input type="text" id="regFirstName" placeholder="First Name" required>
                 <input type="text" id="regLastName" placeholder="Last Name">
+                <label for="regDateOfBirth" style="display: block; margin-top: 10px; margin-bottom: 5px; color: #666; font-size: 14px;">Date of Birth</label>
+                <input type="date" id="regDateOfBirth" required>
                 <select id="regUserType" required>
                     <option value="">Select User Type</option>
                     <option value="Student">Student</option>
@@ -54,7 +61,6 @@ function showRegistration() {
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                 </select>
-                <input type="date" id="regDateOfBirth" placeholder="Date of Birth" required>
                 <select id="regSchoolId" required>
                     <option value="">Select School</option>
                 </select>
@@ -97,7 +103,15 @@ function showRegistration() {
     
     document.getElementById('regUserType').addEventListener('change', updateSignupFieldsBasedOnUserType);
     // Load schools into dropdown
-    loadSchoolsIntoDropdown();
+    loadSchoolsIntoDropdown().then(() => {
+        // After schools load, add listener for school selection changes
+        const schoolSelect = document.getElementById('regSchoolId');
+        if (schoolSelect) {
+            schoolSelect.addEventListener('change', updateSignupFieldsBasedOnUserType);
+        }
+    });
+    // Generate and display user code
+    generateAndDisplayUserCode();
 }
 
 // Store user email for step 2 of login
@@ -267,6 +281,14 @@ async function loadSchoolsIntoDropdown() {
                 option.textContent = school.school_name || school.name || `School ${school.school_id || school.id}`;
                 schoolSelect.appendChild(option);
             });
+            // Ensure school_id 1000 (Online) exists in dropdown
+            const onlineSchoolExists = Array.from(schoolSelect.options).some(opt => opt.value === '1000');
+            if (!onlineSchoolExists) {
+                const onlineOption = document.createElement('option');
+                onlineOption.value = '1000';
+                onlineOption.textContent = 'Online';
+                schoolSelect.appendChild(onlineOption);
+            }
             return;
         }
 
@@ -281,11 +303,61 @@ async function loadSchoolsIntoDropdown() {
                 option.textContent = school.school_name || `School ${school.school_id}`;
                 schoolSelect.appendChild(option);
             });
-        } else {
-            schoolSelect.innerHTML = '<option value="">No schools available</option>';
+        }
+        
+        // Ensure school_id 1000 (Online) exists in dropdown
+        const onlineSchoolExists = Array.from(schoolSelect.options).some(opt => opt.value === '1000');
+        if (!onlineSchoolExists) {
+            const onlineOption = document.createElement('option');
+            onlineOption.value = '1000';
+            onlineOption.textContent = 'Online';
+            schoolSelect.appendChild(onlineOption);
         }
     } catch (error) {
         schoolSelect.innerHTML = '<option value="">Error loading schools</option>';
+    }
+}
+
+// CALLED BY: index.js - showRegistration() (generates and displays next user code)
+async function generateAndDisplayUserCode() {
+    if (window.debugLog) window.debugLog('generateAndDisplayUserCode');
+    const userCodeField = document.getElementById('regUserCode');
+    if (!userCodeField) return;
+    
+    try {
+        // Wait for Supabase to be initialized
+        if (!supabase) {
+            let attempts = 0;
+            while (!supabase && attempts < 10) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+                attempts++;
+            }
+            if (!supabase) {
+                userCodeField.value = 'Loading...';
+                return;
+            }
+        }
+        
+        // Find max user_code and increment
+        const { data: maxCodeData, error: maxError } = await supabase
+            .from('user_profiles')
+            .select('user_code')
+            .not('user_code', 'is', null)
+            .order('user_code', { ascending: false })
+            .limit(1)
+            .single();
+        
+        let nextUserCode = '100000'; // Default starting code
+        
+        if (!maxError && maxCodeData && maxCodeData.user_code) {
+            const maxCode = parseInt(maxCodeData.user_code) || 99999;
+            nextUserCode = String(maxCode + 1).padStart(6, '0');
+        }
+        
+        userCodeField.value = nextUserCode;
+    } catch (error) {
+        console.error('Error generating user code:', error);
+        userCodeField.value = 'Error';
     }
 }
 
@@ -293,19 +365,89 @@ async function loadSchoolsIntoDropdown() {
 function updateSignupFieldsBasedOnUserType() {
     if (window.debugLog) window.debugLog('updateSignupFieldsBasedOnUserType');
     const userType = document.getElementById('regUserType')?.value;
+    const schoolIdSelect = document.getElementById('regSchoolId');
+    const schoolId = schoolIdSelect ? schoolIdSelect.value.trim() : null;
     const rollNumberField = document.getElementById('regRollNumber');
     
     if (!rollNumberField) return;
     
+    // Check if online user (school_id = 1000)
+    const isOnlineUser = schoolId === '1000';
+    
     if (userType === 'Student') {
-        rollNumberField.required = true;
-        rollNumberField.placeholder = 'Roll Number';
+        if (isOnlineUser) {
+            // Online students: system generates roll number
+            rollNumberField.required = false;
+            rollNumberField.placeholder = 'Roll Number (Auto-generated for online)';
+            rollNumberField.readOnly = true;
+            rollNumberField.style.backgroundColor = '#f5f5f5';
+            rollNumberField.style.cursor = 'not-allowed';
+            // Generate roll number for online user
+            generateRollNumberForOnlineUser();
+        } else {
+            // School students: manual entry required
+            rollNumberField.required = true;
+            rollNumberField.placeholder = 'Roll Number';
+            rollNumberField.readOnly = false;
+            rollNumberField.style.backgroundColor = '';
+            rollNumberField.style.cursor = '';
+        }
     } else if (userType === 'Teacher') {
         rollNumberField.required = false;
         rollNumberField.placeholder = 'Roll Number (Optional)';
+        rollNumberField.readOnly = false;
+        rollNumberField.style.backgroundColor = '';
+        rollNumberField.style.cursor = '';
     } else {
         rollNumberField.required = false;
         rollNumberField.placeholder = 'Roll Number';
+        rollNumberField.readOnly = false;
+        rollNumberField.style.backgroundColor = '';
+        rollNumberField.style.cursor = '';
+    }
+}
+
+// CALLED BY: index.js - updateSignupFieldsBasedOnUserType() (generates roll number for online users)
+async function generateRollNumberForOnlineUser() {
+    if (window.debugLog) window.debugLog('generateRollNumberForOnlineUser');
+    const rollNumberField = document.getElementById('regRollNumber');
+    if (!rollNumberField) return;
+    
+    try {
+        // Wait for Supabase to be initialized
+        if (!supabase) {
+            let attempts = 0;
+            while (!supabase && attempts < 10) {
+                await new Promise(resolve => setTimeout(resolve, 200));
+                attempts++;
+            }
+            if (!supabase) {
+                rollNumberField.value = '';
+                return;
+            }
+        }
+        
+        // Find max roll_number for online users (school_id = 1000)
+        const { data: maxRollData, error: maxError } = await supabase
+            .from('user_profiles')
+            .select('roll_number')
+            .eq('school_id', 1000)
+            .not('roll_number', 'is', null)
+            .order('roll_number', { ascending: false })
+            .limit(1)
+            .single();
+        
+        let nextRollNumber = 1; // Default starting roll number
+        
+        if (!maxError && maxRollData && maxRollData.roll_number) {
+            const maxRoll = parseInt(maxRollData.roll_number) || 0;
+            nextRollNumber = maxRoll + 1;
+        }
+        
+        rollNumberField.value = nextRollNumber;
+    } catch (error) {
+        console.error('Error generating roll number:', error);
+        rollNumberField.value = '';
     }
 }
 
@@ -440,15 +582,15 @@ async function handleRegistration(event) {
 
         // Only insert if profile doesn't exist
         if (!existingProfile) {
-            // Generate user_code: Get next value from sequence or find max + 1
-            let userCode = null;
-            try {
-                // Try to use sequence first (if it exists)
-                const { data: seqData, error: seqError } = await supabase.rpc('get_next_user_code');
-                if (!seqError && seqData) {
-                    userCode = String(seqData).padStart(6, '0');
-                } else {
-                    // Fallback: Find max user_code and increment
+            // Use user code from form field (pre-generated and displayed)
+            const userCodeField = document.getElementById('regUserCode');
+            let userCode = userCodeField ? userCodeField.value.trim() : null;
+            
+            // Validate user code format
+            if (!userCode || !/^\d{6}$/.test(userCode)) {
+                // Fallback: Generate user_code if form field is invalid
+                try {
+                    // Find max user_code and increment
                     const { data: maxCodeData, error: maxError } = await supabase
                         .from('user_profiles')
                         .select('user_code')
@@ -464,10 +606,10 @@ async function handleRegistration(event) {
                         // Start from 100000 if no existing codes
                         userCode = '100000';
                     }
+                } catch (codeError) {
+                    console.warn('Error generating user code, starting from 100000:', codeError);
+                    userCode = '100000';
                 }
-            } catch (codeError) {
-                console.warn('Error generating user code, starting from 100000:', codeError);
-                userCode = '100000';
             }
             
             const { error: profileError } = await supabase
