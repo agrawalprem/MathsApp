@@ -1,8 +1,8 @@
 // Service Worker for Learning Maths in Baby Steps
-// Version 1.0.28 - Fix: Network-first strategy for HTML/JS/CSS to prevent serving stale cached files
+// Version 1.0.29 - Add mobile debug display with SW version and error logging
 
-const CACHE_NAME = 'maths-app-v1.0.28';
-const STATIC_CACHE_NAME = 'maths-app-static-v1.0.28';
+const CACHE_NAME = 'maths-app-v1.0.29';
+const STATIC_CACHE_NAME = 'maths-app-static-v1.0.29';
 
 // Files to cache on install
 const STATIC_FILES = [

@@ -13,19 +13,32 @@
     <script src="shared_db.js"></script>
     <script src="index.js"></script>
     <script>
-        // Register Service Worker
+        // Register Service Worker (version tracking in debug display below)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
                     .then((registration) => {
                         console.log('Service Worker registered:', registration.scope);
+                        // Update version display
+                        if (registration.active) {
+                            window.swVersion = 'v1.0.29 (Active)';
+                        } else if (registration.installing) {
+                            window.swVersion = 'v1.0.29 (Installing)';
+                        } else if (registration.waiting) {
+                            window.swVersion = 'v1.0.29 (Waiting)';
+                        }
+                        if (window.updateDebugDisplay) window.updateDebugDisplay();
                         // Check for updates
                         registration.addEventListener('updatefound', () => {
                             console.log('Service Worker update found');
+                            window.swVersion = 'v1.0.29 (Updating)';
+                            if (window.updateDebugDisplay) window.updateDebugDisplay();
                         });
                     })
                     .catch((error) => {
                         console.error('Service Worker registration failed:', error);
+                        window.swVersion = 'Failed: ' + error.message;
+                        if (window.updateDebugDisplay) window.updateDebugDisplay();
                     });
             });
         }
@@ -167,5 +180,100 @@
             </div>
         </div>
     </div>
+    
+    <!-- Mobile Debug Display -->
+    <script>
+        // Track service worker version (set by registration code above)
+        window.swVersion = window.swVersion || 'v1.0.29 (Checking...)';
+        
+        // Create debug display
+        function createDebugDisplay() {
+            const debugDiv = document.createElement('div');
+            debugDiv.id = 'mobileDebugDisplay';
+            debugDiv.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.9);color:#fff;padding:10px;font-size:11px;z-index:99999;max-height:250px;overflow-y:auto;font-family:monospace;border-top:3px solid #ff4444;';
+            debugDiv.innerHTML = '<div style="font-weight:bold;margin-bottom:8px;color:#ffaa00;font-size:13px;">🐛 Mobile Debug Info</div><div id="debugContent"></div>';
+            document.body.appendChild(debugDiv);
+        }
+        
+        function updateDebugDisplay() {
+            const content = document.getElementById('debugContent');
+            if (!content) return;
+            
+            const errors = window.debugErrors || [];
+            const errorCount = errors.length;
+            
+            let html = `<div style="margin-bottom:6px;padding:4px;background:rgba(255,255,255,0.1);border-radius:3px;"><strong>SW Version:</strong> ${window.swVersion || 'v1.0.29 (Unknown)'}</div>`;
+            html += `<div style="margin-bottom:6px;"><strong>Errors:</strong> <span style="color:${errorCount > 0 ? '#ff6666' : '#66ff66'}">${errorCount}</span></div>`;
+            
+            if (errorCount > 0) {
+                html += '<div style="margin-top:8px;color:#ff6666;font-weight:bold;">Recent Errors:</div>';
+                errors.slice(-5).forEach((err, i) => {
+                    const msg = (err.message || err).toString().substring(0, 80);
+                    html += `<div style="margin-left:10px;margin-top:4px;font-size:10px;padding:3px;background:rgba(255,0,0,0.2);border-left:2px solid #ff6666;">${i+1}. ${msg}</div>`;
+                });
+            }
+            
+            // Check function availability
+            const functions = ['showLogin', 'showRegistration', 'toggleWelcome', 'showAnonymousUser', 'handleLoginStep1'];
+            const missing = functions.filter(fn => typeof window[fn] !== 'function');
+            if (missing.length > 0) {
+                html += `<div style="margin-top:8px;color:#ffaa00;font-weight:bold;">⚠️ Missing Functions:</div>`;
+                html += `<div style="margin-left:10px;color:#ffaa00;font-size:10px;">${missing.join(', ')}</div>`;
+            } else {
+                html += `<div style="margin-top:8px;color:#66ff66;">✅ All functions loaded</div>`;
+            }
+            
+            content.innerHTML = html;
+        }
+        
+        // Capture errors
+        window.debugErrors = [];
+        window.addEventListener('error', (e) => {
+            const errorInfo = {
+                message: e.message,
+                filename: e.filename ? e.filename.split('/').pop() : 'unknown',
+                lineno: e.lineno,
+                colno: e.colno
+            };
+            window.debugErrors.push(errorInfo);
+            // Keep only last 10 errors
+            if (window.debugErrors.length > 10) {
+                window.debugErrors.shift();
+            }
+            updateDebugDisplay();
+            
+            // Show critical errors prominently at top
+            if (e.message.includes('not defined') || e.message.includes('undefined') || e.message.includes('is not a function')) {
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = 'position:fixed;top:10px;left:10px;right:10px;background:#ff4444;color:#fff;padding:12px;border-radius:5px;z-index:99998;font-size:13px;box-shadow:0 4px 8px rgba(0,0,0,0.4);font-weight:bold;';
+                errorDiv.innerHTML = `⚠️ <strong>ERROR:</strong> ${e.message}<br><small style="font-weight:normal;opacity:0.9;">${errorInfo.filename}:${e.lineno}</small>`;
+                document.body.appendChild(errorDiv);
+                setTimeout(() => errorDiv.remove(), 15000);
+            }
+        });
+        
+        // Capture unhandled promise rejections
+        window.addEventListener('unhandledrejection', (e) => {
+            window.debugErrors.push({
+                message: 'Promise Rejection: ' + (e.reason?.message || e.reason || 'Unknown'),
+                filename: 'Promise',
+                lineno: 0
+            });
+            if (window.debugErrors.length > 10) {
+                window.debugErrors.shift();
+            }
+            updateDebugDisplay();
+        });
+        
+        // Initialize debug display
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', createDebugDisplay);
+        } else {
+            createDebugDisplay();
+        }
+        
+        // Update display every 2 seconds
+        setInterval(updateDebugDisplay, 2000);
+    </script>
 </body>
 </html>
