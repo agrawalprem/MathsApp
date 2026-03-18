@@ -21,7 +21,6 @@
     "upload-scores": "node Utilities/upload-user-scores-from-excel.js"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.98.0",
     "firebase-admin": "^12.0.0",
     "node-fetch": "^2.7.0",
     "xlsx": "^0.18.5"
