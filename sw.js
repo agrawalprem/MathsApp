@@ -13,9 +13,9 @@ const STATIC_FILES = [
   '/teacher-dashboard.html',
   '/shared.css',
   '/shared.js',
-  '/shared_db.js',
-  '/index.css',
-  '/index.js',
+  // '/shared_db.js', // Removed - no longer using Supabase
+  // '/index.css', // Removed - styles moved to index.html inline
+  // '/index.js', // Removed - logic moved to index.html inline
   '/question.css',
   '/question.js',
   '/summary.css',
@@ -73,9 +73,9 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
   
-  // Skip cross-origin requests (like Supabase API, CDN resources)
+  // Skip cross-origin requests (like Firebase API, CDN resources)
   if (url.origin !== location.origin) {
-    // For external resources (Supabase, CDN), use network-first strategy
+    // For external resources (Firebase, CDN), use network-first strategy
     event.respondWith(fetch(request));
     return;
   }

@@ -1,8 +1,8 @@
 // ============================================================================
 // TEACHER DASHBOARD - JavaScript Logic
 // ============================================================================
-// NOTE: Supabase and currentUser are initialized by shared_db.js (loaded in teacher-dashboard.html)
-// Use the global currentUser from shared_db.js instead of declaring a new one
+// NOTE: Firebase Auth and Firestore are initialized in teacher-dashboard.html
+// Use window.currentUser and window.currentUserProfile set by teacher-dashboard.html
 
 // Teacher dashboard specific data
 let teacherProfile = null;
@@ -35,9 +35,9 @@ let collapsedOperations = {
     '4': false   // Operation 4 (Division): hide 4A1-4C9
 };
 
-// Identify user role based on email matching schools table
+// Identify user role based on email matching schools table in Firestore
 // CALLED BY: teacher-dashboard.js - loadTeacherDashboard() (identifies if user is Teacher/Principal/Administrator)
-async function identifyUserRole(profileData, schoolsData) {
+async function identifyUserRole(profileData) {
     if (window.debugLog) window.debugLog('identifyUserRole');
     
     const userEmail = (currentUser.email || '').toLowerCase().trim();
@@ -46,168 +46,40 @@ async function identifyUserRole(profileData, schoolsData) {
         return 'Teacher'; // Default to Teacher if no email
     }
     
-    // Check if user email matches administrator_email or principal_email in schools table
-    for (const school of schoolsData || []) {
-        const adminEmail = (school.administrator_email || '').toLowerCase().trim();
-        const principalEmail = (school.principal_email || '').toLowerCase().trim();
+    try {
+        const { collection, getDocs } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
         
+        // Fetch all schools from Firestore
+        const schoolsRef = collection(window.firebaseDb, 'schools');
+        const schoolsSnapshot = await getDocs(schoolsRef);
+        
+        // Check if user email matches administrator_email or principal_email in schools
         // Priority: Administrator > Principal > Teacher
-        if (adminEmail && userEmail === adminEmail) {
-            return 'Administrator';
-        }
-        if (principalEmail && userEmail === principalEmail) {
-            return 'Principal';
-        }
-    }
-    
-    // Default to Teacher if no match
-    return 'Teacher';
-}
-
-// Fetch available schools based on user role
-// CALLED BY: teacher-dashboard.js - loadTeacherDashboard() (gets schools user can access)
-async function fetchAvailableSchools(profileData, userRole, schoolsData) {
-    if (window.debugLog) window.debugLog('fetchAvailableSchools');
-    
-    const userEmail = (currentUser.email || '').toLowerCase().trim();
-    const schools = [];
-    
-    if (userRole === 'Teacher') {
-        // For teachers: get schools from Classes table where teacher_email matches
-        const { data: classesData, error: classesError } = await supabase
-            .from('classes')
-            .select('school_id')
-            .eq('teacher_email', userEmail);
+        let foundRole = 'Teacher'; // Default
         
-        if (classesError) {
-            console.warn('⚠️ Error fetching classes for teacher:', classesError);
-            return [];
-        }
-        
-        // Extract unique school IDs
-        const schoolIds = [...new Set((classesData || []).map(c => c.school_id))];
-        
-        if (schoolIds.length === 0) {
-            return [];
-        }
-        
-        // Fetch school details
-        const { data: schoolsData, error: schoolsError } = await supabase
-            .from('schools')
-            .select('school_id, school_name')
-            .in('school_id', schoolIds)
-            .order('school_id', { ascending: true });
-        
-        if (schoolsError) {
-            console.warn('⚠️ Error fetching schools:', schoolsError);
-            return [];
-        }
-        
-        return (schoolsData || []).map(school => ({
-            school_id: school.school_id,
-            school_name: school.school_name || `School ${school.school_id}`
-        }));
-        
-    } else if (userRole === 'Principal' || userRole === 'Administrator') {
-        // For principals/administrators: get schools where their email matches
-        const emailField = userRole === 'Principal' ? 'principal_email' : 'administrator_email';
-        
-        // Filter schools from provided schoolsData
-        const matchingSchools = (schoolsData || []).filter(school => {
-            const schoolEmail = (school[emailField] || '').toLowerCase().trim();
-            return schoolEmail && userEmail === schoolEmail;
+        schoolsSnapshot.forEach((doc) => {
+            const school = doc.data();
+            const adminEmail = (school.administrator_email || '').toLowerCase().trim();
+            const principalEmail = (school.principal_email || '').toLowerCase().trim();
+            
+            if (adminEmail && userEmail === adminEmail) {
+                foundRole = 'Administrator';
+                return; // Exit forEach early if Administrator found
+            }
+            if (principalEmail && userEmail === principalEmail && foundRole !== 'Administrator') {
+                foundRole = 'Principal';
+                // Continue checking in case Administrator is found later
+            }
         });
         
-        // If we have school_name in the data, use it; otherwise fetch it
-        if (matchingSchools.length > 0 && matchingSchools[0].school_name) {
-            return matchingSchools.map(school => ({
-                school_id: school.school_id,
-                school_name: school.school_name || `School ${school.school_id}`
-            }));
-        }
-        
-        // Fetch school names if not in provided data
-        const schoolIds = matchingSchools.map(s => s.school_id);
-        if (schoolIds.length > 0) {
-            const { data: schoolsWithNames, error: schoolsError } = await supabase
-                .from('schools')
-                .select('school_id, school_name')
-                .in('school_id', schoolIds)
-                .order('school_id', { ascending: true });
-            
-            if (schoolsError) {
-                console.warn('⚠️ Error fetching school names:', schoolsError);
-                return matchingSchools.map(school => ({
-                    school_id: school.school_id,
-                    school_name: `School ${school.school_id}`
-                }));
-            }
-            
-            return (schoolsWithNames || []).map(school => ({
-                school_id: school.school_id,
-                school_name: school.school_name || `School ${school.school_id}`
-            }));
-        }
-        
-        return [];
+        return foundRole;
+    } catch (error) {
+        console.error('❌ Error identifying user role:', error);
+        // Default to Teacher on error
+        return 'Teacher';
     }
-    
-    return [];
 }
 
-// Fetch available classes for selected school
-// CALLED BY: teacher-dashboard.js - loadTeacherDashboard(), onSchoolChange() (gets classes for school)
-async function fetchAvailableClasses(schoolId, profileData, userRole) {
-    if (window.debugLog) window.debugLog('fetchAvailableClasses', `(schoolId=${schoolId})`);
-    
-    if (!schoolId) return [];
-    
-    const userEmail = (currentUser.email || '').toLowerCase().trim();
-    
-    if (userRole === 'Teacher') {
-        // For teachers: get classes from Classes table where teacher_email matches
-        const { data: classesData, error: classesError } = await supabase
-            .from('classes')
-            .select('school_id, class, section')
-            .eq('school_id', schoolId)
-            .eq('teacher_email', userEmail)
-            .order('class', { ascending: true })
-            .order('section', { ascending: true });
-        
-        if (classesError) {
-            console.warn('⚠️ Error fetching classes:', classesError);
-            return [];
-        }
-        
-        return (classesData || []).map(c => ({
-            school_id: c.school_id,
-            class: c.class,
-            section: c.section
-        }));
-        
-    } else if (userRole === 'Principal' || userRole === 'Administrator') {
-        // For principals/administrators: get all classes in the selected school
-        const { data: classesData, error: classesError } = await supabase
-            .from('classes')
-            .select('school_id, class, section')
-            .eq('school_id', schoolId)
-            .order('class', { ascending: true })
-            .order('section', { ascending: true });
-        
-        if (classesError) {
-            console.warn('⚠️ Error fetching classes:', classesError);
-            return [];
-        }
-        
-        return (classesData || []).map(c => ({
-            school_id: c.school_id,
-            class: c.class,
-            section: c.section
-        }));
-    }
-    
-    return [];
-}
 
 // Render school and class selector dropdowns
 // CALLED BY: teacher-dashboard.js - loadTeacherDashboard() (creates dropdown UI)
@@ -219,18 +91,19 @@ function renderSchoolClassSelectors() {
     
     selectorContainer.innerHTML = '';
     
-    // Show selectors only if multiple schools or classes available
-    const showSchoolSelector = availableSchools.length > 1;
-    const showClassSelector = availableClasses.length > 1;
+    // Always show school selector (even if only one school)
+    // Show class selector if school is selected and classes are available
+    const showSchoolSelector = availableSchools.length > 0;
+    const showClassSelector = selectedSchoolId && availableClasses.length > 0;
     
-    if (!showSchoolSelector && !showClassSelector) {
+    if (!showSchoolSelector) {
         selectorContainer.classList.add('hidden');
         return;
     }
     
     selectorContainer.classList.remove('hidden');
     
-    // Create school selector if needed
+    // Create school selector (always show if schools available)
     if (showSchoolSelector) {
         const schoolGroup = document.createElement('div');
         schoolGroup.className = 'selector-group';
@@ -265,7 +138,7 @@ function renderSchoolClassSelectors() {
         selectorContainer.appendChild(schoolGroup);
     }
     
-    // Create class selector if needed
+    // Create class selector (show if school is selected and classes available)
     if (showClassSelector) {
         const classGroup = document.createElement('div');
         classGroup.className = 'selector-group';
@@ -282,12 +155,16 @@ function renderSchoolClassSelectors() {
         
         availableClasses.forEach(cls => {
             const option = document.createElement('option');
-            const value = `${cls.school_id}_${cls.class}_${cls.section}`;
+            // Ensure class and section are strings for consistent handling
+            const classStr = String(cls.class || '');
+            const sectionStr = String(cls.section || '');
+            const value = `${cls.school_id}_${classStr}_${sectionStr}`;
             option.value = value;
-            option.textContent = `Class ${cls.class} - Section ${cls.section}`;
+            option.textContent = `Class ${classStr}${sectionStr}`;
+            // Compare as strings to ensure type matching
             if (selectedSchoolId === cls.school_id && 
-                selectedClass === cls.class && 
-                selectedSection === cls.section) {
+                String(selectedClass) === classStr && 
+                String(selectedSection) === sectionStr) {
                 option.selected = true;
             }
             classSelect.appendChild(option);
@@ -295,7 +172,8 @@ function renderSchoolClassSelectors() {
         
         classSelect.addEventListener('change', async (e) => {
             const [schoolId, classNum, section] = e.target.value.split('_');
-            await onClassChange(parseInt(schoolId), classNum, section);
+            // Convert classNum to string to match Firestore (class can be number or string)
+            await onClassChange(parseInt(schoolId), String(classNum), String(section));
         });
         
         classGroup.appendChild(classLabel);
@@ -344,8 +222,288 @@ async function onClassChange(schoolId, classNum, section) {
     await loadStudentsForClass(schoolId, classNum, section);
 }
 
-// Load students for selected school, class, and section
-// CALLED BY: teacher-dashboard.js - onClassChange(), loadTeacherDashboard() (loads students)
+// Check authentication on page load
+// CALLED BY: teacher-dashboard.html - Firebase auth state change (initializes dashboard when user is authenticated)
+async function initDashboard() {
+    if (window.debugLog) window.debugLog('initDashboard');
+    
+    // Wait for Firebase to be initialized (set by teacher-dashboard.html)
+    if (!window.firebaseAuth || !window.firebaseDb) {
+        // Wait for Firebase to be ready
+        let attempts = 0;
+        while ((!window.firebaseAuth || !window.firebaseDb) && attempts < 20) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
+        }
+        if (!window.firebaseAuth || !window.firebaseDb) {
+            throw new Error('Firebase not initialized');
+        }
+    }
+    
+    // currentUser and currentUserProfile should be set by teacher-dashboard.html
+    if (window.currentUser && window.currentUserProfile) {
+        currentUser = window.currentUser;
+        teacherProfile = window.currentUserProfile;
+        await loadTeacherDashboard();
+    } else {
+        console.warn('⚠️ No current user or profile found');
+        window.location.href = 'index.html';
+    }
+}
+
+// Expose initDashboard globally so it can be called from teacher-dashboard.html
+window.initDashboard = initDashboard;
+
+// Load teacher dashboard data
+// CALLED BY: teacher-dashboard.js - initDashboard() (loads dashboard data after authentication check)
+async function loadTeacherDashboard() {
+    if (window.debugLog) window.debugLog('loadTeacherDashboard');
+    try {
+        showLoading(true);
+        showError('');
+
+        // teacherProfile is already set from window.currentUserProfile
+        const profileData = teacherProfile;
+        
+        if (!profileData) {
+            throw new Error('User profile not found. Please ensure you are logged in.');
+        }
+
+        // Identify user role (Teacher, Principal, or Administrator)
+        currentUserRole = await identifyUserRole(profileData);
+        
+        console.log(`✅ ${currentUserRole} profile loaded`);
+
+        // Build flattened variant list for columns
+        allVariants = [];
+        Object.keys(learningSequence).forEach(operation => {
+            learningSequence[operation].forEach(variant => {
+                allVariants.push({ operation, variant });
+            });
+        });
+
+        // Update dashboard title based on role
+        const headerTitle = document.querySelector('.header h1');
+        if (headerTitle) {
+            headerTitle.textContent = `${currentUserRole} Dashboard - Student Progress`;
+        }
+        
+        // Update page title
+        document.title = `${currentUserRole} Dashboard - Student Progress`;
+
+        // Fetch available schools based on user role
+        availableSchools = await fetchAvailableSchools(profileData, currentUserRole);
+        
+        if (availableSchools.length === 0) {
+            showError('No schools assigned. Please contact administrator.');
+            showLoading(false);
+            return;
+        }
+        
+        // Always show school selector (even if only one school)
+        // If only one school, auto-select it but still show the selector
+        if (availableSchools.length === 1) {
+            selectedSchoolId = availableSchools[0].school_id;
+            availableClasses = await fetchAvailableClasses(selectedSchoolId, profileData, currentUserRole);
+        } else {
+            // Multiple schools - wait for user to select
+            availableClasses = [];
+        }
+        
+        // Render school and class selectors (always show both)
+        renderSchoolClassSelectors();
+        
+        // If school is selected and classes are available
+        if (selectedSchoolId && availableClasses.length > 0) {
+            // If only one class, auto-select it
+            if (availableClasses.length === 1) {
+                const cls = availableClasses[0];
+                await onClassChange(cls.school_id, cls.class, cls.section);
+            } else {
+                // Multiple classes - show selector and wait for selection
+                showLoading(false);
+            }
+        } else if (selectedSchoolId && availableClasses.length === 0) {
+            // School selected but no classes found
+            showLoading(false);
+        } else {
+            // No school selected yet - wait for selection
+            showLoading(false);
+        }
+
+    } catch (error) {
+        console.error('❌ Error loading dashboard:', error);
+        showError(error.message);
+        showLoading(false);
+    }
+}
+
+// Fetch available schools from Firestore based on user role
+async function fetchAvailableSchools(profileData, userRole) {
+    if (window.debugLog) window.debugLog('fetchAvailableSchools', `(userRole=${userRole})`);
+    
+    try {
+        const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
+        const userEmail = (currentUser.email || '').toLowerCase().trim();
+        const schools = [];
+        
+        if (userRole === 'Teacher') {
+            // For teachers: get school from their profile
+            if (profileData.school_id) {
+                const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
+                let schoolName = null;
+                
+                // Try multiple approaches to find the school document
+                // 1. Try school_id as document ID (string)
+                let schoolDocRef = doc(window.firebaseDb, 'schools', String(profileData.school_id));
+                let schoolDoc = await getDoc(schoolDocRef);
+                if (schoolDoc.exists()) {
+                    const data = schoolDoc.data();
+                    schoolName = data.school_name;
+                }
+                
+                // 2. Try school_id as document ID (number, if stored as number)
+                if (!schoolName && !isNaN(profileData.school_id)) {
+                    schoolDocRef = doc(window.firebaseDb, 'schools', String(Number(profileData.school_id)));
+                    schoolDoc = await getDoc(schoolDocRef);
+                    if (schoolDoc.exists()) {
+                        const data = schoolDoc.data();
+                        schoolName = data.school_name;
+                    }
+                }
+                
+                // 3. Try querying by school_id field (handle both string and number)
+                if (!schoolName) {
+                    const schoolsRef = collection(window.firebaseDb, 'schools');
+                    // Try as string
+                    let schoolQuery = query(schoolsRef, where('school_id', '==', String(profileData.school_id)));
+                    let schoolSnapshot = await getDocs(schoolQuery);
+                    if (!schoolSnapshot.empty) {
+                        schoolSnapshot.forEach((doc) => {
+                            const data = doc.data();
+                            if (data.school_name) {
+                                schoolName = data.school_name;
+                            }
+                        });
+                    }
+                    
+                    // Try as number if school_id is numeric
+                    if (!schoolName && !isNaN(profileData.school_id)) {
+                        schoolQuery = query(schoolsRef, where('school_id', '==', Number(profileData.school_id)));
+                        schoolSnapshot = await getDocs(schoolQuery);
+                        if (!schoolSnapshot.empty) {
+                            schoolSnapshot.forEach((doc) => {
+                                const data = doc.data();
+                                if (data.school_name) {
+                                    schoolName = data.school_name;
+                                }
+                            });
+                        }
+                    }
+                }
+                
+                schools.push({
+                    school_id: profileData.school_id,
+                    school_name: schoolName || `School ${profileData.school_id}`
+                });
+            }
+        } else if (userRole === 'Principal') {
+            // For principals: get schools where principal_email matches
+            const schoolsRef = collection(window.firebaseDb, 'schools');
+            const schoolsSnapshot = await getDocs(schoolsRef);
+            
+            schoolsSnapshot.forEach((doc) => {
+                const data = doc.data();
+                const principalEmail = (data.principal_email || '').toLowerCase().trim();
+                if (principalEmail && userEmail === principalEmail) {
+                    schools.push({
+                        school_id: data.school_id,
+                        school_name: data.school_name || `School ${data.school_id}`
+                    });
+                }
+            });
+        } else if (userRole === 'Administrator') {
+            // For administrators: get schools where administrator_email matches
+            // (In future, could return all schools if admin has access to all)
+            const schoolsRef = collection(window.firebaseDb, 'schools');
+            const schoolsSnapshot = await getDocs(schoolsRef);
+            
+            schoolsSnapshot.forEach((doc) => {
+                const data = doc.data();
+                const adminEmail = (data.administrator_email || '').toLowerCase().trim();
+                if (adminEmail && userEmail === adminEmail) {
+                    schools.push({
+                        school_id: data.school_id,
+                        school_name: data.school_name || `School ${data.school_id}`
+                    });
+                }
+            });
+        }
+        
+        // Sort by school_id
+        schools.sort((a, b) => {
+            return String(a.school_id).localeCompare(String(b.school_id), undefined, { numeric: true });
+        });
+        
+        return schools;
+    } catch (error) {
+        console.error('❌ Error fetching schools:', error);
+        return [];
+    }
+}
+
+// Fetch available classes from Firestore for a school
+async function fetchAvailableClasses(schoolId, profileData, userRole) {
+    if (window.debugLog) window.debugLog('fetchAvailableClasses', `(schoolId=${schoolId})`);
+    
+    if (!schoolId) return [];
+    
+    try {
+        const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
+        
+        // Get unique class/section combinations from students in this school
+        const profilesRef = collection(window.firebaseDb, 'user_profiles');
+        const studentsQuery = query(profilesRef, 
+            where('user_type', '==', 'Student'),
+            where('school_id', '==', schoolId)
+        );
+        const studentsSnapshot = await getDocs(studentsQuery);
+        
+        const classMap = new Map();
+        studentsSnapshot.forEach((doc) => {
+            const data = doc.data();
+            if (data.class != null && data.section != null) {
+                // Ensure class and section are strings for consistent handling
+                const classStr = String(data.class);
+                const sectionStr = String(data.section);
+                const key = `${classStr}_${sectionStr}`;
+                if (!classMap.has(key)) {
+                    classMap.set(key, {
+                        school_id: schoolId,
+                        class: classStr,
+                        section: sectionStr
+                    });
+                }
+            }
+        });
+        
+        const classes = Array.from(classMap.values());
+        // Sort by class then section
+        classes.sort((a, b) => {
+            if (a.class !== b.class) {
+                return String(a.class).localeCompare(String(b.class), undefined, { numeric: true });
+            }
+            return String(a.section).localeCompare(String(b.section));
+        });
+        
+        return classes;
+    } catch (error) {
+        console.error('❌ Error fetching classes:', error);
+        return [];
+    }
+}
+
+// Load students for selected class
 async function loadStudentsForClass(schoolId, classNum, section) {
     if (window.debugLog) window.debugLog('loadStudentsForClass', `(schoolId=${schoolId}, class=${classNum}, section=${section})`);
     
@@ -353,22 +511,38 @@ async function loadStudentsForClass(schoolId, classNum, section) {
         showLoading(true);
         showError('');
         
-        // Build student query
-        let studentsQuery = supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('user_type', 'Student')
-            .eq('school_id', schoolId)
-            .eq('class', classNum)
-            .eq('section', section);
+        const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
         
-        const { data: studentsData, error: studentsError } = await studentsQuery;
+        // Fetch students from this school, class, and section
+        // Firestore stores: school_id as number, class as number, section as string
+        const sectionStr = String(section);
+        const schoolIdNum = Number(schoolId);
+        const classNumValue = Number(classNum);
         
-        if (studentsError) {
-            throw new Error(`Error fetching students: ${studentsError.message}`);
-        }
+        const profilesRef = collection(window.firebaseDb, 'user_profiles');
         
-        students = (studentsData || []).sort((a, b) => {
+        // Query with number types (matching how data is stored in Firestore)
+        const q = query(profilesRef, 
+            where('user_type', '==', 'Student'),
+            where('school_id', '==', schoolIdNum),
+            where('class', '==', classNumValue),
+            where('section', '==', sectionStr)
+        );
+        const querySnapshot = await getDocs(q);
+        
+        students = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            // Store both user_code (document ID) and user_id (Firebase Auth UID) for matching
+            students.push({ 
+                user_code: doc.id,  // Document ID is user_code
+                user_id: data.user_id || null,  // Firebase Auth UID from profile
+                ...data 
+            });
+        });
+        
+        // Sort students by roll number or name
+        students.sort((a, b) => {
             const rollA = a.roll_number;
             const rollB = b.roll_number;
             const hasRollA = rollA !== null && rollA !== undefined && rollA !== '';
@@ -381,10 +555,10 @@ async function loadStudentsForClass(schoolId, classNum, section) {
             return nameA.localeCompare(nameB);
         });
         
-        console.log(`✅ Found ${students.length} students in School ${schoolId}, Class ${classNum}-${section}`);
+        console.log(`✅ Found ${students.length} students in School ${schoolId}, Class ${classNum}${section}`);
         
         if (students.length === 0) {
-            showError(`No students found in Class ${classNum}-${section}.`);
+            showError(`No students found in Class ${classNum}${section}.`);
             showLoading(false);
             document.getElementById('dashboardControls').classList.add('hidden');
             document.getElementById('dashboardGrid').classList.add('hidden');
@@ -392,31 +566,73 @@ async function loadStudentsForClass(schoolId, classNum, section) {
         }
         
         // Fetch scores for all students
-        const studentUserIds = students.map(s => s.user_id);
-        const { data: scoresData, error: scoresError } = await supabase
-            .from('user_scores')
-            .select('*')
-            .in('user_id', studentUserIds);
+        // Use denormalized fields (school_id, class, section) for efficient querying
+        // This is more reliable than matching by email
+        // Note: user_scores may store these as strings (from summary.html), so try both
+        const scoresRef = collection(window.firebaseDb, 'user_scores');
         
-        if (scoresError) {
-            throw new Error(`Error fetching scores: ${scoresError.message}`);
+        // First try with number types (matching user_profiles)
+        let scoresQuery = query(scoresRef, 
+            where('school_id', '==', schoolIdNum),
+            where('class', '==', classNumValue),
+            where('section', '==', sectionStr)
+        );
+        let scoresSnapshot = await getDocs(scoresQuery);
+        
+        // If no results, try with string types (in case user_scores stores as strings)
+        if (scoresSnapshot.empty) {
+            const schoolIdStr = String(schoolId);
+            const classStr = String(classNum);
+            scoresQuery = query(scoresRef, 
+                where('school_id', '==', schoolIdStr),
+                where('class', '==', classStr),
+                where('section', '==', sectionStr)
+            );
+            scoresSnapshot = await getDocs(scoresQuery);
         }
         
-        studentScores = scoresData || [];
+        // Build map of user_id -> student for quick lookup
+        const studentMap = new Map();
+        students.forEach(student => {
+            if (student.user_id) {
+                studentMap.set(student.user_id, student);
+            }
+        });
+        
+        studentScores = [];
+        scoresSnapshot.forEach((doc) => {
+            const scoreData = doc.data();
+
+            // Match by user_code first (primary identifier).
+            // IMPORTANT: Normalize types because Firestore may store user_code as string or number.
+            const scoreUserCode = (scoreData.user_code === null || scoreData.user_code === undefined)
+                ? null
+                : String(scoreData.user_code).trim();
+
+            const studentByCode = scoreUserCode
+                ? students.find(s => String(s.user_code || '').trim() === scoreUserCode)
+                : null;
+
+            if (studentByCode) {
+                studentScores.push({
+                    id: doc.id,
+                    ...scoreData,
+                    user_id: studentByCode.user_id || studentByCode.user_code
+                });
+            } else {
+                // Fallback: try matching by user_id (Firebase Auth UID) if user_code doesn't match
+                const student = scoreData.user_id ? studentMap.get(scoreData.user_id) : null;
+                if (student) {
+                    studentScores.push({
+                        id: doc.id,
+                        ...scoreData,
+                        user_id: student.user_id
+                    });
+                }
+            }
+        });
+        
         console.log(`✅ Found ${studentScores.length} score records`);
-        
-        // Fetch active sessions for all students
-        const { data: activeSessionsData, error: activeSessionsError } = await supabase
-            .from('active_sessions')
-            .select('*')
-            .in('user_id', studentUserIds);
-        
-        if (activeSessionsError) {
-            console.warn('⚠️ Error fetching active sessions:', activeSessionsError);
-        }
-        
-        window.activeSessions = activeSessionsData || [];
-        console.log(`✅ Found ${window.activeSessions.length} active sessions`);
         
         // Build and display the grid
         buildDashboardGrid();
@@ -428,10 +644,8 @@ async function loadStudentsForClass(schoolId, classNum, section) {
         document.getElementById('dashboardControls').classList.remove('hidden');
         document.getElementById('dashboardGrid').classList.remove('hidden');
         
-        // Start polling for active sessions updates every 5 seconds
-        if (!window.activeSessionsPollInterval) {
-            startActiveSessionsPolling();
-        }
+        // Start polling for active sessions
+        startActiveSessionsPolling();
         
     } catch (error) {
         console.error('❌ Error loading students:', error);
@@ -440,182 +654,118 @@ async function loadStudentsForClass(schoolId, classNum, section) {
     }
 }
 
-// Check authentication on page load
-// CALLED BY: teacher-dashboard.html - DOMContentLoaded listener (initializes dashboard on page load)
-async function initDashboard() {
-    if (window.debugLog) window.debugLog('initDashboard');
-    
-    // Wait for Supabase library to load and initialize
-    if (!window.supabase || !window.supabase.createClient) {
-        // Wait for Supabase library to load
-        let attempts = 0;
-        while ((!window.supabase || !window.supabase.createClient) && attempts < 10) {
-            await new Promise(resolve => setTimeout(resolve, 200));
-            attempts++;
-        }
-        if (!window.supabase || !window.supabase.createClient) {
-            throw new Error('Supabase library failed to load');
-        }
-    }
-    
-    // Initialize Supabase if not already initialized
-    // Use window.supabase or global supabase - check if it exists and has the auth property
-    let supabaseClient = typeof supabase !== 'undefined' ? supabase : (typeof window.supabase !== 'undefined' ? window.supabase : null);
-    
-    if (!supabaseClient || !supabaseClient.auth) {
-        if (typeof window.initSupabase === 'function') {
-            await window.initSupabase();
-        } else {
-            // Wait for shared_db.js to expose initSupabase
-            let attempts = 0;
-            while (typeof window.initSupabase !== 'function' && attempts < 10) {
-                await new Promise(resolve => setTimeout(resolve, 200));
-                attempts++;
-            }
-            if (typeof window.initSupabase === 'function') {
-                await window.initSupabase();
-            } else {
-                throw new Error('shared_db.js not loaded or initSupabase not available');
-            }
-        }
-        
-        // Wait for supabase to be fully initialized (check for auth property)
-        let attempts = 0;
-        while (attempts < 20) {
-            // Try both global supabase and window.supabase
-            supabaseClient = typeof supabase !== 'undefined' ? supabase : (typeof window.supabase !== 'undefined' ? window.supabase : null);
-            if (supabaseClient && supabaseClient.auth) {
-                break;
-            }
-            await new Promise(resolve => setTimeout(resolve, 100));
-            attempts++;
-        }
-    }
-    
-    // Verify supabase is now initialized with auth property
-    if (!supabaseClient || !supabaseClient.auth) {
-        console.error('❌ Supabase initialization failed.');
-        console.error('   typeof supabase:', typeof supabase);
-        console.error('   supabase value:', supabase);
-        console.error('   typeof window.supabase:', typeof window.supabase);
-        console.error('   window.supabase value:', window.supabase);
-        throw new Error('Supabase initialization failed - auth property not available');
-    }
-    
-    // Use supabaseClient for the rest of this function
-    // Check for existing session
-    const { data: { session } } = await supabaseClient.auth.getSession();
-    if (session) {
-        currentUser = session.user;
-        await loadTeacherDashboard();
-    } else {
-        // Redirect to login if not authenticated
-        window.location.href = 'index.html';
-    }
-}
-
-// Load teacher dashboard data
-// CALLED BY: teacher-dashboard.js - initDashboard() (loads dashboard data after authentication check)
-async function loadTeacherDashboard() {
-    if (window.debugLog) window.debugLog('loadTeacherDashboard');
+// Simplified function to load all students for a school
+async function loadAllStudentsForSchool(schoolId) {
     try {
         showLoading(true);
-        showError('');
-
-        // Fetch teacher's own profile
-        const { data: profileData, error: profileError } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('user_id', currentUser.id)
-            .single();
-
-        if (profileError || !profileData) {
-            throw new Error('User profile not found. Please ensure you are logged in.');
-        }
-
-        // Fetch schools data to check for Principal/Administrator emails
-        const { data: schoolsData, error: schoolsError } = await supabase
-            .from('schools')
-            .select('school_id, school_name, principal_email, administrator_email');
-
-        if (schoolsError) {
-            console.warn('⚠️ Error fetching schools data:', schoolsError);
-        }
-
-        // Identify user role (Teacher, Principal, or Administrator)
-        currentUserRole = await identifyUserRole(profileData, schoolsData || []);
         
-        // Verify user has access (must be Teacher, Principal, or Administrator)
-        if (profileData.user_type !== 'Teacher' && currentUserRole === 'Teacher') {
-            throw new Error('Access denied. This dashboard is only available for teachers, principals, and administrators.');
-        }
-
-        teacherProfile = profileData;
+        // Import Firestore functions
+        const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
         
-        console.log(`✅ ${currentUserRole} profile loaded`);
-
-        // Fetch available schools based on role
-        availableSchools = await fetchAvailableSchools(profileData, currentUserRole, schoolsData || []);
+        // Fetch all students from this school
+        const profilesRef = collection(window.firebaseDb, 'user_profiles');
+        const q = query(profilesRef, 
+            where('user_type', '==', 'Student'),
+            where('school_id', '==', schoolId)
+        );
+        const querySnapshot = await getDocs(q);
         
-        if (availableSchools.length === 0) {
-            throw new Error(`No schools found for your ${currentUserRole.toLowerCase()} account. Please contact administrator.`);
-        }
-        
-        // Auto-select school if only one available
-        if (availableSchools.length === 1) {
-            selectedSchoolId = availableSchools[0].school_id;
-        }
-        
-        // Fetch available classes
-        if (selectedSchoolId) {
-            availableClasses = await fetchAvailableClasses(selectedSchoolId, profileData, currentUserRole);
-            
-            // Auto-select class if only one available
-            if (availableClasses.length === 1) {
-                const cls = availableClasses[0];
-                selectedClass = cls.class;
-                selectedSection = cls.section;
-            }
-        }
-        
-        // Build flattened variant list for columns
-        allVariants = [];
-        Object.keys(learningSequence).forEach(operation => {
-            learningSequence[operation].forEach(variant => {
-                allVariants.push({ operation, variant });
+        students = [];
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            // Store both user_code (document ID) and user_id (Firebase Auth UID) for matching
+            students.push({ 
+                user_code: doc.id,  // Document ID is user_code
+                user_id: data.user_id || null,  // Firebase Auth UID from profile
+                ...data 
             });
         });
-
-        // Update dashboard title based on role
-        const headerTitle = document.querySelector('.header h1');
-        if (headerTitle) {
-            const roleTitle = currentUserRole === 'Teacher' ? 'Teacher' : 
-                             currentUserRole === 'Principal' ? 'Principal' : 
-                             'Administrator';
-            headerTitle.textContent = `${roleTitle} Dashboard - Student Progress`;
-        }
         
-        // Update page title
-        document.title = `${currentUserRole} Dashboard - Student Progress`;
-
-        // Render school/class selectors
-        renderSchoolClassSelectors();
-        
-        // If school and class are auto-selected, load students immediately
-        if (selectedSchoolId && selectedClass && selectedSection) {
-            await loadStudentsForClass(selectedSchoolId, selectedClass, selectedSection);
-        } else {
-            // Show selectors and wait for user selection
-            showLoading(false);
-            if (availableSchools.length > 1 || availableClasses.length > 1) {
-                showError('Please select a school and class to view students.');
-            } else {
-                showError('No classes found. Please contact administrator.');
+        // Sort students by roll number or name
+        students.sort((a, b) => {
+            const rollA = a.roll_number;
+            const rollB = b.roll_number;
+            const hasRollA = rollA !== null && rollA !== undefined && rollA !== '';
+            const hasRollB = rollB !== null && rollB !== undefined && rollB !== '';
+            if (hasRollA && hasRollB) {
+                return String(rollA).localeCompare(String(rollB), undefined, { numeric: true, sensitivity: 'base' });
             }
+            const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim() || a.user_code || 'N/A';
+            const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim() || b.user_code || 'N/A';
+            return nameA.localeCompare(nameB);
+        });
+        
+        console.log(`✅ Found ${students.length} students in School ${schoolId}`);
+        
+        if (students.length === 0) {
+            showError(`No students found in your school.`);
+            showLoading(false);
+            document.getElementById('dashboardControls').classList.add('hidden');
+            document.getElementById('dashboardGrid').classList.add('hidden');
+            return;
         }
-
+        
+        // Fetch scores for all students
+        // Use denormalized fields (school_id) for efficient querying
+        // This is more reliable than matching by email
+        const scoresRef = collection(window.firebaseDb, 'user_scores');
+        
+        // Try both string and number for school_id (must match how it's stored in user_scores)
+        let scoresQuery = query(scoresRef, where('school_id', '==', schoolIdStr));
+        let scoresSnapshot = await getDocs(scoresQuery);
+        
+        // If no results and schoolId can be converted to number, try with number
+        if (scoresSnapshot.empty && !isNaN(schoolIdNum)) {
+            scoresQuery = query(scoresRef, where('school_id', '==', schoolIdNum));
+            scoresSnapshot = await getDocs(scoresQuery);
+        }
+        
+        // Build map of user_id -> student for quick lookup
+        const studentMap = new Map();
+        students.forEach(student => {
+            if (student.user_id) {
+                studentMap.set(student.user_id, student);
+            }
+        });
+        
+        studentScores = [];
+        scoresSnapshot.forEach((doc) => {
+            const scoreData = doc.data();
+            // Match by user_code first (primary identifier - visually meaningful, easier to debug)
+            const studentByCode = scoreData.user_code ? students.find(s => s.user_code === scoreData.user_code) : null;
+            if (studentByCode) {
+                studentScores.push({ 
+                    id: doc.id, 
+                    ...scoreData,
+                    user_id: studentByCode.user_id || studentByCode.user_code
+                });
+            } else {
+                // Fallback: try matching by user_id (Firebase Auth UID) if user_code doesn't match
+                const student = scoreData.user_id ? studentMap.get(scoreData.user_id) : null;
+                if (student) {
+                    studentScores.push({ 
+                        id: doc.id, 
+                        ...scoreData,
+                        user_id: student.user_id
+                    });
+                }
+            }
+        });
+        
+        console.log(`✅ Found ${studentScores.length} score records`);
+        
+        // Build and display the grid
+        buildDashboardGrid();
+        
+        document.getElementById('studentCount').textContent = students.length;
+        document.getElementById('variantCount').textContent = allVariants.length;
+        
+        showLoading(false);
+        document.getElementById('dashboardControls').classList.remove('hidden');
+        document.getElementById('dashboardGrid').classList.remove('hidden');
+        
     } catch (error) {
-        console.error('❌ Error loading dashboard:', error);
+        console.error('❌ Error loading students:', error);
         showError(error.message);
         showLoading(false);
     }
@@ -695,8 +845,10 @@ function buildDashboardGrid() {
         row.appendChild(nameCell);
 
         const classCell = document.createElement('td');
-        // Combine class and section (e.g., "5A")
-        const classSection = (student.class || '') + (student.section || '');
+        // Combine class and section (e.g., "5A") - ensure both are strings
+        const classStr = String(student.class || '');
+        const sectionStr = String(student.section || '');
+        const classSection = classStr + sectionStr;
         classCell.textContent = classSection || '';
         classCell.className = 'fixed-column';
         row.appendChild(classCell);
@@ -712,14 +864,33 @@ function buildDashboardGrid() {
         row.appendChild(userCodeCell);
 
         const dobCell = document.createElement('td');
-        // Format date of birth for display (YYYY-MM-DD to DD/MM/YYYY)
+        // Format date of birth for display - handle Firestore Timestamp, Date object, or string
         if (student.date_of_birth) {
-            const dob = new Date(student.date_of_birth);
-            // Format as DD/MM/YYYY
-            const day = String(dob.getDate()).padStart(2, '0');
-            const month = String(dob.getMonth() + 1).padStart(2, '0');
-            const year = dob.getFullYear();
-            dobCell.textContent = `${day}/${month}/${year}`;
+            let dob;
+            // Check if it's a Firestore Timestamp
+            if (student.date_of_birth.toDate && typeof student.date_of_birth.toDate === 'function') {
+                dob = student.date_of_birth.toDate();
+            } else if (student.date_of_birth instanceof Date) {
+                dob = student.date_of_birth;
+            } else if (typeof student.date_of_birth === 'string') {
+                dob = new Date(student.date_of_birth);
+            } else if (student.date_of_birth.seconds) {
+                // Firestore Timestamp with seconds property
+                dob = new Date(student.date_of_birth.seconds * 1000);
+            } else {
+                dob = new Date(student.date_of_birth);
+            }
+            
+            // Check if date is valid
+            if (!isNaN(dob.getTime())) {
+                // Format as DD/MM/YYYY
+                const day = String(dob.getDate()).padStart(2, '0');
+                const month = String(dob.getMonth() + 1).padStart(2, '0');
+                const year = dob.getFullYear();
+                dobCell.textContent = `${day}/${month}/${year}`;
+            } else {
+                dobCell.textContent = 'N/A';
+            }
         } else {
             dobCell.textContent = 'N/A';
         }
@@ -778,8 +949,10 @@ function getVariantStatus(userId, operation, variant) {
         // FIRST: Check for active session - active sessions take priority over completed scores
         // because they show what the student is currently working on
         const activeSessions = window.activeSessions || [];
+        // Normalize user_id to string for comparison (Firestore stores as string from Firebase Auth UID)
         const activeSession = activeSessions.find(s => 
-            s && s.user_id === userId && 
+            s && 
+            String(s.user_id || '') === String(userId || '') && 
             s.operation === operation && 
             s.variant === variant
         );
@@ -884,19 +1057,36 @@ async function exportToExcel() {
 
         // Add data rows
         students.forEach(student => {
-            // Format date of birth for export
+            // Format date of birth for export - handle Firestore Timestamp, Date object, or string
             let dobFormatted = 'N/A';
             if (student.date_of_birth) {
-                const dob = new Date(student.date_of_birth);
-                const day = String(dob.getDate()).padStart(2, '0');
-                const month = String(dob.getMonth() + 1).padStart(2, '0');
-                const year = dob.getFullYear();
-                dobFormatted = `${day}/${month}/${year}`;
+                let dob;
+                // Check if it's a Firestore Timestamp
+                if (student.date_of_birth.toDate && typeof student.date_of_birth.toDate === 'function') {
+                    dob = student.date_of_birth.toDate();
+                } else if (student.date_of_birth instanceof Date) {
+                    dob = student.date_of_birth;
+                } else if (typeof student.date_of_birth === 'string') {
+                    dob = new Date(student.date_of_birth);
+                } else if (student.date_of_birth.seconds) {
+                    // Firestore Timestamp with seconds property
+                    dob = new Date(student.date_of_birth.seconds * 1000);
+                } else {
+                    dob = new Date(student.date_of_birth);
+                }
+                
+                // Check if date is valid
+                if (!isNaN(dob.getTime())) {
+                    const day = String(dob.getDate()).padStart(2, '0');
+                    const month = String(dob.getMonth() + 1).padStart(2, '0');
+                    const year = dob.getFullYear();
+                    dobFormatted = `${day}/${month}/${year}`;
+                }
             }
             
             const row = [
                 `${student.first_name || ''} ${student.last_name || ''}`.trim() || student.user_code || 'N/A',
-                (student.class || '') + (student.section || ''), // Combined class+section
+                String(student.class || '') + String(student.section || ''), // Combined class+section
                 student.roll_number || '',
                 student.user_code || 'N/A',
                 dobFormatted
@@ -1012,9 +1202,11 @@ async function handleLogout() {
     if (typeof window.stopInactivityTracking === 'function') {
         window.stopInactivityTracking();
     }
-    if (supabase) {
-        await supabase.auth.signOut();
+    // Sign out using Firebase
+    if (window.firebaseSignOut && window.firebaseAuth) {
+        await window.firebaseSignOut(window.firebaseAuth);
     }
+    sessionStorage.removeItem('currentUserProfile');
     window.location.href = 'index.html';
 }
 
@@ -1048,53 +1240,76 @@ function startActiveSessionsPolling() {
         clearInterval(activeSessionsPollInterval);
     }
     
-    // Poll every 5 seconds
+    // Poll every 5 seconds using Firestore (matches Supabase structure)
     activeSessionsPollInterval = setInterval(async () => {
-        if (!supabase || !teacherProfile) return;
+        if (!window.firebaseDb || !teacherProfile || students.length === 0) return;
         
         try {
-            // Get student user IDs
-            const studentUserIds = students.map(s => s.user_id);
+            // Get student user IDs and normalize to strings
+            // Firestore queries are type-sensitive, so ensure all user_id values are strings
+            const studentUserIds = students
+                .map(s => s.user_id)
+                .filter(id => id != null && id !== '')
+                .map(id => String(id)); // Normalize to string
             if (studentUserIds.length === 0) return;
             
-            // Fetch active sessions
-            const { data: activeSessionsData, error: activeSessionsError } = await supabase
-                .from('active_sessions')
-                .select('*')
-                .in('user_id', studentUserIds);
+            // Fetch active sessions from Firestore
+            // Firestore 'in' query has limit of 10, so batch if needed
+            const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
+            const activeSessions = [];
+            const batchSize = 10;
             
-            if (activeSessionsError) {
-                console.warn('⚠️ Error polling active sessions:', activeSessionsError);
-                return;
+            for (let i = 0; i < studentUserIds.length; i += batchSize) {
+                const batch = studentUserIds.slice(i, i + batchSize);
+                try {
+                    const activeSessionsRef = collection(window.firebaseDb, 'active_sessions');
+                    const activeSessionsQuery = query(activeSessionsRef, where('user_id', 'in', batch));
+                    const activeSessionsSnapshot = await getDocs(activeSessionsQuery);
+                    
+                    activeSessionsSnapshot.forEach((doc) => {
+                        const sessionData = doc.data();
+                        // Debug logging commented out - uncomment if needed for troubleshooting
+                        // console.log('📊 Active session fetched:', {
+                        //     user_id: sessionData.user_id,
+                        //     operation: sessionData.operation,
+                        //     variant: sessionData.variant,
+                        //     last_question_no_completed: sessionData.last_question_no_completed,
+                        //     last_question_correct_wrong: sessionData.last_question_correct_wrong
+                        // });
+                        activeSessions.push(sessionData);
+                    });
+                } catch (error) {
+                    console.warn('⚠️ Error fetching active sessions batch:', error);
+                }
             }
             
             // Update global active sessions
             const oldActiveSessions = window.activeSessions || [];
-            window.activeSessions = activeSessionsData || [];
+            window.activeSessions = activeSessions;
             
-            // Check if any cells need updating
-            const hasChanges = JSON.stringify(oldActiveSessions) !== JSON.stringify(window.activeSessions);
+            // Check if sessions were added/removed (for score refresh when quizzes complete)
+            const oldSessionKeys = new Set(oldActiveSessions.map(s => `${s.user_id}_${s.operation}_${s.variant}`));
+            const newSessionKeys = new Set(activeSessions.map(s => `${s.user_id}_${s.operation}_${s.variant}`));
+            const sessionsAddedOrRemoved = oldSessionKeys.size !== newSessionKeys.size || 
+                                          [...oldSessionKeys].some(key => !newSessionKeys.has(key)) ||
+                                          [...newSessionKeys].some(key => !oldSessionKeys.has(key));
             
-            if (hasChanges) {
-                // Detect which active sessions disappeared (completed variants)
-                const oldSessionKeys = new Set(oldActiveSessions.map(s => `${s.user_id}_${s.operation}_${s.variant}`));
-                const newSessionKeys = new Set(activeSessionsData.map(s => `${s.user_id}_${s.operation}_${s.variant}`));
-                
-                // Find sessions that disappeared (were in old, not in new)
+            // Always update cells to show updated question numbers
+            // This ensures question numbers update even if no sessions were added/removed
+            updateActiveSessionCells();
+            
+            // If sessions disappeared, refresh scores for those students
+            if (sessionsAddedOrRemoved) {
                 const disappearedSessions = oldActiveSessions.filter(s => {
                     const key = `${s.user_id}_${s.operation}_${s.variant}`;
                     return !newSessionKeys.has(key);
                 });
                 
-                // If any sessions disappeared, refresh scores for those students
                 if (disappearedSessions.length > 0) {
                     const userIdsToRefresh = [...new Set(disappearedSessions.map(s => s.user_id))];
                     console.log(`🔄 Active sessions disappeared for ${userIdsToRefresh.length} student(s), refreshing scores...`);
                     await refreshScoresForStudents(userIdsToRefresh);
                 }
-                
-                // Update all cells (will show green/red for completed variants)
-                updateActiveSessionCells();
             }
         } catch (error) {
             console.error('❌ Error in active sessions polling:', error);
@@ -1102,30 +1317,41 @@ function startActiveSessionsPolling() {
     }, 5000); // 5 seconds
 }
 
-// Refresh scores for specific students
+// Refresh scores for specific students (using Firestore)
 // CALLED BY: teacher-dashboard.js - startActiveSessionsPolling() (when active sessions disappear)
 async function refreshScoresForStudents(userIds) {
     if (window.debugLog) window.debugLog('refreshScoresForStudents', `(${userIds.length} students)`);
-    if (!supabase || userIds.length === 0) return;
+    if (!window.firebaseDb || userIds.length === 0) return;
     
     try {
-        // Fetch latest scores for these students
-        const { data: scoresData, error: scoresError } = await supabase
-            .from('user_scores')
-            .select('*')
-            .in('user_id', userIds);
+        const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
+        const scoresRef = collection(window.firebaseDb, 'user_scores');
         
-        if (scoresError) {
-            console.warn('⚠️ Error refreshing scores:', scoresError);
-            return;
+        // Firestore 'in' query has limit of 10, so batch if needed
+        const batchSize = 10;
+        const newScores = [];
+        
+        for (let i = 0; i < userIds.length; i += batchSize) {
+            const batch = userIds.slice(i, i + batchSize);
+            const scoresQuery = query(scoresRef, where('user_id', 'in', batch));
+            const scoresSnapshot = await getDocs(scoresQuery);
+            
+            scoresSnapshot.forEach((doc) => {
+                newScores.push({
+                    id: doc.id,
+                    ...doc.data()
+                });
+            });
         }
         
         // Update studentScores array: remove old scores for these students, add new ones
-        const newScores = scoresData || [];
         studentScores = studentScores.filter(s => !userIds.includes(s.user_id));
         studentScores.push(...newScores);
         
         console.log(`✅ Refreshed scores for ${userIds.length} student(s), found ${newScores.length} new score records`);
+        
+        // Rebuild the grid to show updated scores
+        buildDashboardGrid();
     } catch (error) {
         console.error('❌ Error refreshing scores:', error);
     }
@@ -1162,7 +1388,7 @@ function updateActiveSessionCells() {
                 return;
             }
             if (status && typeof status === 'object' && status.type === 'active') {
-                cell.textContent = status.questionNo || '0';
+                cell.textContent = status.questionNo != null ? String(status.questionNo) : '0';
                 cell.className = baseClass + ' ' + (status.isCorrect === true ? 'status-active-correct' : 
                                  status.isCorrect === false ? 'status-active-wrong' : 
                                  'status-active-unknown');
@@ -1252,21 +1478,5 @@ function updateColumnVisibility() {
     });
 }
 
-// Initialize on page load
-document.addEventListener('DOMContentLoaded', () => {
-    initDashboard();
-    
-    // Set up student dashboard button event listener
-    const studentDashboardBtn = document.getElementById('studentDashboardBtn');
-    if (studentDashboardBtn) {
-        studentDashboardBtn.addEventListener('click', () => {
-            window.location.href = 'student-dashboard.html';
-        });
-    }
-    
-    // Set up logout button event listener
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', handleLogout);
-    }
-});
+// Note: initDashboard is called from teacher-dashboard.html Firebase auth state change callback
+// Button event listeners are set up in teacher-dashboard.html

@@ -159,6 +159,12 @@ function startSession(operation, variant) {
 
     generateAllQuestions(operation, variant);
     
+    // Create active session in Firestore (matches Supabase structure)
+    if (typeof window.updateActiveSession === 'function') {
+        const totalQuestions = currentSession.questions.length;
+        window.updateActiveSession(operation, variant, 0, null, totalQuestions);
+    }
+    
     // Hide quiz controls initially (will be shown for multi-digit variants in displayQuestion)
     const quizControls = document.getElementById('quizControls');
     if (quizControls) {
@@ -1709,6 +1715,30 @@ function continueSession() {
 // CALLED BY: question.js - startSession() (updates header when session starts), question.html - DOMContentLoaded listener (updates header on page load)
 function updateQuestionPageHeader() {
     if (window.debugLog) window.debugLog('updateQuestionPageHeader');
+    
+    // Load user profile from sessionStorage (Firebase-based system)
+    let currentUserProfile = null;
+    try {
+        const profileStr = sessionStorage.getItem('currentUserProfile');
+        if (profileStr) {
+            currentUserProfile = JSON.parse(profileStr);
+        }
+    } catch (e) {
+        console.warn('⚠️ Could not load user profile from sessionStorage:', e);
+    }
+    
+    // Fallback to quizUserProfile if currentUserProfile not available (legacy Supabase system)
+    if (!currentUserProfile) {
+        try {
+            const cachedProfile = sessionStorage.getItem('quizUserProfile');
+            if (cachedProfile) {
+                currentUserProfile = JSON.parse(cachedProfile);
+            }
+        } catch (e) {
+            console.warn('⚠️ Could not load quiz user profile from sessionStorage:', e);
+        }
+    }
+    
     // Read from user_profile if available
     if (currentUserProfile) {
         const fullName = [currentUserProfile.first_name, currentUserProfile.last_name].filter(Boolean).join(' ');
@@ -1725,43 +1755,16 @@ function updateQuestionPageHeader() {
         if (userClassDisplay) userClassDisplay.textContent = classSection ? `Class: ${classSection}` : 'Class: NA';
         if (userRollDisplay) userRollDisplay.textContent = rollNumber ? `Roll Number: ${rollNumber}` : 'Roll Number: NA';
     } else {
-        // Fallback to stored values from sessionStorage (set in student dashboard)
-        try {
-            const cachedProfile = sessionStorage.getItem('quizUserProfile');
-            if (cachedProfile) {
-                const profile = JSON.parse(cachedProfile);
-                const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ');
-                const classSection = profile.class && profile.section ? `${profile.class}${profile.section}` : '';
-                const rollNumber = profile.roll_number || '';
+        // No profile available - show default values
+        const userNameDisplay = document.getElementById('questionUserNameDisplay');
+        const userClassDisplay = document.getElementById('questionUserClassDisplay');
+        const userRollDisplay = document.getElementById('questionUserRollDisplay');
 
-                const userNameDisplay = document.getElementById('questionUserNameDisplay');
-                const userClassDisplay = document.getElementById('questionUserClassDisplay');
-                const userRollDisplay = document.getElementById('questionUserRollDisplay');
-
-                if (userNameDisplay) userNameDisplay.textContent = fullName ? `Name: ${fullName}` : 'Name: Anonymous';
-                if (userClassDisplay) userClassDisplay.textContent = classSection ? `Class: ${classSection}` : 'Class: NA';
-                if (userRollDisplay) userRollDisplay.textContent = rollNumber ? `Roll Number: ${rollNumber}` : 'Roll Number: NA';
-            } else {
-                // Final fallback for anonymous / missing data
-                const userNameDisplay = document.getElementById('questionUserNameDisplay');
-                const userClassDisplay = document.getElementById('questionUserClassDisplay');
-                const userRollDisplay = document.getElementById('questionUserRollDisplay');
-                if (userNameDisplay) userNameDisplay.textContent = 'Name: Anonymous';
-                if (userClassDisplay) userClassDisplay.textContent = 'Class: NA';
-                if (userRollDisplay) userRollDisplay.textContent = 'Roll Number: NA';
-            }
-        } catch (err) {
-            console.warn('Unable to parse cached profile for question header', err);
-            // Final fallback for anonymous / missing data
-            const userNameDisplay = document.getElementById('questionUserNameDisplay');
-            const userClassDisplay = document.getElementById('questionUserClassDisplay');
-            const userRollDisplay = document.getElementById('questionUserRollDisplay');
-            if (userNameDisplay) userNameDisplay.textContent = 'Name: Anonymous';
-            if (userClassDisplay) userClassDisplay.textContent = 'Class: NA';
-            if (userRollDisplay) userRollDisplay.textContent = 'Roll Number: NA';
-        }
+        if (userNameDisplay) userNameDisplay.textContent = 'Name: Anonymous';
+        if (userClassDisplay) userClassDisplay.textContent = 'Class: NA';
+        if (userRollDisplay) userRollDisplay.textContent = 'Roll Number: NA';
     }
-
+    
     // Update operation and variant from sessionStorage
     const operation = sessionStorage.getItem('quizOperation');
     const variant = sessionStorage.getItem('quizVariant');

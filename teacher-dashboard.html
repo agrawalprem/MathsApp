@@ -10,33 +10,30 @@
     REFERENCED BY:
     - teacher-dashboard.js: loadDashboard(), buildProgressTable(), exportToExcel()
     - teacher-dashboard.css (all styles)
-    - Supabase: Fetches student data and progress from database
+    - Firebase: Fetches student data and progress from Firestore database
 -->
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#156082">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Dashboard - Student Progress</title>
     <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="teacher-dashboard.css">
     <!-- ExcelJS for Excel export -->
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
-    <!-- Supabase Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Shared database module (initializes Supabase) -->
-    <script src="shared_db.js"></script>
     <script>
-        // Register Service Worker
+        // Disable service worker during development to avoid caching issues
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then((registration) => {
-                        console.log('Service Worker registered:', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.log('Service Worker registration failed:', error);
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister().then(function(boolean) {
+                        console.log('Service Worker unregistered:', boolean);
                     });
+                }
             });
         }
     </script>
@@ -140,6 +137,186 @@
         </div>
     </div>
 
+    <script type="module">
+        // Initialize Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-analytics.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyBqCWeT44wwh92OL_8O0-j4IBwLeOaGSmc",
+            authDomain: "maths-in-baby-steps.firebaseapp.com",
+            projectId: "maths-in-baby-steps",
+            storageBucket: "maths-in-baby-steps.firebasestorage.app",
+            messagingSenderId: "235467885199",
+            appId: "1:235467885199:web:dff119a28e6f897d1dfefa",
+            measurementId: "G-XKB7TT32RL"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        console.log('✅ Firebase initialized in teacher dashboard');
+        
+        // Expose Firebase instances globally for teacher-dashboard.js
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.firebaseSignOut = signOut;
+        
+        // Handle logout button
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                await signOut(auth);
+                console.log('✅ User signed out');
+                sessionStorage.removeItem('currentUserProfile');
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('❌ Sign out error:', error);
+                alert('Error signing out: ' + error.message);
+            }
+        });
+        
+        // Handle student dashboard button
+        document.getElementById('studentDashboardBtn').addEventListener('click', () => {
+            window.location.href = 'student-dashboard.html';
+        });
+        
+        // Monitor auth state and initialize dashboard
+        onAuthStateChanged(auth, async (user) => {
+            console.log('🔔 Auth state changed:', user ? `User: ${user.email}` : 'No user');
+            
+            if (user) {
+                console.log('✅ User is signed in:', user.email);
+                console.log('🔍 Checking sessionStorage for profile...');
+                
+                // Load user profile from sessionStorage
+                let userProfile = null;
+                try {
+                    const profileStr = sessionStorage.getItem('currentUserProfile');
+                    console.log('📦 Profile from sessionStorage:', profileStr ? 'Found' : 'Not found');
+                    if (profileStr) {
+                        userProfile = JSON.parse(profileStr);
+                        console.log('✅ User profile loaded from sessionStorage');
+                        console.log('📋 Full profile:', userProfile);
+                        console.log('👤 User type:', userProfile ? userProfile.user_type : 'undefined');
+                    }
+                } catch (e) {
+                    console.error('❌ Error loading user profile from sessionStorage:', e);
+                }
+                
+                // If no profile in sessionStorage, fetch from Firestore
+                if (!userProfile) {
+                    console.log('🔍 Profile not in sessionStorage, fetching from Firestore...');
+                    try {
+                        const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
+                        
+                        // Try querying by user_id (Firebase Auth UID) first
+                        console.log('🔍 Querying by user_id (Firebase Auth UID):', user.uid);
+                        const profilesRef = collection(db, 'user_profiles');
+                        const q = query(profilesRef, where('user_id', '==', user.uid));
+                        const querySnapshot = await getDocs(q);
+                        
+                        if (!querySnapshot.empty) {
+                            // Found by user_id
+                            querySnapshot.forEach((doc) => {
+                                userProfile = doc.data();
+                                console.log('✅ User profile fetched from Firestore by user_id');
+                            });
+                        } else {
+                            // Try querying by email as fallback
+                            console.log('🔍 Not found by user_id, trying email:', user.email);
+                            const emailQuery = query(profilesRef, where('email', '==', user.email));
+                            const emailSnapshot = await getDocs(emailQuery);
+                            
+                            if (!emailSnapshot.empty) {
+                                emailSnapshot.forEach((doc) => {
+                                    userProfile = doc.data();
+                                    console.log('✅ User profile fetched from Firestore by email');
+                                });
+                            } else {
+                                // Last resort: try user_code as document ID (if email format matches pattern)
+                                console.log('🔍 Not found by email, trying user_code as document ID...');
+                                const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
+                                // Try extracting user code from email (format: user_code@mathsbaby.app)
+                                const userCode = user.email.split('@')[0];
+                                const profileRef = doc(db, 'user_profiles', userCode);
+                                const profileSnap = await getDoc(profileRef);
+                                if (profileSnap.exists()) {
+                                    userProfile = profileSnap.data();
+                                    console.log('✅ User profile fetched from Firestore by user_code document ID');
+                                }
+                            }
+                        }
+                        
+                        if (userProfile) {
+                            console.log('✅ User profile fetched from Firestore');
+                            console.log('📋 Full profile:', userProfile);
+                            console.log('👤 User type:', userProfile.user_type);
+                            sessionStorage.setItem('currentUserProfile', JSON.stringify(userProfile));
+                        } else {
+                            console.warn('⚠️ Profile not found in Firestore');
+                            console.warn('⚠️ Email:', user.email);
+                            console.warn('⚠️ UID:', user.uid);
+                        }
+                    } catch (error) {
+                        console.error('❌ Error fetching user profile from Firestore:', error);
+                        console.error('❌ Error details:', error.message, error.stack);
+                    }
+                }
+                
+                // Check if user is a teacher
+                if (!userProfile) {
+                    console.error('❌ No user profile found - cannot determine user type');
+                    console.log('🔄 Redirecting to login page...');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                console.log('🔍 Checking user type...');
+                console.log('👤 User type value:', userProfile.user_type);
+                console.log('🔍 Is Teacher?', userProfile.user_type === 'Teacher');
+                
+                if (userProfile.user_type === 'Teacher') {
+                    console.log('✅ User is a teacher, initializing dashboard...');
+                    // Expose user and profile globally
+                    window.currentUser = user;
+                    window.currentUserProfile = userProfile;
+                    
+                    // Wait a moment for teacher-dashboard.js to load
+                    const tryInit = () => {
+                        if (window.initDashboard) {
+                            console.log('🚀 Calling initDashboard...');
+                            window.initDashboard();
+                        } else {
+                            console.warn('⚠️ initDashboard function not found, waiting...');
+                            setTimeout(tryInit, 100);
+                        }
+                    };
+                    
+                    // Start trying immediately, but also set a timeout
+                    tryInit();
+                    setTimeout(() => {
+                        if (!window.initDashboard) {
+                            console.error('❌ initDashboard still not found after 2 seconds');
+                            console.error('❌ Available window functions:', Object.keys(window).filter(k => k.includes('init') || k.includes('dashboard')));
+                        }
+                    }, 2000);
+                } else {
+                    console.warn('⚠️ User is not a teacher');
+                    console.log('📋 User profile:', userProfile);
+                    console.log('👤 User type:', userProfile.user_type);
+                    console.log('🔄 Redirecting to student dashboard...');
+                    window.location.href = 'student-dashboard.html';
+                }
+            } else {
+                console.log('ℹ️ User is signed out - redirecting to login');
+                window.location.href = 'index.html';
+            }
+        });
+    </script>
     <script src="teacher-dashboard.js"></script>
 </body>
 </html>

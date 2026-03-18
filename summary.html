@@ -4,25 +4,260 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#156082">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Summary - Learning Maths in Baby Steps</title>
     <link rel="manifest" href="/manifest.json">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="shared.css">
     <link rel="stylesheet" href="summary.css">
-    <script src="shared.js"></script>
-    <script src="shared_db.js"></script>
-    <script src="summary.js"></script>
-    <script>
-        // Register Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then((registration) => {
-                        console.log('Service Worker registered:', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.log('Service Worker registration failed:', error);
+    <script type="module">
+        // Initialize Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-analytics.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+        import { getFirestore, collection, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyBqCWeT44wwh92OL_8O0-j4IBwLeOaGSmc",
+            authDomain: "maths-in-baby-steps.firebaseapp.com",
+            projectId: "maths-in-baby-steps",
+            storageBucket: "maths-in-baby-steps.firebasestorage.app",
+            messagingSenderId: "235467885199",
+            appId: "1:235467885199:web:dff119a28e6f897d1dfefa",
+            measurementId: "G-XKB7TT32RL"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        console.log('✅ Firebase initialized in summary page');
+        
+        // Expose auth helpers globally so non-module scripts can use them
+        window.summaryAuth = auth;
+        window.summaryDb = db;
+        window.auth = auth;
+        
+        // Signal that Firebase module is ready
+        window.firebaseReady = true;
+        console.log('✅ Firebase module ready - all functions exposed');
+        
+        // Wrapper function to check auth state and save score
+        window.checkAuthAndSaveScore = async function(sessionData, userProfile) {
+            return new Promise((resolve) => {
+                // Check if user is already authenticated
+                const currentUser = auth.currentUser;
+                if (currentUser) {
+                    // User is authenticated, save immediately
+                    window.saveScoreToFirestore(sessionData, userProfile, currentUser)
+                        .then(result => resolve(result))
+                        .catch(error => {
+                            console.error('❌ Error saving score:', error);
+                            resolve(null);
+                        });
+                } else {
+                    // Wait for auth state change
+                    const unsubscribe = onAuthStateChanged(auth, async (authUser) => {
+                        unsubscribe(); // Only listen once
+                        if (authUser) {
+                            window.saveScoreToFirestore(sessionData, userProfile, authUser)
+                                .then(result => resolve(result))
+                                .catch(error => {
+                                    console.error('❌ Error saving score:', error);
+                                    resolve(null);
+                                });
+                        } else {
+                            console.warn('⚠️ User not authenticated, score not saved');
+                            resolve(null);
+                        }
+                    }, (error) => {
+                        console.error('❌ Auth state error:', error);
+                        resolve(null);
                     });
+                }
+            });
+        };
+        
+        // Function to save score to Firestore with all user profile fields
+        window.saveScoreToFirestore = async function(sessionData, userProfile, authUser) {
+            try {
+                // Validate inputs
+                if (!authUser || !authUser.uid) {
+                    console.error('❌ No authenticated user provided');
+                    return null;
+                }
+                
+                if (!userProfile) {
+                    console.error('❌ No user profile provided');
+                    return null;
+                }
+                
+                if (!sessionData || !sessionData.operation || !sessionData.variant) {
+                    console.error('❌ Invalid session data:', sessionData);
+                    return null;
+                }
+                
+                console.log('💾 Starting saveScoreToFirestore...');
+                
+                // Extract score data from session
+                const operation = sessionData.operation || '';
+                const variant = sessionData.variant || '';
+                const correctCount = sessionData.correctCount || 0;
+                const wrongCount = sessionData.wrongCount || 0;
+                const totalQuestions = correctCount + wrongCount;
+                const totalTime = Math.round((sessionData.totalTime || 0) * 10) / 10;
+                const averageTime = correctCount > 0 ? Math.round((totalTime / correctCount) * 10) / 10 : 0;
+                const passed = sessionData.passed || false;
+                
+                console.log('   Score data:', { operation, variant, correctCount, wrongCount, totalQuestions, passed });
+                
+                // Fetch school_name from classes collection if school_id, class, and section are available
+                let schoolName = null;
+                if (userProfile.school_id && userProfile.class && userProfile.section) {
+                    try {
+                        const classId = `${userProfile.school_id}${userProfile.class}${userProfile.section}`;
+                        const classDocRef = doc(db, 'classes', classId);
+                        const classDocSnap = await getDoc(classDocRef);
+                        if (classDocSnap.exists()) {
+                            schoolName = classDocSnap.data().school_name || null;
+                        }
+                    } catch (error) {
+                        console.warn('   ⚠️  Could not fetch school_name:', error.message);
+                    }
+                }
+                
+                // Helper function to format date as YYYYMMDDHHMISEC
+                function formatTimestampId(date) {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const seconds = String(date.getSeconds()).padStart(2, '0');
+                    return `${year}${month}${day}${hours}${minutes}${seconds}`;
+                }
+                
+                // Helper function to convert date_of_birth to string
+                function convertDateOfBirthToString(dob) {
+                    if (!dob) return null;
+                    
+                    // If it's already a string, return as-is
+                    if (typeof dob === 'string') {
+                        return dob;
+                    }
+                    
+                    // If it's a Firestore Timestamp, convert to Date first
+                    let dateObj = null;
+                    if (dob.toDate && typeof dob.toDate === 'function') {
+                        dateObj = dob.toDate();
+                    } else if (dob instanceof Date) {
+                        dateObj = dob;
+                    } else if (dob.seconds) {
+                        // Firestore Timestamp object with seconds property
+                        dateObj = new Date(dob.seconds * 1000);
+                    } else {
+                        // Try to parse as Date
+                        dateObj = new Date(dob);
+                    }
+                    
+                    // Convert to YYYY-MM-DD using LOCAL date components (not UTC)
+                    // This prevents timezone shifts (e.g., Dec 8 midnight IST becomes Dec 7 in UTC)
+                    if (dateObj && !isNaN(dateObj.getTime())) {
+                        const year = dateObj.getFullYear();
+                        const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                        const day = String(dateObj.getDate()).padStart(2, '0');
+                        return `${year}-${month}-${day}`; // Returns YYYY-MM-DD in local timezone
+                    }
+                    
+                    return null;
+                }
+                
+                // Generate document ID with collision handling
+                const now = new Date();
+                let baseId = formatTimestampId(now);
+                let docId = baseId;
+                let counter = 0;
+                let success = false;
+                let scoreDocument = null;
+                
+                while (!success && counter < 100) {
+                    const docRef = doc(db, 'user_scores', docId);
+                    const docSnapshot = await getDoc(docRef);
+                    
+                    if (!docSnapshot.exists()) {
+                        // Document doesn't exist, safe to create
+                        scoreDocument = {
+                            // User Identification Fields
+                            user_id: authUser.uid,
+                            user_code: userProfile.user_code || null,
+                            // Note: email is NOT stored in user_scores (only used for login/auth)
+                            
+                            // User Profile Fields (denormalized - optional for anonymous users)
+                            first_name: userProfile.first_name || null,
+                            last_name: userProfile.last_name || null,
+                            user_type: userProfile.user_type || null,
+                            gender: userProfile.gender || null,
+                            date_of_birth: convertDateOfBirthToString(userProfile.date_of_birth),
+                            roll_number: userProfile.roll_number || null,
+                            
+                            // School and Class Fields
+                            school_id: userProfile.school_id || null,
+                            school_name: schoolName || null,
+                            class: userProfile.class || null,
+                            section: userProfile.section || null,
+                            
+                            // Score Fields
+                            operation: operation,
+                            variant: variant,
+                            correct_count: correctCount,
+                            wrong_count: wrongCount,
+                            total_questions: totalQuestions,
+                            total_time: totalTime,
+                            average_time: averageTime,
+                            passed: passed
+                        };
+                        
+                        await setDoc(docRef, scoreDocument);
+                        success = true;
+                        
+                        console.log('   Document prepared, saving to Firestore...');
+                        console.log('   Document ID (YYYYMMDDHHMISEC):', docId);
+                        console.log('✅ Score saved to Firestore successfully!');
+                        console.log('   Document ID:', docId);
+                        console.log('   Collection: user_scores');
+                    } else {
+                        // Collision detected, try next ID with suffix
+                        counter++;
+                        docId = `${baseId}_${counter}`;
+                    }
+                }
+                
+                if (!success) {
+                    throw new Error('Failed to generate unique document ID after 100 attempts');
+                }
+                
+                return { id: docId, ...scoreDocument };
+                
+            } catch (error) {
+                console.error('❌ Error saving score to Firestore:', error);
+                console.error('   Error code:', error.code);
+                console.error('   Error message:', error.message);
+                console.error('   Full error:', error);
+                return null;
+            }
+        };
+    </script>
+    <script>
+        // Disable service worker during development to avoid caching issues
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister().then(function(boolean) {
+                        console.log('Service Worker unregistered:', boolean);
+                    });
+                }
             });
         }
     </script>
@@ -63,7 +298,27 @@
         window.learningSequence = learningSequence;
         window.selectedOperation = selectedOperation;
 
+        // Load user profile from sessionStorage
+        function loadUserProfile() {
+            try {
+                const profileStr = sessionStorage.getItem('currentUserProfile');
+                if (profileStr) {
+                    const profile = JSON.parse(profileStr);
+                    console.log('✅ User profile loaded from sessionStorage:', profile);
+                    return profile;
+                }
+            } catch (e) {
+                console.error('❌ Error loading user profile from sessionStorage:', e);
+            }
+            return null;
+        }
+        
+        // Expose loadUserProfile globally
+        window.loadUserProfile = loadUserProfile;
+
         function updateSummaryPageHeader() {
+            const currentUserProfile = window.loadUserProfile ? window.loadUserProfile() : loadUserProfile();
+            
             if (currentUserProfile) {
                 const fullName = [currentUserProfile.first_name, currentUserProfile.last_name].filter(Boolean).join(' ');
                 const classSection = currentUserProfile.class && currentUserProfile.section 
@@ -71,26 +326,26 @@
                     : '';
                 const rollNumber = currentUserProfile.roll_number || '';
                 
-                document.getElementById('summaryUserNameDisplay').textContent = fullName ? `Name: ${fullName}` : '';
-                document.getElementById('summaryUserClassDisplay').textContent = classSection ? `Class: ${classSection}` : '';
-                document.getElementById('summaryUserRollDisplay').textContent = rollNumber ? `Roll Number: ${rollNumber}` : '';
+                const userNameDisplay = document.getElementById('summaryUserNameDisplay');
+                const userClassDisplay = document.getElementById('summaryUserClassDisplay');
+                const userRollDisplay = document.getElementById('summaryUserRollDisplay');
+                
+                if (userNameDisplay) userNameDisplay.textContent = fullName ? `Name: ${fullName}` : 'Name: N/A';
+                if (userClassDisplay) userClassDisplay.textContent = classSection ? `Class: ${classSection}` : 'Class: N/A';
+                if (userRollDisplay) userRollDisplay.textContent = rollNumber ? `Roll Number: ${rollNumber}` : 'Roll Number: N/A';
+            } else {
+                // Fallback if no profile found
+                const userNameDisplay = document.getElementById('summaryUserNameDisplay');
+                const userClassDisplay = document.getElementById('summaryUserClassDisplay');
+                const userRollDisplay = document.getElementById('summaryUserRollDisplay');
+                
+                if (userNameDisplay) userNameDisplay.textContent = 'Name: N/A';
+                if (userClassDisplay) userClassDisplay.textContent = 'Class: N/A';
+                if (userRollDisplay) userRollDisplay.textContent = 'Roll Number: N/A';
             }
         }
 
-
         window.addEventListener('DOMContentLoaded', () => {
-            // Initialize Supabase
-            function tryInitSupabase(attempts = 0) {
-                if (window.supabase && window.supabase.createClient) {
-                    initSupabase();
-                } else if (attempts < 5) {
-                    setTimeout(() => tryInitSupabase(attempts + 1), 1000);
-                } else {
-                    console.error('❌ Supabase library failed to load');
-                }
-            }
-            
-            tryInitSupabase();
 
             // Get session data from sessionStorage
             const sessionData = sessionStorage.getItem('quizSessionData');
@@ -105,33 +360,90 @@
                     window.currentSession = session;
                     // Show summary
                     setTimeout(() => {
+                        // Update header with user info
                         updateSummaryPageHeader();
+                        
+                        // Show summary (if showSummary function exists from summary.js)
                         if (typeof showSummary === 'function') {
                             showSummary();
+                        } else {
+                            // Fallback: Display basic summary if showSummary doesn't exist
+                            displayBasicSummary(session);
                         }
                         
-                        // Save score if user is logged in
-                        if (currentUser && session && session.operation && session.variant) {
+                        // Save score to Firestore if user is logged in
+                        if (session && session.operation && session.variant) {
                             const totalQuestions = (session.correctCount || 0) + (session.wrongCount || 0);
                             const score = totalQuestions > 0 ? Math.round(((session.correctCount || 0) / totalQuestions) * 100) : 0;
                             const variantKey = `${session.operation}_${session.variant}`;
                             const passed = session.passed || false;
                             
-                            console.log('🔄 Saving score:', { variantKey, score, passed });
+                            console.log('📊 Session Summary:', { 
+                                variantKey, 
+                                score, 
+                                passed,
+                                correct: session.correctCount,
+                                wrong: session.wrongCount,
+                                total: totalQuestions
+                            });
                             
-                            // Save score with correct parameters (including passed value)
-                            if (typeof saveScore === 'function') {
-                                saveScore(variantKey, score, passed).then(savedData => {
-                                    if (savedData) {
-                                        console.log('✅ Score saved to server');
-                                        // Dashboard will fetch fresh data when user navigates to it
+                            // Save score to Firestore user_scores collection
+                            // Wait for Firebase to be initialized, then save
+                            const attemptSaveScore = async () => {
+                                // Wait for Firebase to be ready (with timeout)
+                                let attempts = 0;
+                                const maxAttempts = 50; // 5 seconds max wait
+                                
+                                const waitForFirebase = () => {
+                                    return new Promise((resolve, reject) => {
+                                        const checkFirebase = () => {
+                                            attempts++;
+                                            if (window.firebaseReady && window.checkAuthAndSaveScore && window.loadUserProfile) {
+                                                console.log(`✅ Firebase ready after ${attempts} attempts`);
+                                                resolve();
+                                            } else if (attempts >= maxAttempts) {
+                                                console.error('❌ Firebase initialization timeout');
+                                                console.log('   firebaseReady:', window.firebaseReady);
+                                                console.log('   checkAuthAndSaveScore:', typeof window.checkAuthAndSaveScore);
+                                                console.log('   loadUserProfile:', typeof window.loadUserProfile);
+                                                reject(new Error('Firebase initialization timeout'));
                                     } else {
-                                        console.error('❌ Failed to save score');
+                                                setTimeout(checkFirebase, 100);
+                                            }
+                                        };
+                                        checkFirebase();
+                                    });
+                                };
+                                
+                                try {
+                                    await waitForFirebase();
+                                    console.log('✅ Firebase ready, checking auth state and saving score...');
+                                    
+                                    const userProfile = window.loadUserProfile();
+                                    if (userProfile) {
+                                        console.log('💾 Attempting to save score to Firestore...');
+                                        console.log('   Operation:', session.operation);
+                                        console.log('   Variant:', session.variant);
+                                        console.log('   Results count:', session.results ? session.results.length : 0);
+                                        
+                                        // Use the wrapper function that handles auth state checking
+                                        const savedScore = await window.checkAuthAndSaveScore(session, userProfile);
+                                        if (savedScore) {
+                                            console.log('✅ Score saved successfully with question details:', savedScore.id);
+                                        } else {
+                                            console.warn('⚠️ Failed to save score');
+                                        }
+                                    } else {
+                                        console.warn('⚠️ User profile not found, score not saved');
                                     }
-                                }).catch(err => {
-                                    console.warn('⚠️ Error saving score:', err);
-                                });
-                            }
+                                } catch (error) {
+                                    console.error('❌ Error waiting for Firebase or saving score:', error);
+                                    console.warn('⚠️ Score may not be saved. Please check Firebase initialization.');
+                                }
+                            };
+                            
+                            // Start the save attempt
+                            attemptSaveScore();
                         }
                         
                         // Clear session data after displaying
@@ -147,6 +459,100 @@
                 window.location.href = 'student-dashboard.html';
             }
         });
+        
+        // Basic summary display function (fallback if summary.js is not loaded)
+        function displayBasicSummary(session) {
+            const summaryStats = document.getElementById('summaryStats');
+            const passFail = document.getElementById('passFail');
+            
+            if (!summaryStats || !passFail) return;
+            
+            const totalQuestions = (session.correctCount || 0) + (session.wrongCount || 0);
+            const correctCount = session.correctCount || 0;
+            const wrongCount = session.wrongCount || 0;
+            const totalTime = session.totalTime || 0;
+            const averageTime = correctCount > 0 ? (totalTime / correctCount).toFixed(1) : '0';
+            const avgTime = parseFloat(averageTime);
+            
+            summaryStats.innerHTML = `
+                <p><strong>Operation:</strong> ${session.operation ? session.operation.charAt(0).toUpperCase() + session.operation.slice(1) : 'N/A'}</p>
+                <p><strong>Variant:</strong> ${session.variant || 'N/A'}</p>
+                <p><strong>Total Questions:</strong> ${totalQuestions}</p>
+                <p><strong>Correct Answers:</strong> ${correctCount}</p>
+                <p><strong>Wrong Answers:</strong> ${wrongCount}</p>
+                <p><strong>Total Time:</strong> ${totalTime.toFixed(1)} seconds</p>
+                <p><strong>Average Time per Correct Sum:</strong> ${averageTime} seconds</p>
+            `;
+            
+            // Calculate pass/fail based on rules
+            let passed = false;
+            if (totalQuestions > 0) {
+                const correctPercentage = (correctCount / totalQuestions) * 100;
+                const wrongPercentage = (wrongCount / totalQuestions) * 100;
+                
+                // Check if variant is multi-digit (variants starting with M, e.g., 1M1, 2M1, 3M1, 4M1)
+                const isMultiDigit = session.variant && session.variant.includes('M');
+                
+                if (isMultiDigit) {
+                    // Multi-digit: correct >= 90% AND wrong <= 10% (no time limit)
+                    passed = correctPercentage >= 90 && wrongPercentage <= 10;
+                } else {
+                    // Single-digit: correct >= 90% AND wrong <= 10% AND average time <= 6 seconds
+                    passed = correctPercentage >= 90 && wrongPercentage <= 10 && avgTime <= 6;
+                }
+            }
+            
+            // Update session.passed for saving to database
+            session.passed = passed;
+            if (window.currentSession) {
+                window.currentSession.passed = passed;
+            }
+            
+            passFail.innerHTML = `
+                <button class="btn ${passed ? 'btn-success' : 'btn-danger'}" style="width: 100%; padding: 20px; font-size: 24px;">
+                    ${passed ? 'PASS' : 'FAIL'}
+                </button>
+            `;
+            
+            // Display question details
+            const questionDetails = document.getElementById('questionDetails');
+            if (questionDetails) {
+                console.log('📋 Displaying question details...');
+                console.log('   session.results:', session.results);
+                console.log('   session.results type:', typeof session.results);
+                console.log('   session.results is array:', Array.isArray(session.results));
+                console.log('   session.results length:', session.results ? session.results.length : 0);
+                
+                let detailsHTML = '<h3 style="margin-top: 20px; margin-bottom: 10px;">Question Details:</h3>';
+                if (session.results && Array.isArray(session.results) && session.results.length > 0) {
+                    console.log(`   Rendering ${session.results.length} question results`);
+                    session.results.forEach((result, index) => {
+                        const itemClass = result.isCorrect ? 'correct' : 'wrong';
+                        const bgColor = result.isCorrect ? '#d4edda' : '#f8d7da';
+                        const borderColor = result.isCorrect ? '#c3e6cb' : '#f5c6cb';
+                        // Format user answer - handle 0 correctly (0 is falsy in JavaScript)
+                        const userAnswerDisplay = (result.userAnswer !== null && result.userAnswer !== undefined) 
+                            ? result.userAnswer 
+                            : 'N/A';
+                        
+                        detailsHTML += `
+                            <div style="margin: 10px 0; padding: 10px; background-color: ${bgColor}; border-left: 4px solid ${borderColor}; border-radius: 4px;">
+                                <strong>${result.question || `Question ${index + 1}`} = ${userAnswerDisplay}</strong>
+                                ${!result.isCorrect && result.correctAnswer ? `<br><span style="color: #721c24;">Correct Answer: ${result.correctAnswer}</span>` : ''}
+                                <br><small style="color: #666;">Time: ${result.time || 0}s | ${result.isCorrect ? '✓ Correct' : '✗ Wrong'}</small>
+                            </div>
+                        `;
+                    });
+                    console.log('✅ Question details HTML generated');
+                } else {
+                    console.warn('⚠️ No question results found in session');
+                    detailsHTML += '<p>No question details available.</p>';
+                }
+                questionDetails.innerHTML = detailsHTML;
+            } else {
+                console.error('❌ questionDetails element not found in DOM');
+            }
+        }
     </script>
 </body>
 </html>

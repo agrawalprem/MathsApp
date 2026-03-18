@@ -1,0 +1,29 @@
+{
+  "name": "maths-in-baby-steps-utilities",
+  "version": "1.0.0",
+  "description": "Utility scripts for Firebase-based Maths Learning App - data management, diagnostics, and maintenance",
+  "main": "Utilities/export-user-profiles-to-excel.js",
+  "scripts": {
+    "export-profiles": "node Utilities/export-user-profiles-to-excel.js",
+    "upload-profiles": "node Utilities/upload-user-profiles.js",
+    "prepare-profiles": "node Utilities/prepare-user-profiles.js",
+    "update-classes": "node Utilities/classes-collection-update.js",
+    "check-dob": "node Utilities/check-dob-formats.js",
+    "check-scores-dob": "node Utilities/check-user-scores-dob.js",
+    "check-profiles": "node Utilities/check-user-profiles.js",
+    "convert-dob": "node Utilities/convert-dob-to-string.js",
+    "remove-email": "node Utilities/remove-email-from-user-profiles.js",
+    "add-email": "node Utilities/add-email-to-user-profiles.js",
+    "delete-scores": "node Utilities/delete-user-scores.js",
+    "view-scores": "node Utilities/view-user-scores.js",
+    "migrate-scores": "node Utilities/migrate-user-scores-from-supabase.js",
+    "export-scores": "node Utilities/export-user-scores-from-supabase.js",
+    "upload-scores": "node Utilities/upload-user-scores-from-excel.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.98.0",
+    "firebase-admin": "^12.0.0",
+    "node-fetch": "^2.7.0",
+    "xlsx": "^0.18.5"
+  }
+}

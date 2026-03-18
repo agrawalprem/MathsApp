@@ -63,7 +63,7 @@ async function updateAuthUI(skipPageSwitch = false) {
     if (window.debugLog) window.debugLog('updateAuthUI', `(skipPageSwitch=${skipPageSwitch})`);
     const studentDashboard = document.getElementById('studentDashboard');
 
-    if (currentUser && supabase) {
+    if (currentUser) {
         if (studentDashboard) {
             studentDashboard.style.display = 'block';
             studentDashboard.style.visibility = 'visible';
@@ -212,6 +212,7 @@ function launchVariant(operation, variant) {
 
 // Handle logout
 // CALLED BY: student-dashboard.html - <button onclick="handleLogout()">Logout</button>
+// NOTE: Actual signOut is handled in student-dashboard.html, this function handles cleanup
 async function handleLogout() {
     if (window.debugLog) window.debugLog('handleLogout');
     // Clear active session tracking
@@ -226,10 +227,14 @@ async function handleLogout() {
     if (typeof window.stopInactivityTracking === 'function') {
         window.stopInactivityTracking();
     }
-    if (supabase) {
-        await supabase.auth.signOut();
+    // Sign out is handled by window.handleLogout in student-dashboard.html
+    // This will redirect to index.html after signOut completes
+    if (typeof window.handleLogout === 'function') {
+        await window.handleLogout();
+    } else {
+        // Fallback: just redirect if handleLogout not available
+        window.location.href = 'index.html';
     }
-    window.location.href = 'index.html';
 }
 
 // Expose functions globally

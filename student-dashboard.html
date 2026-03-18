@@ -4,25 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#156082">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Student Dashboard - Learning Maths in Baby Steps</title>
     <link rel="manifest" href="/manifest.json">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
     <link rel="stylesheet" href="shared.css">
     <link rel="stylesheet" href="student-dashboard.css">
-    <script src="shared.js"></script>
-    <script src="shared_db.js"></script>
-    <script src="student-dashboard.js"></script>
     <script>
-        // Register Service Worker
+        // Disable service worker during development to avoid caching issues
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then((registration) => {
-                        console.log('Service Worker registered:', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.log('Service Worker registration failed:', error);
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister().then(function(boolean) {
+                        console.log('Service Worker unregistered:', boolean);
                     });
+                }
             });
         }
     </script>
@@ -306,7 +303,7 @@
         </div>
     </div>
 
-    <script>
+    <script type="module">
         // Initialize state
         let selectedOperation = null;
         
@@ -319,6 +316,49 @@
         window.learningSequence = learningSequence;
         window.selectedOperation = selectedOperation;
 
+        // Initialize Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-analytics.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        
+        const firebaseConfig = {
+            apiKey: "AIzaSyBqCWeT44wwh92OL_8O0-j4IBwLeOaGSmc",
+            authDomain: "maths-in-baby-steps.firebaseapp.com",
+            projectId: "maths-in-baby-steps",
+            storageBucket: "maths-in-baby-steps.firebasestorage.app",
+            messagingSenderId: "235467885199",
+            appId: "1:235467885199:web:dff119a28e6f897d1dfefa",
+            measurementId: "G-XKB7TT32RL"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        console.log('✅ Firebase initialized in student dashboard');
+        
+        // Global variables for dashboard
+        let currentUser = null;
+        let currentUserProfile = null;
+        
+        // Load user profile from sessionStorage
+        function loadUserProfile() {
+            try {
+                const profileStr = sessionStorage.getItem('currentUserProfile');
+                if (profileStr) {
+                    currentUserProfile = JSON.parse(profileStr);
+                    console.log('✅ User profile loaded from sessionStorage:', currentUserProfile);
+                    return currentUserProfile;
+                }
+            } catch (e) {
+                console.error('❌ Error loading user profile from sessionStorage:', e);
+            }
+            return null;
+        }
+        
+        // Update dashboard header with user info
         function updateStudentDashboardHeader() {
             if (currentUserProfile) {
                 const fullName = [currentUserProfile.first_name, currentUserProfile.last_name].filter(Boolean).join(' ');
@@ -327,55 +367,309 @@
                     : '';
                 const rollNumber = currentUserProfile.roll_number || '';
                 
-                document.getElementById('userNameDisplay').textContent = fullName ? `Name: ${fullName}` : '';
-                document.getElementById('userClassDisplay').textContent = classSection ? `Class: ${classSection}` : '';
-                document.getElementById('userRollDisplay').textContent = rollNumber ? `Roll Number: ${rollNumber}` : '';
+                const userNameDisplay = document.getElementById('userNameDisplay');
+                const userClassDisplay = document.getElementById('userClassDisplay');
+                const userRollDisplay = document.getElementById('userRollDisplay');
+                
+                if (userNameDisplay) userNameDisplay.textContent = fullName ? `Name: ${fullName}` : 'Name: N/A';
+                if (userClassDisplay) userClassDisplay.textContent = classSection ? `Class: ${classSection}` : 'Class: N/A';
+                if (userRollDisplay) userRollDisplay.textContent = rollNumber ? `Roll Number: ${rollNumber}` : 'Roll Number: N/A';
             }
         }
-
-
-        // Override launchVariant to navigate to question page
-        const originalLaunchVariant = window.launchVariant;
-        window.launchVariant = function(operation, variant) {
-            // Store operation and variant in sessionStorage
-            sessionStorage.setItem('quizOperation', operation);
-            sessionStorage.setItem('quizVariant', variant);
-            // Navigate to question page
-            window.location.href = 'question.html';
+        
+        // Handle logout
+        window.handleLogout = async function() {
+            try {
+                await signOut(auth);
+                console.log('✅ User signed out');
+                sessionStorage.removeItem('currentUserProfile');
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('❌ Sign out error:', error);
+                alert('Error signing out: ' + error.message);
+            }
         };
-
-        window.addEventListener('DOMContentLoaded', () => {
-            // Don't set selectedOperation here - let fetchAndUpdateVariantStatuses() determine it
-            // based on first incomplete operation, or 'addition' if all are complete
+        
+        // Select operation
+        window.selectOperation = function(operation) {
+            window.selectedOperation = operation;
             
-            // Initialize Supabase
-            function tryInitSupabase(attempts = 0) {
-                if (window.supabase && window.supabase.createClient) {
-                    initSupabase();
-                } else if (attempts < 5) {
-                    setTimeout(() => tryInitSupabase(attempts + 1), 1000);
-                } else {
-                    console.error('❌ Supabase library failed to load');
+            // Update selected operation card styling
+            document.querySelectorAll('.operation-card').forEach(card => {
+                card.classList.remove('selected');
+                const onclickAttr = card.getAttribute('onclick');
+                if (onclickAttr && onclickAttr.includes(`selectOperation('${operation}')`)) {
+                    card.classList.add('selected');
                 }
+            });
+            
+            // Show/hide appropriate variant container
+            const operations = ['addition', 'subtraction', 'multiplication', 'division'];
+            operations.forEach(op => {
+                const containerId = `variantsContainer${op.charAt(0).toUpperCase() + op.slice(1)}`;
+                const container = document.getElementById(containerId);
+                if (container) {
+                    container.classList.add('hidden');
+                }
+            });
+            
+            const selectedContainerId = `variantsContainer${operation.charAt(0).toUpperCase() + operation.slice(1)}`;
+            const selectedContainer = document.getElementById(selectedContainerId);
+            if (selectedContainer) {
+                selectedContainer.classList.remove('hidden');
             }
             
-            tryInitSupabase();
-
-            // Fallback: If updateAuthUI() hasn't loaded variants after 3 seconds, fetch them directly
-            // This ensures variants always load even if updateAuthUI() is delayed or fails
-            setTimeout(() => {
-                const additionContainer = document.getElementById('variantsContainerAddition');
-                const isLoading = additionContainer && (
-                    additionContainer.innerHTML.trim() === '' ||
-                    additionContainer.classList.contains('hidden')
-                );
+            // Refresh variant statuses when operation is selected
+            if (currentUser) {
+                console.log('🔄 Operation selected, refreshing variant statuses...');
+                fetchAndUpdateVariantStatuses();
+            }
+        };
+        
+        // Launch variant
+        window.launchVariant = function(operation, variant) {
+            sessionStorage.setItem('quizOperation', operation);
+            sessionStorage.setItem('quizVariant', variant);
+            window.location.href = 'question.html';
+        };
+        
+        // Fetch and update variant statuses from Firestore
+        // IMPORTANT:
+        // - Migrated scores may not have Firebase Auth UID in `user_id`
+        // - They DO have `user_code`
+        // So we fetch by user_code (preferred) and also by user_id (for new scores / anonymous)
+        async function fetchAndUpdateVariantStatuses() {
+            if (!currentUser) {
+                console.warn('⚠️ No user authenticated, skipping variant status update');
+                return;
+            }
+            
+            try {
+                console.log('📊 Fetching user scores from Firestore...');
+                console.log('👤 Current user UID:', currentUser.uid);
+                console.log('👤 Current user code:', currentUserProfile?.user_code || '(none)');
                 
-                // If still loading or empty, fetch variant statuses directly
-                if (isLoading && typeof fetchAndUpdateVariantStatuses === 'function') {
-                    console.log('⏳ Fallback: Fetching variant statuses directly (updateAuthUI may not have completed)');
-                    fetchAndUpdateVariantStatuses();
+                // Query Firestore for all scores for this user
+                // Use user_code as primary identifier for regular users.
+                // For anonymous users (no user_code), fallback to user_id.
+                // NOTE: Firestore queries are type-sensitive (e.g., "100001" != 100001), so try both string and number.
+                const scoresRef = collection(db, 'user_scores');
+                const scores = [];
+
+                if (!currentUserProfile || !currentUserProfile.user_code) {
+                    // For anonymous users or users without user_code, query by user_id instead
+                    console.log('⚠️ No user_code in profile, querying by user_id for anonymous user');
+                    const userId = currentUser.uid;
+                    
+                    // Query by user_id (for anonymous users)
+                    let querySnapshot = await getDocs(query(scoresRef, where('user_id', '==', userId)));
+                    
+                    querySnapshot.forEach((doc) => {
+                        scores.push({ id: doc.id, ...doc.data() });
+                    });
+                    
+                    console.log(`✅ Found ${scores.length} score(s) for user_id: ${userId}`);
+                } else {
+                    // Regular users with user_code - query by user_code
+                    const userCodeStr = String(currentUserProfile.user_code).trim();
+
+                    // Query by user_code (string)
+                    let querySnapshot = await getDocs(query(scoresRef, where('user_code', '==', userCodeStr)));
+
+                    // If empty, try user_code as number (in case it was stored as numeric in Firestore)
+                    if (querySnapshot.empty) {
+                        const userCodeNum = Number(userCodeStr);
+                        if (!Number.isNaN(userCodeNum)) {
+                            querySnapshot = await getDocs(query(scoresRef, where('user_code', '==', userCodeNum)));
+                        }
+                    }
+                    
+                    querySnapshot.forEach((doc) => {
+                        scores.push({ id: doc.id, ...doc.data() });
+                    });
+                    
+                    console.log(`✅ Found ${scores.length} score(s) for user_code: ${userCodeStr}`);
                 }
-            }, 3000);
+
+                // Optional: debug a few scores
+                scores.slice(0, 10).forEach((scoreData) => {
+                    console.log('📝 Score found:', {
+                        id: scoreData.id,
+                        operation: scoreData.operation,
+                        variant: scoreData.variant,
+                        passed: scoreData.passed,
+                        user_id: scoreData.user_id,
+                        user_code: scoreData.user_code
+                    });
+                });
+                
+                console.log(`✅ Found ${scores.length} score(s) for user`);
+                
+                // Group scores by operation and variant
+                const variantStatuses = {};
+                
+                scores.forEach(score => {
+                    const key = `${score.operation}_${score.variant}`;
+                    if (!variantStatuses[key]) {
+                        variantStatuses[key] = [];
+                    }
+                    variantStatuses[key].push(score);
+                });
+                
+                console.log('🔑 Variant statuses keys:', Object.keys(variantStatuses));
+                
+                // Update variant cards
+                const variantCards = document.querySelectorAll('.variant-card');
+                console.log(`🎴 Found ${variantCards.length} variant cards in DOM`);
+                
+                variantCards.forEach(card => {
+                    const operation = card.getAttribute('data-operation');
+                    const variant = card.getAttribute('data-variant');
+                    const key = `${operation}_${variant}`;
+                    
+                    const statusDiv = card.querySelector('.variant-status');
+                    
+                    // Remove existing status classes
+                    card.classList.remove('passed', 'failed');
+                    
+                    if (variantStatuses[key] && variantStatuses[key].length > 0) {
+                        const variantScores = variantStatuses[key];
+                        console.log(`✅ Updating card for ${key}:`, variantScores);
+                        
+                        // Check if any score has passed = true
+                        const hasPassed = variantScores.some(s => 
+                            s.passed === true || s.passed === 'true' || s.passed === 1 || s.passed === '1'
+                        );
+                        
+                        if (hasPassed) {
+                            // Find minimum average_time from all passed attempts
+                            const passedScores = variantScores.filter(s => 
+                                s.passed === true || s.passed === 'true' || s.passed === 1 || s.passed === '1'
+                            );
+                            const averageTimes = passedScores
+                                .map(s => s.average_time)
+                                .filter(t => t != null && !isNaN(t))
+                                .map(t => parseFloat(t));
+                            const minTime = averageTimes.length > 0 ? Math.min(...averageTimes) : null;
+                            
+                            card.classList.add('passed');
+                            if (statusDiv) {
+                                statusDiv.textContent = minTime != null ? `Passed (${minTime.toFixed(1)}s)` : 'Passed';
+                            }
+                            console.log(`✅ Card ${key} marked as PASSED`);
+                        } else {
+                            // Count failed attempts
+                            const failedScores = variantScores.filter(s => 
+                                s.passed === false || s.passed === 'false' || s.passed === 0 || s.passed === '0'
+                            );
+                            const attemptCount = failedScores.length;
+                            
+                            card.classList.add('failed');
+                            if (statusDiv) {
+                                statusDiv.textContent = attemptCount > 0 ? `Failed (${attemptCount} attempt${attemptCount > 1 ? 's' : ''})` : 'Failed';
+                            }
+                            console.log(`❌ Card ${key} marked as FAILED (${attemptCount} attempts)`);
+                        }
+                    } else {
+                        // No scores found - not started
+                        if (statusDiv) {
+                            statusDiv.textContent = 'Not started';
+                        }
+                        console.log(`⚪ Card ${key} has no scores - Not started`);
+                    }
+                });
+                
+                // Update operation cards (mark as completed if all variants passed)
+                const operations = ['addition', 'subtraction', 'multiplication', 'division'];
+                operations.forEach(operation => {
+                    const operationVariants = learningSequence[operation] || [];
+                    const allVariantsPassed = operationVariants.every(variant => {
+                        const key = `${operation}_${variant}`;
+                        const variantScores = variantStatuses[key] || [];
+                        return variantScores.some(s => 
+                            s.passed === true || s.passed === 'true' || s.passed === 1 || s.passed === '1'
+                        );
+                    });
+                    
+                    if (allVariantsPassed && operationVariants.length > 0) {
+                        const operationCard = document.querySelector(`.operation-card[onclick*="selectOperation('${operation}')"]`);
+                        if (operationCard) {
+                            operationCard.classList.add('completed');
+                        }
+                    }
+                });
+                
+                console.log('✅ Variant statuses updated');
+            } catch (error) {
+                console.error('❌ Error fetching variant statuses:', error);
+            }
+        }
+        
+        // Monitor auth state
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            
+            if (user) {
+                console.log('✅ User is signed in:', user.email);
+                
+                // Load user profile
+                currentUserProfile = loadUserProfile();
+                
+                // Update dashboard header
+                updateStudentDashboardHeader();
+                
+                // Show teacher dashboard button if user is a teacher
+                const teacherDashboardBtn = document.getElementById('teacherDashboardBtn');
+                if (teacherDashboardBtn) {
+                    if (currentUserProfile && currentUserProfile.user_type === 'Teacher') {
+                        teacherDashboardBtn.classList.remove('hidden');
+                    } else {
+                        teacherDashboardBtn.classList.add('hidden');
+                    }
+                }
+                
+                // Auto-select first operation (addition)
+                if (!window.selectedOperation) {
+                    selectOperation('addition');
+                }
+                
+                // Fetch and update variant statuses
+                fetchAndUpdateVariantStatuses();
+            } else {
+                console.log('ℹ️ User is signed out - redirecting to login');
+                window.location.href = 'index.html';
+            }
+        });
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('📋 Student dashboard loaded');
+            
+            // Set up variant card click handlers
+            document.querySelectorAll('.variant-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const operation = this.getAttribute('data-operation');
+                    const variant = this.getAttribute('data-variant');
+                    if (operation && variant) {
+                        launchVariant(operation, variant);
+                    }
+                });
+            });
+        });
+        
+        // Refresh variant statuses when page becomes visible (e.g., after returning from quiz)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && currentUser) {
+                console.log('🔄 Page visible, refreshing variant statuses...');
+                fetchAndUpdateVariantStatuses();
+            }
+        });
+        
+        // Also refresh when window gains focus
+        window.addEventListener('focus', () => {
+            if (currentUser) {
+                console.log('🔄 Window focused, refreshing variant statuses...');
+                fetchAndUpdateVariantStatuses();
+            }
         });
     </script>
 </body>

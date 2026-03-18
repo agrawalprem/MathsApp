@@ -292,8 +292,8 @@ body {
 /* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (adds 'status-active-wrong' class when student is actively working and last question was wrong) */
 .status-active-wrong {
     background: #FFD700; /* Yellow background */
-    color: #721c24; /* Red text for wrong answers */
-    font-weight: 600;
+    color: #dc3545; /* Bright red text for wrong answers - more visible */
+    font-weight: 700; /* Bolder font for better visibility */
     font-size: 14px;
 }
 
