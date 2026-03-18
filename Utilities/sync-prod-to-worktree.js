@@ -12,8 +12,8 @@
  *
  * Notes:
  * - Only touches files in the repo root directory (one level).
- * - Only downloads files that already exist locally (safe default).
- * - Skips directories and binary-ish extensions by default.
+ * - Only syncs known hosted assets (html/css/js + sw/manifest).
+ * - Intentionally skips config/developer files (firebase.json, package.json, etc).
  */
 const fs = require('fs');
 const path = require('path');
@@ -22,18 +22,13 @@ const https = require('https');
 const DEFAULT_BASE = 'https://maths-in-baby-steps.web.app';
 const PROD_BASE_URL = (process.env.PROD_BASE_URL || DEFAULT_BASE).replace(/\/+$/, '');
 
-const SKIP_EXT = new Set([
-  '.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', '.webp',
-  '.woff', '.woff2', '.ttf', '.eot',
-  '.pdf', '.doc', '.docx',
-  '.zip'
-]);
+const ALLOWLIST_FILES = new Set(['sw.js', 'manifest.json']);
+const ALLOWLIST_EXT = new Set(['.html', '.css', '.js']);
 
 function isFileSafeToSync(filename) {
+  if (ALLOWLIST_FILES.has(filename)) return true;
   const ext = path.extname(filename).toLowerCase();
-  if (!ext) return false;
-  if (SKIP_EXT.has(ext)) return false;
-  return ['.html', '.js', '.css', '.json', '.txt', '.xml', '.map'].includes(ext);
+  return ALLOWLIST_EXT.has(ext);
 }
 
 function fetchBuffer(url) {
@@ -62,8 +57,18 @@ async function main() {
     .filter((e) => e.isFile())
     .map((e) => e.name)
     .filter(isFileSafeToSync)
-    // Don’t accidentally overwrite environment/config docs.
-    .filter((name) => !['firebase-service-account-key.json'].includes(name));
+    // Explicitly skip developer/config/secrets even if extension matches.
+    .filter(
+      (name) =>
+        ![
+          'firebase.json',
+          '.firebaserc',
+          '.gitignore',
+          'package.json',
+          'package-lock.json',
+          'firebase-service-account-key.json'
+        ].includes(name)
+    );
 
   if (candidates.length === 0) {
     console.log('No eligible root files found to sync.');

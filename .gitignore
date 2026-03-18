@@ -1,30 +1,24 @@
-# Documentation files
-*.md
-*.docx
+# Firebase
+firebase-service-account-key.json
+.firebase/
+.firebaserc
+Secrets/
+
+# Excel exports
+user_profiles_export.xlsx
+user_scores_export.xlsx
 *.xlsx
 
-# SQL scripts
-*.sql
+# Local waste basket (should stay empty if used)
+WB/
 
-# Verification scripts
-verification/
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+.env.local
 
 # OS files
 .DS_Store
 Thumbs.db
-desktop.ini
-
-# Node modules (if any)
-node_modules/
-
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# Temporary files
-*.tmp
-*.log
-*.bak
