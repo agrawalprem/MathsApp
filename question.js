@@ -202,6 +202,13 @@ function generateAllQuestions(operation, variant) {
     const allQuestions = [];
 
     if (operation === 'addition') {
+        if (Array.isArray(variantConfig.fixedPairs) && variantConfig.fixedPairs.length > 0) {
+            for (const pair of variantConfig.fixedPairs) {
+                const a = pair[0];
+                const b = pair[1];
+                allQuestions.push({ first: a, second: b, answer: a + b });
+            }
+        } else {
         const firstRange = variantConfig.first;
         const secondRange = variantConfig.second;
 
@@ -290,6 +297,7 @@ function generateAllQuestions(operation, variant) {
                     allQuestions.push({ first: i, second: j, answer: i + j });
                 }
             }
+        }
         }
     } else if (operation === 'subtraction') {
         const secondRange = variantConfig.second;
@@ -1816,8 +1824,17 @@ function updateProgressTracker() {
 }
 
 // CALLED BY: question.html - <button onclick="goBackToDashboard()">Dashboard</button>
-function goBackToDashboard() {
+async function goBackToDashboard() {
     if (window.debugLog) window.debugLog('goBackToDashboard');
+    // Leaving question flow means the student is no longer being served questions,
+    // so clear active session tracking before navigating away.
+    try {
+        if (typeof window.clearActiveSession === 'function') {
+            await window.clearActiveSession();
+        }
+    } catch (e) {
+        console.warn('Could not clear active session:', e?.message || e);
+    }
     window.location.href = 'student-dashboard.html';
 }
 
@@ -1898,8 +1915,17 @@ function handleNextQuestion() {
 }
 
 // CALLED BY: question.html - <button onclick="handleNextAssignment()">Next Assignment</button>
-function handleNextAssignment() {
+async function handleNextAssignment() {
     if (window.debugLog) window.debugLog('handleNextAssignment');
+    // Leaving question flow means the student is no longer being served questions,
+    // so clear active session tracking before navigating away.
+    try {
+        if (typeof window.clearActiveSession === 'function') {
+            await window.clearActiveSession();
+        }
+    } catch (e) {
+        console.warn('Could not clear active session:', e?.message || e);
+    }
     window.location.href = 'student-dashboard.html';
 }
 

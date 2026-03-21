@@ -23,6 +23,7 @@
     <title>Dashboard - Student Progress</title>
     <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="teacher-dashboard.css">
+    <script src="auth-utils.js"></script>
     <!-- ExcelJS for Excel export -->
     <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
     <script>
@@ -142,7 +143,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-analytics.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-        import { getFirestore } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        import { getFirestore, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyBqCWeT44wwh92OL_8O0-j4IBwLeOaGSmc",
@@ -165,12 +166,48 @@
         window.firebaseAuth = auth;
         window.firebaseDb = db;
         window.firebaseSignOut = signOut;
+
+        // Clear active session tracking (used by auth-utils.js on logout).
+        // This is best-effort: deleting non-existent docs is harmless.
+        window.clearActiveSession = async function() {
+            try {
+                const user = auth?.currentUser || window.firebaseAuth?.currentUser;
+                if (!user || !user.uid) return;
+
+                let userCode = null;
+                try {
+                    const profileStr =
+                        sessionStorage.getItem('currentUserProfile') ||
+                        sessionStorage.getItem('quizUserProfile');
+                    if (profileStr) {
+                        const profile = JSON.parse(profileStr);
+                        userCode = profile?.user_code ? String(profile.user_code).trim() : null;
+                    }
+                } catch (e) {
+                    userCode = null;
+                }
+
+                const userId = user.uid;
+                const docIdsToDelete = new Set([userId]);
+                if (userCode) docIdsToDelete.add(userCode);
+
+                for (const sessionDocId of docIdsToDelete) {
+                    const sessionRef = doc(db, 'active_sessions', sessionDocId);
+                    await deleteDoc(sessionRef);
+                }
+            } catch (e) {
+                console.warn('Could not clear active session:', e?.message || e);
+            }
+        };
         
         // Handle logout button
         document.getElementById('logoutBtn').addEventListener('click', async () => {
             try {
+                if (typeof window.handleLogoutCommon === 'function') {
+                    await window.handleLogoutCommon({ auth, redirectTo: 'index.html' });
+                    return;
+                }
                 await signOut(auth);
-                console.log('✅ User signed out');
                 sessionStorage.removeItem('currentUserProfile');
                 window.location.href = 'index.html';
             } catch (error) {

@@ -126,7 +126,24 @@ const variants = {
         '1A': { first: [0, 9], second: [0, 3], name: '1A: Adding 0, 1, 2, 3' },
         '1B': { first: [0, 3], second: [0, 9], name: '1B: Adding Bigger Number to Smaller Number' },
         '1C': { first: [0, 9], second: 'same', name: '1C: Both Numbers Same' },
-        '1D': { first: [6, 9], second: [6, 9], name: '1D: Adding Large Numbers (6-9)', excludeSame: true },
+        '1DS': {
+            sequential: true,
+            fixedPairs: [[4, 4], [4, 5], [4, 6], [5, 5], [5, 6], [5, 7], [6, 6], [6, 7], [6, 8], [7, 7], [7, 8], [7, 9], [8, 8], [8, 9]],
+            name: '1DS: Large Numbers, Small Difference (Learning)'
+        },
+        '1D': {
+            fixedPairs: [[4, 5], [5, 4], [4, 6], [6, 4], [5, 6], [6, 5], [5, 7], [7, 5], [6, 7], [7, 6], [6, 8], [8, 6], [7, 8], [8, 7], [7, 9], [9, 7], [8, 9], [9, 8]],
+            name: '1D: Large Numbers, Small Difference'
+        },
+        '1ES': {
+            sequential: true,
+            fixedPairs: [[4, 7], [4, 8], [4, 9], [5, 8], [5, 9], [6, 9]],
+            name: '1ES: Adding Large Numbers (Learning)'
+        },
+        '1E': {
+            fixedPairs: [[4, 7], [7, 4], [4, 8], [8, 4], [4, 9], [9, 4], [5, 8], [8, 5], [5, 9], [9, 5], [6, 9], [9, 6]],
+            name: '1E: Adding Large Numbers'
+        },
         '1': { first: [0, 9], second: [0, 9], name: '1: Adding Single-digit Numbers (0-9)' }
     },
     subtraction: {

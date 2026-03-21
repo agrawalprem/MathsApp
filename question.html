@@ -47,12 +47,29 @@
                     return;
                 }
                 
+                // Use user_code as document ID (one record per user_code).
+                // Fallback to UID only if user_code is unavailable (should not happen for normal students).
+                let userCode = null;
+                try {
+                    const profileStr =
+                        sessionStorage.getItem('quizUserProfile') ||
+                        sessionStorage.getItem('currentUserProfile');
+                    if (profileStr) {
+                        const profile = JSON.parse(profileStr);
+                        userCode = profile?.user_code ? String(profile.user_code).trim() : null;
+                    }
+                } catch (e) {
+                    userCode = null;
+                }
+
                 const userId = user.uid;
-                const sessionRef = doc(db, 'active_sessions', userId);
+                const sessionDocId = userCode || userId;
+                const sessionRef = doc(db, 'active_sessions', sessionDocId);
                 
                 // Update or create active session document
                 await setDoc(sessionRef, {
                     user_id: userId,
+                    user_code: userCode || null,
                     operation: operation,
                     variant: variant,
                     last_question_no_completed: questionNo,
@@ -81,9 +98,30 @@
                     return;
                 }
                 
+                // Delete by the same document id we used when writing.
+                let userCode = null;
+                try {
+                    const profileStr =
+                        sessionStorage.getItem('quizUserProfile') ||
+                        sessionStorage.getItem('currentUserProfile');
+                    if (profileStr) {
+                        const profile = JSON.parse(profileStr);
+                        userCode = profile?.user_code ? String(profile.user_code).trim() : null;
+                    }
+                } catch (e) {
+                    userCode = null;
+                }
+
                 const userId = user.uid;
-                const sessionRef = doc(db, 'active_sessions', userId);
-                await deleteDoc(sessionRef);
+                // Delete both possible document IDs to avoid leaving stale records
+                // if sessionStorage/profile isn't available consistently.
+                const docIdsToDelete = new Set([userId]);
+                if (userCode) docIdsToDelete.add(userCode);
+
+                for (const sessionDocId of docIdsToDelete) {
+                    const sessionRef = doc(db, 'active_sessions', sessionDocId);
+                    await deleteDoc(sessionRef);
+                }
                 
                 if (window.debugLog) {
                     window.debugLog('clearActiveSession', 'Cleared active session');

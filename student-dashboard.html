@@ -11,6 +11,7 @@
     <link rel="manifest" href="/manifest.json">
     <link rel="stylesheet" href="shared.css">
     <link rel="stylesheet" href="student-dashboard.css">
+    <script src="auth-utils.js"></script>
     <script>
         // Disable service worker during development to avoid caching issues
         if ('serviceWorker' in navigator) {
@@ -89,8 +90,20 @@
                     <div class="variant-name">1C: Both Numbers Same</div>
                     <div class="variant-status">Not started</div>
                 </div>
+                <div class="variant-card" data-operation="addition" data-variant="1DS">
+                    <div class="variant-name">1DS: Large Numbers, Small Difference (Learning)</div>
+                    <div class="variant-status">Not started</div>
+                </div>
                 <div class="variant-card" data-operation="addition" data-variant="1D">
-                    <div class="variant-name">1D: Adding Large Numbers (6-9)</div>
+                    <div class="variant-name">1D: Large Numbers, Small Difference</div>
+                    <div class="variant-status">Not started</div>
+                </div>
+                <div class="variant-card" data-operation="addition" data-variant="1ES">
+                    <div class="variant-name">1ES: Adding Large Numbers (Learning)</div>
+                    <div class="variant-status">Not started</div>
+                </div>
+                <div class="variant-card" data-operation="addition" data-variant="1E">
+                    <div class="variant-name">1E: Adding Large Numbers</div>
                     <div class="variant-status">Not started</div>
                 </div>
                 <div class="variant-card" data-operation="addition" data-variant="1">
@@ -308,7 +321,7 @@
         let selectedOperation = null;
         
         const learningSequence = {
-            addition: ['1A0', '1A1', '1A2', '1A3', '1A', '1B', '1C', '1D', '1', '1M1', '1M2'],
+            addition: ['1A0', '1A1', '1A2', '1A3', '1A', '1B', '1C', '1DS', '1D', '1ES', '1E', '1', '1M1', '1M2'],
             subtraction: ['2A', '2B', '2C', '2D', '2', '2M1', '2M2', '2M3'],
             multiplication: ['3A0', '3A1', '3A2S', '3A2', '3A3S', '3A3', '3A', '3B4S', '3B4', '3B5S', '3B5', '3B6S', '3B6', '3B', '3C7S', '3C7', '3C8S', '3C8', '3C9S', '3C9', '3C', '3', '3M1', '3M2'],
             division: ['4A1', '4A2', '4A3', '4A', '4B4', '4B5', '4B6', '4B', '4C7', '4C8', '4C9', '4C', '4', '4M1', '4M2']
@@ -320,7 +333,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-analytics.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-        import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        import { getFirestore, collection, query, where, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyBqCWeT44wwh92OL_8O0-j4IBwLeOaGSmc",
@@ -338,6 +351,39 @@
         const db = getFirestore(app);
         
         console.log('✅ Firebase initialized in student dashboard');
+
+        // Clear active session tracking (used by auth-utils.js on logout).
+        // Best-effort: deletes both possible doc IDs (`user_code` and `user_id`).
+        window.clearActiveSession = async function() {
+            try {
+                const user = auth?.currentUser;
+                if (!user || !user.uid) return;
+
+                let userCode = null;
+                try {
+                    const profileStr =
+                        sessionStorage.getItem('currentUserProfile') ||
+                        sessionStorage.getItem('quizUserProfile');
+                    if (profileStr) {
+                        const profile = JSON.parse(profileStr);
+                        userCode = profile?.user_code ? String(profile.user_code).trim() : null;
+                    }
+                } catch (e) {
+                    userCode = null;
+                }
+
+                const userId = user.uid;
+                const docIdsToDelete = new Set([userId]);
+                if (userCode) docIdsToDelete.add(userCode);
+
+                for (const sessionDocId of docIdsToDelete) {
+                    const sessionRef = doc(db, 'active_sessions', sessionDocId);
+                    await deleteDoc(sessionRef);
+                }
+            } catch (e) {
+                console.warn('Could not clear active session:', e?.message || e);
+            }
+        };
         
         // Global variables for dashboard
         let currentUser = null;
@@ -380,8 +426,11 @@
         // Handle logout
         window.handleLogout = async function() {
             try {
+                if (typeof window.handleLogoutCommon === 'function') {
+                    await window.handleLogoutCommon({ auth, redirectTo: 'index.html' });
+                    return;
+                }
                 await signOut(auth);
-                console.log('✅ User signed out');
                 sessionStorage.removeItem('currentUserProfile');
                 window.location.href = 'index.html';
             } catch (error) {

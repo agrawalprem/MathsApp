@@ -8,6 +8,7 @@
     <meta http-equiv="Expires" content="0">
     <title>Learning Maths in Baby Steps</title>
     <link rel="stylesheet" href="shared.css">
+    <script src="auth-utils.js"></script>
     <style>
         .cards-grid {
             display: grid;
@@ -247,56 +248,42 @@
         <h1 style="text-align: center; color: #1e40af; margin-bottom: 12px; font-size: 22px; font-weight: 700; letter-spacing: -0.3px;">Learning Maths in Baby Steps</h1>
         
         <div class="cards-grid">
-            <!-- Card 1: Login (Dynamic - Active when logged out) -->
-            <div class="card" id="loginCard">
-                <div class="card-header" onclick="toggleCard('login')">
-                    <h2>Login</h2>
-                    <span class="card-toggle" id="loginToggle">▼</span>
+            <!-- Card 1: Login / Logout / Dashboard (Dynamic) -->
+            <div class="card" id="authCard">
+                <div class="card-header" onclick="toggleCard('auth')">
+                    <h2>Login / Logout / Dashboard</h2>
+                    <span class="card-toggle" id="authToggle">▲</span>
                 </div>
-                <div class="card-content" id="loginContent">
-                    <div id="loginErrorMessage" class="error" style="display: none;"></div>
-                    <div id="loginSuccessMessage" class="success" style="display: none;"></div>
-                    
-                    <!-- User Code Entry -->
-                    <div id="loginStep1">
-                        <input type="text" id="userCode" placeholder="Enter Usercode" maxlength="6" pattern="[0-9]{6}" autocomplete="off" />
-                    </div>
-                    
-                    <!-- User Details Display -->
-                    <div id="userDetails" style="display: none; margin-bottom: 10px; padding: 10px 12px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-radius: 6px; border-left: 2px solid #3b82f6;">
-                        <p style="margin: 3px 0; font-size: 12px; color: #1e3a8a;"><strong style="color: #1e40af;">Name:</strong> <span id="userNameDisplay" style="color: #2563eb;"></span></p>
-                        <p style="margin: 3px 0; font-size: 12px; color: #1e3a8a;"><strong style="color: #1e40af;">School:</strong> <span id="userSchool" style="color: #2563eb;"></span></p>
-                        <p style="margin: 3px 0; font-size: 12px; color: #1e3a8a;"><strong style="color: #1e40af;">Class:</strong> <span id="userClass" style="color: #2563eb;"></span></p>
-                        <p style="margin: 3px 0; font-size: 12px; color: #1e3a8a;"><strong style="color: #1e40af;">Section:</strong> <span id="userSection" style="color: #2563eb;"></span></p>
-                        <p style="margin: 3px 0; font-size: 12px; color: #1e3a8a;"><strong style="color: #1e40af;">Roll Number:</strong> <span id="userRollNumber" style="color: #2563eb;"></span></p>
-                    </div>
-                    
-                    <!-- Password Field -->
-                    <div class="password-input-wrapper">
-                        <input type="password" id="password" placeholder="Enter 6-digit Password" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" disabled onkeypress="if(event.key === 'Enter') loginWithUserCode()" oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
+                <div class="card-content show" id="authContent">
+                    <div id="authErrorMessage" class="error" style="display: none;"></div>
+                    <div id="authSuccessMessage" class="success" style="display: none;"></div>
+
+                    <div style="margin: 6px 0 2px 0; font-size: 12px; color: #1e3a8a; font-weight: 600;">User Code:</div>
+                    <input type="text" id="userCode" placeholder="" maxlength="6" pattern="[0-9]{6}" autocomplete="off" />
+
+                    <div style="margin: 8px 0 2px 0; font-size: 12px; color: #1e3a8a; font-weight: 600;">Name:</div>
+                    <input type="text" id="userName" placeholder="" disabled />
+
+                    <div style="margin: 8px 0 2px 0; font-size: 12px; color: #1e3a8a; font-weight: 600;">School:</div>
+                    <input type="text" id="userSchool" placeholder="" disabled />
+
+                    <div style="margin: 8px 0 2px 0; font-size: 12px; color: #1e3a8a; font-weight: 600;">Class:</div>
+                    <input type="text" id="userClass" placeholder="" disabled />
+
+                    <div style="margin: 8px 0 2px 0; font-size: 12px; color: #1e3a8a; font-weight: 600;">Section:</div>
+                    <input type="text" id="userSection" placeholder="" disabled />
+
+                    <div style="margin: 8px 0 2px 0; font-size: 12px; color: #1e3a8a; font-weight: 600;">Roll Number:</div>
+                    <input type="text" id="userRollNumber" placeholder="" disabled />
+
+                    <div class="password-input-wrapper" id="passwordArea">
+                        <input type="password" id="password" placeholder="Password" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" disabled onkeypress="if(event.key === 'Enter') loginWithUserCode()" oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
                         <button type="button" class="password-toggle" id="passwordToggle" onclick="togglePasswordVisibility()" aria-label="Show password" style="display: none;">👁️</button>
                     </div>
-                    <button onclick="loginWithUserCode()" id="loginButton" disabled>Log In</button>
-                    <button onclick="resetLoginForm()" class="reset-button">Reset</button>
-                </div>
-                </div>
-                
-            <!-- Card 2: Logout (Dynamic - Active when logged in) -->
-            <div class="card" id="logoutCard">
-                <div class="card-header" onclick="toggleCard('logout')">
-                    <h2>Logout</h2>
-                    <span class="card-toggle" id="logoutToggle">▼</span>
-                </div>
-                <div class="card-content" id="logoutContent">
-                    <div id="logoutErrorMessage" class="error" style="display: none;"></div>
-                    <div id="logoutSuccessMessage" class="success" style="display: none;"></div>
-                    <div id="userInfoDisplay" style="margin-bottom: 10px; padding: 10px 12px; background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); border-radius: 6px; border-left: 2px solid #3b82f6;">
-                        <p style="margin: 3px 0; font-size: 12px; color: #1e40af; font-weight: 600;"><strong>Logged in as:</strong></p>
-                        <p style="margin: 3px 0; font-size: 12px; color: #1e3a8a;" id="logoutUserEmail"></p>
-                        <p style="margin: 3px 0; font-size: 12px; color: #1e3a8a;" id="logoutUserName"></p>
-                        <p style="margin: 3px 0; font-size: 12px; color: #1e3a8a;" id="logoutUserType"></p>
-                    </div>
-                    <button onclick="handleLogout()">Sign Out</button>
+
+                    <button onclick="loginWithUserCode()" id="loginButton" disabled>Login</button>
+                    <button onclick="handleLogout()" id="logoutButton" disabled>Logout</button>
+                    <button onclick="goToDashboard()" id="dashboardButton" disabled>Dashboard</button>
                 </div>
             </div>
             
@@ -397,10 +384,10 @@
 
     <!-- Inline JavaScript for card toggles (self-contained) -->
     <script>
-        // Toggle function for all cards (Login, Logout, Anonymous, Welcome, Registration, Reset Password)
+        // Toggle function for all cards (Auth, Anonymous, Welcome, Registration, Reset Password)
         function toggleCard(cardId) {
             // Close all other cards first
-            const allCards = ['login', 'logout', 'anonymous', 'welcome', 'registration', 'resetPassword'];
+            const allCards = ['auth', 'anonymous', 'welcome', 'registration', 'resetPassword'];
             allCards.forEach(id => {
                 if (id !== cardId) {
                     const content = document.getElementById(id + 'Content');
@@ -420,19 +407,22 @@
                 if (content.classList.contains('show')) {
                     content.classList.remove('show');
                     toggle.textContent = '▼';
-                    // Clear login form when login card is closed
-                    if (cardId === 'login') {
-                        if (typeof resetLoginForm === 'function') {
-                            resetLoginForm();
-                        }
+                    // When closing auth card, just clear password + messages (do not blank logged-in user fields)
+                    if (cardId === 'auth') {
+                        const pw = document.getElementById('password');
+                        if (pw) pw.value = '';
+                        const err = document.getElementById('authErrorMessage');
+                        const ok = document.getElementById('authSuccessMessage');
+                        if (err) { err.style.display = 'none'; err.textContent = ''; }
+                        if (ok) { ok.style.display = 'none'; ok.textContent = ''; }
                     }
                 } else {
                     content.classList.add('show');
                     toggle.textContent = '▲';
-                    // Always clear login form when login card is opened
-                    if (cardId === 'login') {
-                        if (typeof resetLoginForm === 'function') {
-                            resetLoginForm();
+                    // When opening auth card, refresh UI from current auth state.
+                    if (cardId === 'auth') {
+                        if (typeof window.refreshAuthCardFromCurrentUser === 'function') {
+                            window.refreshAuthCardFromCurrentUser();
                         }
                     }
                 }
@@ -446,7 +436,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-analytics.js";
         import { getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
         
         // Firebase configuration
         const firebaseConfig = {
@@ -464,11 +454,268 @@
         const analytics = getAnalytics(app);
         const auth = getAuth(app);
         const db = getFirestore(app);
+
+        // Expose for non-module scripts (toggleCard)
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+
+        // Clear active session tracking (used by auth-utils.js on logout).
+        window.clearActiveSession = async function() {
+            try {
+                const user = auth?.currentUser || window.firebaseAuth?.currentUser;
+                if (!user || !user.uid) return;
+
+                let userCode = null;
+                try {
+                    const profileStr =
+                        sessionStorage.getItem('currentUserProfile') ||
+                        sessionStorage.getItem('quizUserProfile');
+                    if (profileStr) {
+                        const profile = JSON.parse(profileStr);
+                        userCode = profile?.user_code ? String(profile.user_code).trim() : null;
+                    }
+                } catch (e) {
+                    userCode = null;
+                }
+
+                const userId = user.uid;
+                const docIdsToDelete = new Set([userId]);
+                if (userCode) docIdsToDelete.add(userCode);
+
+                for (const sessionDocId of docIdsToDelete) {
+                    const sessionRef = doc(db, 'active_sessions', sessionDocId);
+                    await deleteDoc(sessionRef);
+                }
+            } catch (e) {
+                console.warn('Could not clear active session:', e?.message || e);
+            }
+        };
         
         console.log('✅ Firebase initialized successfully');
         
         // Store user profile for login step 2
         let loginUserProfile = null;
+
+        function showAuthError(message) {
+            const errorEl = document.getElementById('authErrorMessage');
+            const successEl = document.getElementById('authSuccessMessage');
+            if (successEl) {
+                successEl.style.display = 'none';
+                successEl.textContent = '';
+            }
+            if (errorEl) {
+                errorEl.textContent = message || '';
+                errorEl.style.display = message ? 'block' : 'none';
+            }
+        }
+
+        function showAuthSuccess(message) {
+            const errorEl = document.getElementById('authErrorMessage');
+            const successEl = document.getElementById('authSuccessMessage');
+            if (errorEl) {
+                errorEl.style.display = 'none';
+                errorEl.textContent = '';
+            }
+            if (successEl) {
+                successEl.textContent = message || '';
+                successEl.style.display = message ? 'block' : 'none';
+            }
+        }
+
+        function setAuthUiState(state) {
+            // state: 'logged_out' | 'code_ready' | 'logged_in'
+            const userCodeInput = document.getElementById('userCode');
+            const passwordInput = document.getElementById('password');
+            const passwordToggle = document.getElementById('passwordToggle');
+            const passwordArea = document.getElementById('passwordArea');
+            const loginButton = document.getElementById('loginButton');
+            const logoutButton = document.getElementById('logoutButton');
+            const dashboardButton = document.getElementById('dashboardButton');
+
+            if (!userCodeInput || !passwordInput || !loginButton || !logoutButton || !dashboardButton) return;
+
+            if (state === 'logged_in') {
+                userCodeInput.disabled = true;
+                passwordInput.disabled = true;
+                passwordInput.value = '';
+                passwordToggle.style.display = 'none';
+                if (passwordArea) passwordArea.style.display = 'none';
+                loginButton.disabled = true;
+                logoutButton.disabled = false;
+                dashboardButton.disabled = false;
+                return;
+            }
+
+            if (state === 'code_ready') {
+                userCodeInput.disabled = false;
+                passwordInput.disabled = false;
+                passwordInput.value = '';
+                passwordToggle.style.display = 'block';
+                if (passwordArea) passwordArea.style.display = 'block';
+                loginButton.disabled = false;
+                logoutButton.disabled = true;
+                dashboardButton.disabled = true;
+                return;
+            }
+
+            // logged_out
+            userCodeInput.disabled = false;
+            passwordInput.disabled = true;
+            passwordInput.value = '';
+            passwordToggle.style.display = 'none';
+            if (passwordArea) passwordArea.style.display = 'block';
+            loginButton.disabled = true;
+            logoutButton.disabled = true;
+            dashboardButton.disabled = true;
+        }
+
+        function populateUserFields(profile, userCodeOverride) {
+            const userCodeInput = document.getElementById('userCode');
+            const nameInput = document.getElementById('userName');
+            const schoolInput = document.getElementById('userSchool');
+            const classInput = document.getElementById('userClass');
+            const sectionInput = document.getElementById('userSection');
+            const rollInput = document.getElementById('userRollNumber');
+
+            const userCode = userCodeOverride || profile?.user_code || '';
+            if (userCodeInput) userCodeInput.value = userCode || '';
+
+            const fullName = [profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || '';
+            if (nameInput) nameInput.value = fullName;
+            if (schoolInput) schoolInput.value = profile?.school_name || profile?.school_id || '';
+            if (classInput) classInput.value = profile?.class || '';
+            if (sectionInput) sectionInput.value = profile?.section || '';
+            if (rollInput) rollInput.value = profile?.roll_number || '';
+
+            // If school_name is missing, fetch it from the classes collection.
+            // `classes/{school_id}{class}{section}` stores `school_name` for a student's class.
+            const schoolId = profile?.school_id;
+            if (schoolInput && schoolId && !profile?.school_name) {
+                const requestedSchoolKey = String(schoolId);
+                const profileClass = profile?.class;
+                const profileSection = profile?.section;
+                window.__pendingSchoolFetchKey = requestedSchoolKey;
+
+                (async () => {
+                    try {
+                        const schoolName = await fetchSchoolNameFromClasses(
+                            requestedSchoolKey,
+                            profileClass,
+                            profileSection
+                        );
+                        if (window.__pendingSchoolFetchKey === requestedSchoolKey) {
+                            schoolInput.value = schoolName || requestedSchoolKey;
+                        }
+                    } catch (e) {
+                        // Keep fallback (school_id) if fetch fails.
+                        console.warn('Could not resolve school name:', e?.message || e);
+                    }
+                })();
+            }
+        }
+
+        async function fetchSchoolNameFromClasses(schoolIdKey, classNum, sectionStr) {
+            if (!schoolIdKey || classNum === null || classNum === undefined || !sectionStr) return '';
+
+            // classes doc id format: `${school_id}${class}${section}`
+            const classId = `${String(schoolIdKey)}${String(classNum)}${String(sectionStr)}`;
+
+            try {
+                const classDocRef = doc(db, 'classes', classId);
+                const classDocSnap = await getDoc(classDocRef);
+                if (classDocSnap.exists()) {
+                    const data = classDocSnap.data();
+                    return data?.school_name || '';
+                }
+            } catch (e) {
+                // ignore
+            }
+
+            return '';
+        }
+
+        function clearUserFieldsExceptUserCode() {
+            const nameInput = document.getElementById('userName');
+            const schoolInput = document.getElementById('userSchool');
+            const classInput = document.getElementById('userClass');
+            const sectionInput = document.getElementById('userSection');
+            const rollInput = document.getElementById('userRollNumber');
+            if (nameInput) nameInput.value = '';
+            if (schoolInput) schoolInput.value = '';
+            if (classInput) classInput.value = '';
+            if (sectionInput) sectionInput.value = '';
+            if (rollInput) rollInput.value = '';
+        }
+
+        function deriveLoginEmail(userCode, profileEmail) {
+            // If email was removed from user_profiles, derive it from the user code.
+            // Template (from Utilities/prepare-user-profiles.js): user_code@mathsbaby.app
+            if (profileEmail && typeof profileEmail === 'string' && profileEmail.includes('@')) return profileEmail;
+            return `${userCode}@mathsbaby.app`;
+        }
+
+        async function fetchProfileByUid(uid) {
+            const profilesRef = collection(db, 'user_profiles');
+            const q = query(profilesRef, where('user_id', '==', uid), limit(1));
+            const snap = await getDocs(q);
+            if (snap.empty) return null;
+            const d = snap.docs[0];
+            return { ...d.data(), user_code: d.data()?.user_code || d.id };
+        }
+
+        // Allow UI refresh when auth card is opened/expanded.
+        window.refreshAuthCardFromCurrentUser = async function() {
+            try {
+                const user = auth.currentUser;
+                if (!user) {
+                    setAuthUiState('logged_out');
+                    return;
+                }
+
+                setAuthUiState('logged_in');
+
+                if (user.isAnonymous) {
+                    const anonProfile = {
+                        first_name: 'Anonymous',
+                        last_name: 'User',
+                        user_code: '',
+                        user_id: user.uid,
+                        school_name: '',
+                        school_id: '',
+                        class: '',
+                        section: '',
+                        roll_number: ''
+                    };
+                    window.currentUserProfile = anonProfile;
+                    sessionStorage.setItem('currentUserProfile', JSON.stringify(anonProfile));
+                    sessionStorage.setItem('quizUserProfile', JSON.stringify(anonProfile));
+                    populateUserFields(anonProfile, '');
+                    return;
+                }
+
+                // Prefer cached profile
+                let profile = null;
+                try {
+                    const stored = sessionStorage.getItem('currentUserProfile');
+                    if (stored) profile = JSON.parse(stored);
+                } catch (e) {
+                    profile = null;
+                }
+
+                if (!profile) {
+                    profile = await fetchProfileByUid(user.uid);
+                }
+
+                if (profile) {
+                    window.currentUserProfile = profile;
+                    sessionStorage.setItem('currentUserProfile', JSON.stringify(profile));
+                    sessionStorage.setItem('quizUserProfile', JSON.stringify(profile));
+                    populateUserFields(profile, profile.user_code || '');
+                }
+            } catch (e) {
+                console.warn('Could not refresh auth card:', e?.message || e);
+            }
+        };
         
         // Password visibility toggle
         window.togglePasswordVisibility = function() {
@@ -490,18 +737,12 @@
         // Step 1: Fetch user details by user code
         window.fetchUserDetails = async function() {
             const userCode = document.getElementById('userCode').value.trim();
-            const errorEl = document.getElementById('loginErrorMessage');
-            const successEl = document.getElementById('loginSuccessMessage');
-            
-            errorEl.style.display = 'none';
-            successEl.style.display = 'none';
-            errorEl.textContent = '';
-            successEl.textContent = '';
+            showAuthError('');
+            showAuthSuccess('');
             
             // Validate user code format
             if (!/^\d{6}$/.test(userCode)) {
-                errorEl.textContent = 'Please enter a valid 6-digit user code';
-                errorEl.style.display = 'block';
+                showAuthError('Please enter a valid 6-digit user code');
                 return;
             }
             
@@ -513,8 +754,7 @@
                 const userProfileSnap = await getDoc(userProfileRef);
                 
                 if (!userProfileSnap.exists()) {
-                    errorEl.textContent = 'User Code not Found';
-                    errorEl.style.display = 'block';
+                    showAuthError('User Code is not valid');
                     console.log('❌ User profile not found for code:', userCode);
                     return;
                 }
@@ -523,31 +763,20 @@
                 console.log('✅ User profile found:', userProfile);
                 
                 // Store profile for login step
-                loginUserProfile = userProfile;
+                const loginEmail = deriveLoginEmail(userCode, userProfile?.email);
+                loginUserProfile = { ...userProfile, user_code: userCode, _loginEmail: loginEmail };
                 
                 // Display user details
-                const fullName = [userProfile.first_name, userProfile.last_name].filter(Boolean).join(' ') || 'N/A';
-                document.getElementById('userNameDisplay').textContent = fullName;
-                document.getElementById('userSchool').textContent = userProfile.school_id || 'N/A';
-                document.getElementById('userClass').textContent = userProfile.class || 'N/A';
-                document.getElementById('userSection').textContent = userProfile.section || 'N/A';
-                document.getElementById('userRollNumber').textContent = userProfile.roll_number || 'N/A';
+                populateUserFields(loginUserProfile, userCode);
                 
                 // Show user details, enable password field, and focus it
-                document.getElementById('userDetails').style.display = 'block';
                 const passwordInput = document.getElementById('password');
-                const passwordToggle = document.getElementById('passwordToggle');
-                const loginButton = document.getElementById('loginButton');
-                
-                passwordInput.disabled = false;
-                passwordToggle.style.display = 'block';
-                loginButton.disabled = false;
+                setAuthUiState('code_ready');
                 passwordInput.focus();
                 
             } catch (error) {
                 console.error('❌ Error:', error);
-                errorEl.textContent = 'Error looking up user. Please try again.';
-                errorEl.style.display = 'block';
+                showAuthError('Error looking up user. Please try again.');
             }
         };
         
@@ -555,42 +784,27 @@
         window.loginWithUserCode = async function() {
             const password = document.getElementById('password').value;
             const userCode = document.getElementById('userCode').value.trim();
-            const errorEl = document.getElementById('loginErrorMessage');
-            const successEl = document.getElementById('loginSuccessMessage');
-            
-            errorEl.style.display = 'none';
-            successEl.style.display = 'none';
-            errorEl.textContent = '';
-            successEl.textContent = '';
+            showAuthError('');
+            showAuthSuccess('');
             
             // Validate password (must be 6 digits)
             if (!password || password.trim() === '') {
-                errorEl.textContent = 'Please enter your password';
-                errorEl.style.display = 'block';
+                showAuthError('Please enter your password');
                 return;
             }
             if (!/^\d{6}$/.test(password)) {
-                errorEl.textContent = 'Password must be exactly 6 digits';
-                errorEl.style.display = 'block';
+                showAuthError('Password must be exactly 6 digits');
                 return;
             }
             
             // Check if user profile was fetched
             if (!loginUserProfile) {
-                errorEl.textContent = 'Please enter user code and click Continue first.';
-                errorEl.style.display = 'block';
+                showAuthError('Please enter user code first.');
                 return;
             }
             
             try {
-                // Get email from user profile (stored in user_profiles for login)
-                const email = loginUserProfile.email;
-                if (!email) {
-                    errorEl.textContent = 'User email not found. Please contact administrator.';
-                    errorEl.style.display = 'block';
-                    console.log('❌ No email in user profile');
-                    return;
-                }
+                const email = loginUserProfile._loginEmail || deriveLoginEmail(userCode, loginUserProfile?.email);
                 
                 console.log('🔑 Attempting login with email:', email);
                 
@@ -604,13 +818,10 @@
                     sessionStorage.setItem('currentUserProfile', JSON.stringify(loginUserProfile));
                     console.log('✅ User profile stored in sessionStorage');
                     
-                    // Clear all form fields for security
-                    document.getElementById('userCode').value = '';
                     document.getElementById('password').value = '';
                     
                     // Show success message briefly before redirect
-                    successEl.textContent = 'Logged in successfully! Redirecting...';
-                    successEl.style.display = 'block';
+                    showAuthSuccess('Logged in successfully! Redirecting...');
                     
                     // Redirect to student dashboard after a short delay
                     console.log('🔄 Redirecting to student-dashboard.html...');
@@ -621,46 +832,40 @@
                 } catch (authError) {
                     console.error('❌ Auth error:', authError);
                     if (authError.code === 'auth/user-not-found') {
-                        errorEl.textContent = 'User account not found. Please contact administrator.';
+                        showAuthError('User Code is not valid');
                     } else if (authError.code === 'auth/wrong-password' || authError.code === 'auth/invalid-credential') {
-                        errorEl.textContent = 'Invalid password';
+                        showAuthError('Password is not correct');
                     } else if (authError.code === 'auth/invalid-email') {
-                        errorEl.textContent = 'Invalid email. Please contact administrator.';
+                        showAuthError('Login failed. Please contact administrator.');
                     } else {
-                        errorEl.textContent = authError.message || 'Login failed';
+                        showAuthError(authError.message || 'Login failed');
                     }
-                    errorEl.style.display = 'block';
                 }
                 
             } catch (error) {
                 console.error('❌ Error:', error);
-                errorEl.textContent = 'Error during login. Please try again.';
-                errorEl.style.display = 'block';
+                showAuthError('Error during login. Please try again.');
             }
         };
         
         // Reset login form
         window.resetLoginForm = function() {
             loginUserProfile = null;
-            document.getElementById('userDetails').style.display = 'none';
             const userCodeInput = document.getElementById('userCode');
             const passwordInput = document.getElementById('password');
-            const passwordToggle = document.getElementById('passwordToggle');
-            const loginButton = document.getElementById('loginButton');
             
             // Clear user code field
             if (userCodeInput) {
                 userCodeInput.value = '';
             }
-            passwordInput.value = '';
-            passwordInput.disabled = true;
-            passwordInput.type = 'password'; // Reset to password type
-            passwordToggle.style.display = 'none';
-            loginButton.disabled = true;
-            document.getElementById('loginErrorMessage').style.display = 'none';
-            document.getElementById('loginSuccessMessage').style.display = 'none';
-            document.getElementById('loginErrorMessage').textContent = '';
-            document.getElementById('loginSuccessMessage').textContent = '';
+            if (passwordInput) {
+                passwordInput.value = '';
+                passwordInput.type = 'password';
+            }
+            clearUserFieldsExceptUserCode();
+            showAuthError('');
+            showAuthSuccess('');
+            setAuthUiState('logged_out');
         };
         
         // Sign in anonymously
@@ -692,108 +897,87 @@
         
         // Handle logout
         window.handleLogout = async function() {
-            const errorEl = document.getElementById('logoutErrorMessage');
-            const successEl = document.getElementById('logoutSuccessMessage');
-            
-            errorEl.style.display = 'none';
-            successEl.style.display = 'none';
-            errorEl.textContent = '';
-            successEl.textContent = '';
+            showAuthError('');
+            showAuthSuccess('');
             
             try {
+                if (typeof window.handleLogoutCommon === 'function') {
+                    await window.handleLogoutCommon({ auth, redirectTo: 'index.html' });
+                    return;
+                }
                 await signOut(auth);
-                console.log('✅ User signed out');
                 sessionStorage.removeItem('currentUserProfile');
-                successEl.textContent = 'Signed out successfully!';
-                successEl.style.display = 'block';
+                showAuthSuccess('Signed out successfully!');
             } catch (error) {
                 console.error('❌ Sign out error:', error);
-                errorEl.textContent = error.message;
-                errorEl.style.display = 'block';
+                showAuthError(error.message);
             }
         };
+
+        // Go to dashboard if logged in
+        window.goToDashboard = function() {
+            const user = auth.currentUser;
+            if (!user) {
+                showAuthError('Please login first.');
+                return;
+            }
+            window.location.href = 'student-dashboard.html';
+        };
         
-        // Monitor auth state changes and update card visibility
+        // Monitor auth state changes and update UI
         onAuthStateChanged(auth, async (user) => {
-            const loginCard = document.getElementById('loginCard');
-            const logoutCard = document.getElementById('logoutCard');
-            const logoutUserEmail = document.getElementById('logoutUserEmail');
-            const logoutUserName = document.getElementById('logoutUserName');
-            const logoutUserType = document.getElementById('logoutUserType');
-            
             if (user) {
-                // User is signed in - Visual indication only (cards still toggleable)
-                loginCard.classList.remove('active');
-                loginCard.classList.add('inactive');
-                logoutCard.classList.remove('inactive');
-                logoutCard.classList.add('active');
-                // Ensure logout card content is closed initially
-                const logoutContent = document.getElementById('logoutContent');
-                const logoutToggle = document.getElementById('logoutToggle');
-                if (logoutContent && logoutToggle && !logoutContent.classList.contains('show')) {
-                    logoutContent.classList.remove('show');
-                    logoutToggle.textContent = '▼';
-                }
-                
+                console.log('✅ User is signed in');
+                setAuthUiState('logged_in');
+                showAuthError('');
+
                 if (user.isAnonymous) {
-                    console.log('✅ Anonymous user is signed in');
-                    logoutUserEmail.textContent = 'Anonymous User';
-                    logoutUserName.textContent = '';
-                    logoutUserType.textContent = '';
-                } else {
-                    console.log('✅ User is signed in:', user.email);
-                    logoutUserEmail.textContent = user.email || 'User';
-                    
-                    // Fetch user profile to display name and type
+                    const anonProfile = {
+                        first_name: 'Anonymous',
+                        last_name: 'User',
+                        user_code: '',
+                        user_id: user.uid,
+                        school_name: '',
+                        school_id: '',
+                        class: '',
+                        section: '',
+                        roll_number: ''
+                    };
+                    window.currentUserProfile = anonProfile;
+                    sessionStorage.setItem('currentUserProfile', JSON.stringify(anonProfile));
+                    sessionStorage.setItem('quizUserProfile', JSON.stringify(anonProfile));
+                    populateUserFields(anonProfile, '');
+                    return;
+                }
+
+                // Try to load cached profile; if missing (browser restart), fetch by UID.
+                let profile = null;
+                try {
+                    const storedProfile = sessionStorage.getItem('currentUserProfile');
+                    if (storedProfile) {
+                        profile = JSON.parse(storedProfile);
+                    }
+                } catch (e) {
+                    profile = null;
+                }
+
+                if (!profile) {
                     try {
-                        // First check window.currentUserProfile (set during login flow)
-                        // If not available, load from sessionStorage (persists across page refreshes)
-                        let profile = window.currentUserProfile;
-                        if (!profile) {
-                            const storedProfile = sessionStorage.getItem('currentUserProfile');
-                            if (storedProfile) {
-                                profile = JSON.parse(storedProfile);
-                                // Also set it on window for consistency
-                                window.currentUserProfile = profile;
-                            }
-                        }
-                        
-                        if (profile) {
-                            const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ') || 'N/A';
-                            logoutUserName.textContent = `Name: ${fullName}`;
-                            logoutUserType.textContent = `Type: ${profile.user_type || 'N/A'}`;
-                        } else {
-                            logoutUserName.textContent = '';
-                            logoutUserType.textContent = '';
-                        }
-                    } catch (error) {
-                        console.error('Error fetching user profile:', error);
-                        logoutUserName.textContent = '';
-                        logoutUserType.textContent = '';
+                        profile = await fetchProfileByUid(user.uid);
+                    } catch (e) {
+                        console.warn('Unable to fetch profile by uid:', e);
                     }
                 }
+
+                if (profile) {
+                    window.currentUserProfile = profile;
+                    sessionStorage.setItem('currentUserProfile', JSON.stringify(profile));
+                    sessionStorage.setItem('quizUserProfile', JSON.stringify(profile));
+                    populateUserFields(profile, profile.user_code || '');
+                }
             } else {
-                // User is signed out - Visual indication only (cards still toggleable)
-                loginCard.classList.remove('inactive');
-                loginCard.classList.add('active');
-                logoutCard.classList.remove('active');
-                logoutCard.classList.add('inactive');
-                // Ensure login card content is closed initially and clear form
-                const loginContent = document.getElementById('loginContent');
-                const loginToggle = document.getElementById('loginToggle');
-                if (loginContent && loginToggle && !loginContent.classList.contains('show')) {
-                    loginContent.classList.remove('show');
-                    loginToggle.textContent = '▼';
-                }
-                // Clear login form when user signs out
-                if (typeof resetLoginForm === 'function') {
-                    resetLoginForm();
-                }
-                
                 console.log('ℹ️ User is signed out');
                 window.currentUserProfile = null;
-                
-                // Reset login form
                 resetLoginForm();
             }
         });
@@ -808,6 +992,7 @@
                 if (userCodeInput) {
                     userCodeInput.value = '';
                 }
+                setAuthUiState('logged_out');
             });
         } else {
             setupAutoFetch();
@@ -816,6 +1001,7 @@
             if (userCodeInput) {
                 userCodeInput.value = '';
             }
+            setAuthUiState('logged_out');
         }
         
         function setupAutoFetch() {

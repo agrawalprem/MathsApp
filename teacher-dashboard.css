@@ -15,6 +15,7 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     min-height: 100vh;
     padding: 20px;
+    overflow: hidden; /* Keep scrolling inside dashboard grid, avoid outer page scrollbar */
 }
 
 /* CALLED BY: teacher-dashboard.html - <div class="container"> */
@@ -27,24 +28,28 @@ body {
     /* NOTE: overflow:hidden can break position:sticky in some browsers.
        Keep rounded corners via border-radius; allow sticky headers to work. */
     overflow: visible;
+    height: calc(100vh - 40px);
+    display: flex;
+    flex-direction: column;
 }
 
 /* CALLED BY: teacher-dashboard.html - <header class="header"> */
 .header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 20px 30px;
+    padding: 12px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 10px;
 }
 
 /* CALLED BY: teacher-dashboard.html - <h1>Teacher Dashboard - Student Progress</h1> inside .header */
 .header h1 {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 600;
+    line-height: 1.15;
 }
 
 /* CALLED BY: teacher-dashboard.html - <div class="user-info"> */
@@ -56,10 +61,10 @@ body {
 
 /* CALLED BY: teacher-dashboard.html - <button id="exportBtn" class="btn btn-primary">, <button id="logoutBtn" class="btn btn-secondary"> */
 .btn {
-    padding: 10px 20px;
+    padding: 7px 14px;
     border: none;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
@@ -85,7 +90,7 @@ body {
 
 /* CALLED BY: teacher-dashboard.html - <div id="loadingMessage" class="loading-message">, <div id="errorMessage" class="error-message hidden"> */
 .loading-message, .error-message {
-    padding: 20px 30px;
+    padding: 12px 20px;
     text-align: center;
     font-size: 16px;
 }
@@ -109,11 +114,11 @@ body {
 
 /* CALLED BY: teacher-dashboard.html - <div id="schoolClassSelectors" class="school-class-selectors hidden">, teacher-dashboard.js - renderSchoolClassSelectors() (creates and populates dropdowns) */
 .school-class-selectors {
-    padding: 20px 30px;
+    padding: 10px 20px;
     border-bottom: 2px solid #e9ecef;
     background: #f8f9fa;
     display: flex;
-    gap: 20px;
+    gap: 12px;
     flex-wrap: wrap;
     align-items: flex-end;
 }
@@ -122,23 +127,23 @@ body {
 .selector-group {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    min-width: 200px;
+    gap: 6px;
+    min-width: 170px;
 }
 
 /* CALLED BY: teacher-dashboard.js - renderSchoolClassSelectors() (creates .selector-label elements) */
 .selector-label {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 600;
     color: #333;
 }
 
 /* CALLED BY: teacher-dashboard.js - renderSchoolClassSelectors() (creates .selector-dropdown select elements) */
 .selector-dropdown {
-    padding: 10px 15px;
+    padding: 7px 10px;
     border: 2px solid #e9ecef;
     border-radius: 6px;
-    font-size: 16px;
+    font-size: 14px;
     background: white;
     color: #333;
     cursor: pointer;
@@ -157,21 +162,21 @@ body {
 
 /* CALLED BY: teacher-dashboard.html - <div id="dashboardControls" class="dashboard-controls hidden">, teacher-dashboard.js - loadDashboard() (removes 'hidden' class) */
 .dashboard-controls {
-    padding: 20px 30px;
+    padding: 10px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 2px solid #e9ecef;
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 10px;
 }
 
 /* CALLED BY: teacher-dashboard.html - <div class="stats">, teacher-dashboard.js - loadDashboard() (sets textContent on studentCount and variantCount) */
 .stats {
     display: flex;
-    gap: 20px;
+    gap: 12px;
     color: #666;
-    font-size: 14px;
+    font-size: 12px;
 }
 
 /* CALLED BY: teacher-dashboard.html - <strong> elements inside .stats */
@@ -181,18 +186,23 @@ body {
 
 /* CALLED BY: teacher-dashboard.html - <div id="dashboardGrid" class="dashboard-grid-container hidden">, teacher-dashboard.js - loadDashboard() (removes 'hidden' class) */
 .dashboard-grid-container {
-    padding: 20px;
+    padding: 8px 10px 10px;
     /* Let inner grid-wrapper handle scrolling so sticky headers work reliably */
     overflow: visible;
     position: relative;
+    flex: 1;
+    min-height: 0;
 }
 
 /* CALLED BY: teacher-dashboard.html - <div class="grid-wrapper"> */
 .grid-wrapper {
     overflow-x: auto;
     overflow-y: auto;
-    max-height: calc(100vh - 250px);
+    max-height: 100%;
+    height: 100%;
     position: relative; /* Scroll container for sticky header cells */
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
 }
 
 /* CALLED BY: teacher-dashboard.html - <table id="progressTable" class="progress-table">, teacher-dashboard.js - buildProgressTable() (creates table structure) */
@@ -201,14 +211,14 @@ body {
     /* Sticky headers are unreliable with border-collapse: collapse in some browsers */
     border-collapse: separate;
     border-spacing: 0;
-    font-size: 13px;
+    font-size: 12px;
     min-width: 800px;
 }
 
 /* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (creates <th> elements in header row) */
 .progress-table th {
     background: #f8f9fa;
-    padding: 12px 8px;
+    padding: 7px 6px;
     text-align: center;
     font-weight: 600;
     border: 1px solid #dee2e6;
@@ -216,6 +226,30 @@ body {
     top: 0;
     z-index: 100; /* Keep variant header row above body cells */
     white-space: nowrap;
+    line-height: 1.15;
+}
+
+.progress-table th.variant-filterable {
+    cursor: pointer;
+    position: sticky;
+}
+
+.progress-table th.variant-filter-active {
+    background: #dbeafe;
+    color: #1e3a8a;
+    box-shadow: inset 0 -2px 0 #2563eb;
+}
+
+/* Small visual cue that variant headers support filtering */
+.progress-table th.variant-filterable::after {
+    content: " ▾";
+    font-size: 10px;
+    opacity: 0.65;
+}
+
+.progress-table th.variant-filter-active::after {
+    content: " ▴";
+    opacity: 0.9;
 }
 
 /* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (adds 'fixed-column' class to header cells for Name, Roll, Class, Section columns) */
@@ -228,10 +262,11 @@ body {
 
 /* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (creates <td> elements in table body) */
 .progress-table td {
-    padding: 10px 8px;
+    padding: 5px 6px;
     text-align: center;
     border: 1px solid #dee2e6;
     white-space: nowrap;
+    line-height: 1.15;
 }
 
 /* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (adds 'fixed-column' class to name, roll, class, section cells in each row) */
@@ -240,7 +275,9 @@ body {
     position: sticky;
     left: 0;
     z-index: 9;
-    font-weight: 500;
+    font-weight: 400;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* CALLED BY: teacher-dashboard.html - hover state on <tr> elements in tbody */
@@ -265,7 +302,7 @@ body {
     background: #d4edda;
     color: #155724;
     font-weight: 600;
-    font-size: 16px;
+    font-size: 12px;
 }
 
 /* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (adds 'status-fail' class to variant cells when student has failed) */
@@ -273,7 +310,7 @@ body {
     background: #f8d7da;
     color: #721c24;
     font-weight: 600;
-    font-size: 16px;
+    font-size: 12px;
 }
 
 /* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (adds 'status-empty' class to variant cells when student has no data) */
@@ -286,7 +323,7 @@ body {
     background: #FFD700; /* Yellow background */
     color: #155724; /* Green text for correct answers */
     font-weight: 600;
-    font-size: 14px;
+    font-size: 11px;
 }
 
 /* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (adds 'status-active-wrong' class when student is actively working and last question was wrong) */
@@ -294,7 +331,7 @@ body {
     background: #FFD700; /* Yellow background */
     color: #dc3545; /* Bright red text for wrong answers - more visible */
     font-weight: 700; /* Bolder font for better visibility */
-    font-size: 14px;
+    font-size: 11px;
 }
 
 /* CALLED BY: teacher-dashboard.js - buildDashboardGrid() (adds 'status-active-unknown' class when student is actively working but question status is unknown) */
@@ -302,7 +339,7 @@ body {
     background: #FFD700; /* Yellow background */
     color: #333; /* Dark gray text for unknown status */
     font-weight: 600;
-    font-size: 14px;
+    font-size: 11px;
 }
 
 /* CALLED BY: teacher-dashboard.html - .operation-toggle-buttons (container for collapse/expand buttons) */

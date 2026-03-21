@@ -15,6 +15,7 @@
     "remove-email": "node Utilities/remove-email-from-user-profiles.js",
     "add-email": "node Utilities/add-email-to-user-profiles.js",
     "delete-scores": "node Utilities/delete-user-scores.js",
+    "delete-addition-1d-scores": "node Utilities/delete-addition-1d-user-scores.js",
     "view-scores": "node Utilities/view-user-scores.js",
     "migrate-scores": "node Utilities/migrate-user-scores-from-supabase.js",
     "export-scores": "node Utilities/export-user-scores-from-supabase.js",

@@ -16,12 +16,21 @@ let selectedSchoolId = null; // Currently selected school
 
 // Fixed columns in the student progress table (Student, Class, Roll No., User Code, Date of Birth)
 const FIXED_COLUMNS_COUNT = 5;
+const FIXED_COLUMN_WIDTHS = [
+    150, // Student (variable names, keep this wider)
+    60,  // Class
+    70,  // Roll No.
+    90,  // User Code
+    95   // Date of Birth
+];
 let selectedClass = null; // Currently selected class
 let selectedSection = null; // Currently selected section
+let stickyColumnsResizeHandlerBound = false;
+let activeVariantFilter = null; // { operation, variant } or null
 
 // Learning sequence for column ordering
 const learningSequence = {
-    addition: ['1A0', '1A1', '1A2', '1A3', '1A', '1B', '1C', '1D', '1', '1M1', '1M2'],
+    addition: ['1A0', '1A1', '1A2', '1A3', '1A', '1B', '1C', '1DS', '1D', '1ES', '1E', '1', '1M1', '1M2'],
     subtraction: ['2A', '2B', '2C', '2D', '2', '2M1', '2M2', '2M3'],
     multiplication: ['3A0', '3A1', '3A2S', '3A2', '3A3S', '3A3', '3A', '3B4S', '3B4', '3B5S', '3B5', '3B6S', '3B6', '3B', '3C7S', '3C7', '3C8S', '3C8', '3C9S', '3C9', '3C', '3', '3M1', '3M2'],
     division: ['4A1', '4A2', '4A3', '4A', '4B4', '4B5', '4B6', '4B', '4C7', '4C8', '4C9', '4C', '4', '4M1', '4M2']
@@ -29,7 +38,7 @@ const learningSequence = {
 
 // Collapse state for operation groups (false = expanded/visible, true = collapsed/hidden)
 let collapsedOperations = {
-    '1': false,  // Operation 1 (Addition): hide 1A0-1D
+    '1': false,  // Operation 1 (Addition): hide 1A0–1E early drills
     '2': false,  // Operation 2 (Subtraction): hide 2A-2D
     '3': false,  // Operation 3 (Multiplication): hide 3A0-3C
     '4': false   // Operation 4 (Division): hide 4A1-4C9
@@ -339,6 +348,39 @@ async function loadTeacherDashboard() {
 }
 
 // Fetch available schools from Firestore based on user role
+async function resolveSchoolNameFromClasses(schoolId) {
+    if (!schoolId && schoolId !== 0) return null;
+    try {
+        const { collection, query, where, getDocs, limit } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
+        const classesRef = collection(window.firebaseDb, 'classes');
+
+        // Try with both number and string types because Firestore is type-sensitive.
+        const schoolIdNum = Number(schoolId);
+        const tried = new Set();
+        const candidates = [];
+        if (!Number.isNaN(schoolIdNum)) candidates.push(schoolIdNum);
+        candidates.push(String(schoolId));
+
+        for (const candidate of candidates) {
+            const key = `${typeof candidate}:${String(candidate)}`;
+            if (tried.has(key)) continue;
+            tried.add(key);
+
+            const q = query(classesRef, where('school_id', '==', candidate), limit(1));
+            const snap = await getDocs(q);
+            if (!snap.empty) {
+                const classDoc = snap.docs[0].data() || {};
+                if (classDoc.school_name) {
+                    return String(classDoc.school_name);
+                }
+            }
+        }
+    } catch (error) {
+        console.warn('⚠️ Could not resolve school name from classes:', error?.message || error);
+    }
+    return null;
+}
+
 async function fetchAvailableSchools(profileData, userRole) {
     if (window.debugLog) window.debugLog('fetchAvailableSchools', `(userRole=${userRole})`);
     
@@ -440,6 +482,17 @@ async function fetchAvailableSchools(profileData, userRole) {
             });
         }
         
+        // Fill missing names using classes collection fallback.
+        for (const school of schools) {
+            const hasRealName = school.school_name && !String(school.school_name).startsWith('School ');
+            if (!hasRealName) {
+                const fallbackName = await resolveSchoolNameFromClasses(school.school_id);
+                if (fallbackName) {
+                    school.school_name = fallbackName;
+                }
+            }
+        }
+
         // Sort by school_id
         schools.sort((a, b) => {
             return String(a.school_id).localeCompare(String(b.school_id), undefined, { numeric: true });
@@ -637,7 +690,7 @@ async function loadStudentsForClass(schoolId, classNum, section) {
         // Build and display the grid
         buildDashboardGrid();
         
-        document.getElementById('studentCount').textContent = students.length;
+        // studentCount is updated by buildDashboardGrid() to support filter mode.
         document.getElementById('variantCount').textContent = allVariants.length;
         
         showLoading(false);
@@ -757,7 +810,7 @@ async function loadAllStudentsForSchool(schoolId) {
         // Build and display the grid
         buildDashboardGrid();
         
-        document.getElementById('studentCount').textContent = students.length;
+        // studentCount is updated by buildDashboardGrid() to support filter mode.
         document.getElementById('variantCount').textContent = allVariants.length;
         
         showLoading(false);
@@ -783,7 +836,7 @@ function shouldHideVariant(operation, variant) {
     
     // Check if variant matches collapse pattern for this operation
     if (opNum === '1') {
-        return ['1A0', '1A1', '1A2', '1A3', '1A', '1B', '1C', '1D'].includes(variant);
+        return ['1A0', '1A1', '1A2', '1A3', '1A', '1B', '1C', '1DS', '1D', '1ES', '1E'].includes(variant);
     } else if (opNum === '2') {
         return ['2A', '2B', '2C', '2D'].includes(variant);
     } else if (opNum === '3') {
@@ -800,6 +853,9 @@ function buildDashboardGrid() {
     if (window.debugLog) window.debugLog('buildDashboardGrid');
     const tableHead = document.getElementById('tableHead');
     const tableBody = document.getElementById('tableBody');
+    const gridWrapper = document.querySelector('#dashboardGrid .grid-wrapper');
+    const prevScrollLeft = gridWrapper ? gridWrapper.scrollLeft : 0;
+    const prevScrollTop = gridWrapper ? gridWrapper.scrollTop : 0;
 
     // Clear existing content
     tableHead.innerHTML = '';
@@ -822,10 +878,22 @@ function buildDashboardGrid() {
     allVariants.forEach(({ operation, variant }) => {
         const th = document.createElement('th');
         th.textContent = variant;
-        th.title = `${operation} - ${variant}`;
+        th.title = `${operation} - ${variant}\nClick to show only Active/Fail students for this variant. Click again to show all students.`;
         th.className = 'variant-column';
         th.dataset.operation = operation;
         th.dataset.variant = variant;
+        th.classList.add('variant-filterable');
+        if (activeVariantFilter &&
+            activeVariantFilter.operation === operation &&
+            activeVariantFilter.variant === variant) {
+            th.classList.add('variant-filter-active');
+        }
+        // Prevent focus-scroll jumps when clicking header cells in a horizontally scrolled grid.
+        th.addEventListener('mousedown', (e) => e.preventDefault());
+        th.addEventListener('click', (e) => {
+            e.preventDefault();
+            toggleVariantStudentFilter(operation, variant);
+        });
         if (shouldHideVariant(operation, variant)) {
             th.classList.add('hidden-column');
         }
@@ -834,8 +902,14 @@ function buildDashboardGrid() {
 
     tableHead.appendChild(headerRow);
 
+    // Optional variant filter: only students with Active/Fail status for selected variant.
+    const displayedStudents = activeVariantFilter
+        ? students.filter((student) =>
+            shouldIncludeStudentForVariantFilter(student, activeVariantFilter.operation, activeVariantFilter.variant))
+        : students;
+
     // Build data rows
-    students.forEach(student => {
+    displayedStudents.forEach(student => {
         const row = document.createElement('tr');
         
         // Student info columns
@@ -938,6 +1012,115 @@ function buildDashboardGrid() {
 
         tableBody.appendChild(row);
     });
+
+    if (displayedStudents.length === 0) {
+        const emptyRow = document.createElement('tr');
+        const emptyCell = document.createElement('td');
+        emptyCell.colSpan = FIXED_COLUMNS_COUNT + allVariants.length;
+        emptyCell.className = 'status-empty';
+        emptyCell.style.textAlign = 'left';
+        emptyCell.style.padding = '10px';
+        emptyCell.textContent = activeVariantFilter
+            ? `No students are Active/Fail for ${activeVariantFilter.variant}. Click the highlighted header again to show all students.`
+            : 'No students found.';
+        emptyRow.appendChild(emptyCell);
+        tableBody.appendChild(emptyRow);
+    }
+
+    const studentCountEl = document.getElementById('studentCount');
+    if (studentCountEl) {
+        studentCountEl.textContent = activeVariantFilter
+            ? `${displayedStudents.length}/${students.length}`
+            : `${students.length}`;
+    }
+
+    // Compute and apply sticky offsets so fixed columns do not overlap while scrolling.
+    applyStickyFixedColumnLayout();
+
+    // Restore scroll position after re-render to avoid horizontal "random shift" effect.
+    if (gridWrapper) {
+        window.requestAnimationFrame(() => {
+            gridWrapper.scrollLeft = prevScrollLeft;
+            gridWrapper.scrollTop = prevScrollTop;
+        });
+    }
+}
+
+function shouldIncludeStudentForVariantFilter(student, operation, variant) {
+    const status = getVariantStatus(student?.user_id, operation, variant);
+    if (!status || typeof status !== 'object') return false;
+    return status.type === 'active' || status.type === 'fail';
+}
+
+function toggleVariantStudentFilter(operation, variant) {
+    if (activeVariantFilter &&
+        activeVariantFilter.operation === operation &&
+        activeVariantFilter.variant === variant) {
+        activeVariantFilter = null;
+    } else {
+        activeVariantFilter = { operation, variant };
+    }
+    buildDashboardGrid();
+}
+
+function applyStickyFixedColumnLayout() {
+    const table = document.getElementById('progressTable');
+    if (!table || !table.tHead || !table.tHead.rows || !table.tHead.rows[0]) return;
+
+    const headerRow = table.tHead.rows[0];
+    const fixedCount = Math.min(FIXED_COLUMNS_COUNT, headerRow.cells.length);
+    if (fixedCount <= 0) return;
+
+    // Clear previous inline sizing/offsets before measuring.
+    Array.from(table.rows).forEach((row) => {
+        for (let i = 0; i < fixedCount; i++) {
+            const cell = row.cells[i];
+            if (!cell) continue;
+            cell.style.left = '';
+            cell.style.minWidth = '';
+            cell.style.width = '';
+            cell.style.maxWidth = '';
+        }
+    });
+
+    const widths = [];
+    const leftOffsets = [];
+    let runningLeft = 0;
+
+    for (let i = 0; i < fixedCount; i++) {
+        const width = FIXED_COLUMN_WIDTHS[i] || 100;
+        widths.push(width);
+        leftOffsets.push(runningLeft);
+        runningLeft += width;
+    }
+
+    // Apply to every row cell (thead + tbody) for the fixed columns.
+    Array.from(table.rows).forEach((row) => {
+        for (let i = 0; i < fixedCount; i++) {
+            const cell = row.cells[i];
+            if (!cell) continue;
+
+            cell.style.left = `${leftOffsets[i]}px`;
+            cell.style.minWidth = `${widths[i]}px`;
+            cell.style.width = `${widths[i]}px`;
+            cell.style.maxWidth = `${widths[i]}px`;
+
+            // Keep headers above body sticky cells.
+            if (cell.tagName === 'TH') {
+                cell.style.zIndex = String(140 - i);
+            } else {
+                cell.style.zIndex = String(20 - i);
+            }
+        }
+    });
+
+    // Recalculate on resize once per page load.
+    if (!stickyColumnsResizeHandlerBound) {
+        window.addEventListener('resize', () => {
+            window.requestAnimationFrame(() => applyStickyFixedColumnLayout());
+        });
+        stickyColumnsResizeHandlerBound = true;
+    }
 }
 
 // Get pass/fail status for a variant (or active session info)
