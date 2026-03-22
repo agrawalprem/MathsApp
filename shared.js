@@ -137,7 +137,7 @@ const variants = {
         },
         '1ES': {
             sequential: true,
-            fixedPairs: [[4, 7], [4, 8], [4, 9], [5, 8], [5, 9], [6, 9]],
+            fixedPairs: [[9, 4], [9, 5], [9, 6], [8, 4], [8, 5], [7, 4]],
             name: '1ES: Adding Large Numbers (Learning)'
         },
         '1E': {
