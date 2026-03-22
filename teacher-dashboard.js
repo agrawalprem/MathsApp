@@ -1452,7 +1452,11 @@ function toggleDebugActivityColumns() {
     table.classList.toggle('hide-debug-activity-columns');
     const hidden = table.classList.contains('hide-debug-activity-columns');
     if (btn) {
-        btn.textContent = hidden ? 'Show activity columns' : 'Hide activity columns';
+        const showLabel = 'Show activity columns';
+        const hideLabel = 'Hide activity columns';
+        btn.textContent = '';
+        btn.setAttribute('aria-label', hidden ? showLabel : hideLabel);
+        btn.setAttribute('title', hidden ? showLabel : hideLabel);
     }
     applyStickyFixedColumnLayout();
 }

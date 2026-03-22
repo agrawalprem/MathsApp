@@ -333,7 +333,7 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-analytics.js";
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
-        import { getFirestore, collection, query, where, getDocs, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        import { getFirestore, collection, query, where, getDocs, getDocsFromServer, doc, deleteDoc, limit } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
         
         const firebaseConfig = {
             apiKey: "AIzaSyBqCWeT44wwh92OL_8O0-j4IBwLeOaGSmc",
@@ -402,6 +402,85 @@
                 console.error('❌ Error loading user profile from sessionStorage:', e);
             }
             return null;
+        }
+
+        /** Same idea as index.html — needed when sessionStorage is empty but Auth session exists (refresh, new tab, IT policies). */
+        async function fetchProfileByUid(uid) {
+            if (!uid) return null;
+            try {
+                const profilesRef = collection(db, 'user_profiles');
+                const q = query(profilesRef, where('user_id', '==', uid), limit(1));
+                const snap = await getDocs(q);
+                if (snap.empty) return null;
+                const d = snap.docs[0];
+                const data = d.data() || {};
+                const code = data.user_code != null && String(data.user_code).trim() !== ''
+                    ? String(data.user_code).trim()
+                    : String(d.id).trim();
+                return { ...data, user_code: code };
+            } catch (e) {
+                console.error('❌ fetchProfileByUid:', e);
+                return null;
+            }
+        }
+
+        async function ensureStudentProfileForDashboard(user) {
+            if (!user) return null;
+            if (user.isAnonymous) {
+                if (!currentUserProfile) {
+                    currentUserProfile = {
+                        first_name: 'Anonymous',
+                        last_name: 'User',
+                        user_code: '',
+                        user_id: user.uid,
+                        user_type: 'Student',
+                        school_name: '',
+                        school_id: '',
+                        class: '',
+                        section: '',
+                        roll_number: ''
+                    };
+                    try {
+                        sessionStorage.setItem('currentUserProfile', JSON.stringify(currentUserProfile));
+                    } catch (e) { /* ignore */ }
+                }
+                return currentUserProfile;
+            }
+
+            let profile = loadUserProfile();
+            if (profile && profile.user_id && profile.user_id !== user.uid) {
+                profile = null;
+                currentUserProfile = null;
+            }
+            if (!profile) {
+                try {
+                    const quizStr = sessionStorage.getItem('quizUserProfile');
+                    if (quizStr) {
+                        const qp = JSON.parse(quizStr);
+                        if (qp && qp.user_id === user.uid) {
+                            profile = qp;
+                            currentUserProfile = qp;
+                            sessionStorage.setItem('currentUserProfile', quizStr);
+                            console.log('✅ Restored profile from quizUserProfile');
+                        }
+                    }
+                } catch (e) {
+                    console.warn('quizUserProfile parse failed:', e);
+                }
+            }
+            if (!profile) {
+                profile = await fetchProfileByUid(user.uid);
+                if (profile) {
+                    currentUserProfile = profile;
+                    try {
+                        sessionStorage.setItem('currentUserProfile', JSON.stringify(profile));
+                    } catch (e) {
+                        console.warn('Could not cache profile to sessionStorage', e);
+                    }
+                    console.log('✅ Profile loaded from Firestore (user_profiles by user_id)');
+                }
+            }
+            return currentUserProfile;
         }
         
         // Update dashboard header with user info
@@ -482,78 +561,29 @@
             window.location.href = 'question.html';
         };
         
-        // Fetch and update variant statuses from Firestore
-        // IMPORTANT:
-        // - Migrated scores may not have Firebase Auth UID in `user_id`
-        // - They DO have `user_code`
-        // So we fetch by user_code (preferred) and also by user_id (for new scores / anonymous)
+        // Fetch and update variant statuses: always load scores from Firestore server only (no cache, no sessionStorage).
+        // Every signed-in user (including anonymous) has an Auth uid; user_scores rows are queried by that uid only.
         async function fetchAndUpdateVariantStatuses() {
             if (!currentUser) {
                 console.warn('⚠️ No user authenticated, skipping variant status update');
                 return;
             }
-            
+
             try {
-                console.log('📊 Fetching user scores from Firestore...');
-                console.log('👤 Current user UID:', currentUser.uid);
-                console.log('👤 Current user code:', currentUserProfile?.user_code || '(none)');
-                
-                // Query Firestore for all scores for this user
-                // Use user_code as primary identifier for regular users.
-                // For anonymous users (no user_code), fallback to user_id.
-                // NOTE: Firestore queries are type-sensitive (e.g., "100001" != 100001), so try both string and number.
+                const uid = currentUser.uid;
+                console.log('📊 Fetching user_scores from server for uid:', uid);
+
                 const scoresRef = collection(db, 'user_scores');
+                const q = query(scoresRef, where('user_id', '==', uid));
+                const querySnapshot = await getDocsFromServer(q);
+
                 const scores = [];
-
-                if (!currentUserProfile || !currentUserProfile.user_code) {
-                    // For anonymous users or users without user_code, query by user_id instead
-                    console.log('⚠️ No user_code in profile, querying by user_id for anonymous user');
-                    const userId = currentUser.uid;
-                    
-                    // Query by user_id (for anonymous users)
-                    let querySnapshot = await getDocs(query(scoresRef, where('user_id', '==', userId)));
-                    
-                    querySnapshot.forEach((doc) => {
-                        scores.push({ id: doc.id, ...doc.data() });
-                    });
-                    
-                    console.log(`✅ Found ${scores.length} score(s) for user_id: ${userId}`);
-                } else {
-                    // Regular users with user_code - query by user_code
-                    const userCodeStr = String(currentUserProfile.user_code).trim();
-
-                    // Query by user_code (string)
-                    let querySnapshot = await getDocs(query(scoresRef, where('user_code', '==', userCodeStr)));
-
-                    // If empty, try user_code as number (in case it was stored as numeric in Firestore)
-                    if (querySnapshot.empty) {
-                        const userCodeNum = Number(userCodeStr);
-                        if (!Number.isNaN(userCodeNum)) {
-                            querySnapshot = await getDocs(query(scoresRef, where('user_code', '==', userCodeNum)));
-                        }
-                    }
-                    
-                    querySnapshot.forEach((doc) => {
-                        scores.push({ id: doc.id, ...doc.data() });
-                    });
-                    
-                    console.log(`✅ Found ${scores.length} score(s) for user_code: ${userCodeStr}`);
-                }
-
-                // Optional: debug a few scores
-                scores.slice(0, 10).forEach((scoreData) => {
-                    console.log('📝 Score found:', {
-                        id: scoreData.id,
-                        operation: scoreData.operation,
-                        variant: scoreData.variant,
-                        passed: scoreData.passed,
-                        user_id: scoreData.user_id,
-                        user_code: scoreData.user_code
-                    });
+                querySnapshot.forEach((docSnap) => {
+                    scores.push({ id: docSnap.id, ...docSnap.data() });
                 });
-                
-                console.log(`✅ Found ${scores.length} score(s) for user`);
-                
+
+                console.log(`✅ Loaded ${scores.length} score document(s) from Firestore (server)`);
+
                 // Group scores by operation and variant
                 const variantStatuses = {};
                 
@@ -655,18 +685,17 @@
         }
         
         // Monitor auth state
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             currentUser = user;
-            
+
             if (user) {
                 console.log('✅ User is signed in:', user.email);
-                
-                // Load user profile
-                currentUserProfile = loadUserProfile();
-                
+
+                await ensureStudentProfileForDashboard(user);
+
                 // Update dashboard header
                 updateStudentDashboardHeader();
-                
+
                 // Show teacher dashboard button if user is a teacher
                 const teacherDashboardBtn = document.getElementById('teacherDashboardBtn');
                 if (teacherDashboardBtn) {
@@ -676,14 +705,14 @@
                         teacherDashboardBtn.classList.add('hidden');
                     }
                 }
-                
+
                 // Auto-select first operation (addition)
                 if (!window.selectedOperation) {
                     selectOperation('addition');
                 }
-                
-                // Fetch and update variant statuses
-                fetchAndUpdateVariantStatuses();
+
+                // Fetch and update variant statuses from Firestore
+                await fetchAndUpdateVariantStatuses();
             } else {
                 console.log('ℹ️ User is signed out - redirecting to login');
                 window.location.href = 'index.html';

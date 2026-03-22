@@ -88,6 +88,20 @@ body {
     color: white;
 }
 
+/* CALLED BY: teacher-dashboard.html — toolbar controls sit on a light strip; contrast for secondary style */
+.dashboard-controls .btn-secondary {
+    background: #dee2e6;
+    color: #333;
+}
+
+/* CALLED BY: teacher-dashboard.html — activity columns toggle (no visible label; uses aria-label / title) */
+.dashboard-toolbar-icon-btn {
+    min-width: 2.25rem;
+    min-height: 2rem;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
 /* CALLED BY: teacher-dashboard.html - <div id="loadingMessage" class="loading-message">, <div id="errorMessage" class="error-message hidden"> */
 .loading-message, .error-message {
     padding: 12px 20px;

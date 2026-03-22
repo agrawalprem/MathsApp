@@ -22,3 +22,6 @@ node_modules/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Private / local receipts (not for the repo)
+Documentation/Cursor Payment Receipt 2026.03.18.pdf

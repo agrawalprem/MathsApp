@@ -10,6 +10,7 @@
     "update-classes": "node Utilities/classes-collection-update.js",
     "check-dob": "node Utilities/check-dob-formats.js",
     "check-scores-dob": "node Utilities/check-user-scores-dob.js",
+    "check-scores-user-id": "node Utilities/check-user-scores-user-id.js",
     "check-profiles": "node Utilities/check-user-profiles.js",
     "convert-dob": "node Utilities/convert-dob-to-string.js",
     "remove-email": "node Utilities/remove-email-from-user-profiles.js",
