@@ -135,6 +135,7 @@ const variants = {
             fixedPairs: [[4, 5], [5, 4], [4, 6], [6, 4], [5, 6], [6, 5], [5, 7], [7, 5], [6, 7], [7, 6], [6, 8], [8, 6], [7, 8], [8, 7], [7, 9], [9, 7], [8, 9], [9, 8]],
             name: '1D: Large Numbers, Small Difference'
         },
+        // 1ES: six pairs only, fixed order (learning). 1E below uses both orders → 12 prompts, shuffled.
         '1ES': {
             sequential: true,
             fixedPairs: [[9, 4], [9, 5], [9, 6], [8, 4], [8, 5], [7, 4]],

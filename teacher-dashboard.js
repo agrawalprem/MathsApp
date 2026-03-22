@@ -1707,40 +1707,6 @@ function startActiveSessionsPolling() {
     }, 5000);
 }
 
-// Merge fetched score docs into studentScores by document id (no wipe of other rows)
-// CALLED BY: optional manual refresh paths
-async function refreshScoresForStudents(userIds) {
-    if (window.debugLog) window.debugLog('refreshScoresForStudents', `(${userIds.length} students)`);
-    if (!window.firebaseDb || userIds.length === 0) return;
-
-    try {
-        const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
-        const scoresRef = collection(window.firebaseDb, 'user_scores');
-        const batchSize = 10;
-        const newScores = [];
-
-        for (let i = 0; i < userIds.length; i += batchSize) {
-            const batch = userIds.slice(i, i + batchSize);
-            const scoresQuery = query(scoresRef, where('user_id', 'in', batch));
-            const scoresSnapshot = await getDocs(scoresQuery);
-            scoresSnapshot.forEach((doc) => {
-                newScores.push({ id: doc.id, ...doc.data() });
-            });
-        }
-
-        for (const ns of newScores) {
-            const idx = studentScores.findIndex(s => s.id === ns.id);
-            if (idx >= 0) studentScores[idx] = ns;
-            else studentScores.push(ns);
-        }
-
-        console.log(`✅ Merged ${newScores.length} score record(s) for ${userIds.length} student(s)`);
-        buildDashboardGrid();
-    } catch (error) {
-        console.error('❌ Error refreshing scores:', error);
-    }
-}
-
 // Toggle operation group collapse/expand
 // CALLED BY: teacher-dashboard.html - toggle buttons onclick
 function toggleOperation(opNum) {
