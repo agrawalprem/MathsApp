@@ -14,15 +14,25 @@ let availableSchools = []; // Schools user can access
 let availableClasses = []; // Classes user can access
 let selectedSchoolId = null; // Currently selected school
 
-// Fixed columns in the student progress table (Student, Class, Roll No., User Code, Date of Birth)
-const FIXED_COLUMNS_COUNT = 5;
+// Fixed columns: 5 student info + 4 activity debug (last/current variant + status) before variant columns
+const STUDENT_INFO_COLUMN_COUNT = 5;
+const DEBUG_ACTIVITY_COLUMN_COUNT = 4;
+const FIXED_COLUMNS_COUNT = STUDENT_INFO_COLUMN_COUNT + DEBUG_ACTIVITY_COLUMN_COUNT;
+const VARIANT_COLUMN_START_INDEX = FIXED_COLUMNS_COUNT;
 const FIXED_COLUMN_WIDTHS = [
-    150, // Student (variable names, keep this wider)
+    150, // Student
     60,  // Class
     70,  // Roll No.
     90,  // User Code
-    95   // Date of Birth
+    95,  // Date of Birth
+    56,  // Last active variant
+    52,  // Last status
+    56,  // Current active variant
+    52   // Current status
 ];
+
+/** Prior "current" snapshot per student (end of last poll); used for shift-register + targeted score refresh */
+let teacherPriorCurrentByUserId = new Map();
 let selectedClass = null; // Currently selected class
 let selectedSection = null; // Currently selected section
 let stickyColumnsResizeHandlerBound = false;
@@ -686,6 +696,9 @@ async function loadStudentsForClass(schoolId, classNum, section) {
         });
         
         console.log(`✅ Found ${studentScores.length} score records`);
+
+        teacherPriorCurrentByUserId.clear();
+        await fetchActiveSessionsForCurrentStudents();
         
         // Build and display the grid
         buildDashboardGrid();
@@ -806,6 +819,9 @@ async function loadAllStudentsForSchool(schoolId) {
         });
         
         console.log(`✅ Found ${studentScores.length} score records`);
+
+        teacherPriorCurrentByUserId.clear();
+        await fetchActiveSessionsForCurrentStudents();
         
         // Build and display the grid
         buildDashboardGrid();
@@ -816,6 +832,8 @@ async function loadAllStudentsForSchool(schoolId) {
         showLoading(false);
         document.getElementById('dashboardControls').classList.remove('hidden');
         document.getElementById('dashboardGrid').classList.remove('hidden');
+
+        startActiveSessionsPolling();
         
     } catch (error) {
         console.error('❌ Error loading students:', error);
@@ -874,6 +892,15 @@ function buildDashboardGrid() {
         headerRow.appendChild(th);
     });
 
+    const debugHeaders = ['Last var', 'Last Δ', 'Curr var', 'Curr Δ'];
+    debugHeaders.forEach(text => {
+        const th = document.createElement('th');
+        th.textContent = text;
+        th.className = 'fixed-column debug-column';
+        th.title = 'Activity debug (toggle with toolbar). Last Δ / Curr Δ match yellow active cell (question no.).';
+        headerRow.appendChild(th);
+    });
+
     // Add variant columns
     allVariants.forEach(({ operation, variant }) => {
         const th = document.createElement('th');
@@ -911,6 +938,9 @@ function buildDashboardGrid() {
     // Build data rows
     displayedStudents.forEach(student => {
         const row = document.createElement('tr');
+        if (student.user_id != null && student.user_id !== '') {
+            row.setAttribute('data-user-id', String(student.user_id));
+        }
         
         // Student info columns
         const nameCell = document.createElement('td');
@@ -970,6 +1000,13 @@ function buildDashboardGrid() {
         }
         dobCell.className = 'fixed-column';
         row.appendChild(dobCell);
+
+        for (let d = 0; d < DEBUG_ACTIVITY_COLUMN_COUNT; d++) {
+            const dbg = document.createElement('td');
+            dbg.className = 'fixed-column debug-column';
+            dbg.textContent = '—';
+            row.appendChild(dbg);
+        }
 
         // Variant status columns
         allVariants.forEach(({ operation, variant }) => {
@@ -1061,6 +1098,7 @@ function toggleVariantStudentFilter(operation, variant) {
         activeVariantFilter = { operation, variant };
     }
     buildDashboardGrid();
+    runActiveSessionsPollTick();
 }
 
 function applyStickyFixedColumnLayout() {
@@ -1068,7 +1106,11 @@ function applyStickyFixedColumnLayout() {
     if (!table || !table.tHead || !table.tHead.rows || !table.tHead.rows[0]) return;
 
     const headerRow = table.tHead.rows[0];
-    const fixedCount = Math.min(FIXED_COLUMNS_COUNT, headerRow.cells.length);
+    const debugHidden = table.classList.contains('hide-debug-activity-columns');
+    const fixedCount = Math.min(
+        debugHidden ? STUDENT_INFO_COLUMN_COUNT : FIXED_COLUMNS_COUNT,
+        headerRow.cells.length
+    );
     if (fixedCount <= 0) return;
 
     // Clear previous inline sizing/offsets before measuring.
@@ -1157,9 +1199,10 @@ function getVariantStatus(userId, operation, variant) {
             studentScores = [];
         }
         
-        const scores = studentScores.filter(s => 
-            s && s.user_id === userId && 
-            s.operation === operation && 
+        const uid = String(userId || '');
+        const scores = studentScores.filter(s =>
+            s && String(s.user_id || '') === uid &&
+            s.operation === operation &&
             s.variant === variant
         );
 
@@ -1201,6 +1244,221 @@ function getVariantStatus(userId, operation, variant) {
     }
 }
 
+/** Pass/fail/empty from studentScores only (ignores active_sessions). */
+function getScoresOnlyVariantStatus(userId, operation, variant) {
+    if (!studentScores || !Array.isArray(studentScores)) return null;
+    const uid = String(userId || '');
+    const scores = studentScores.filter(s =>
+        s && String(s.user_id || '') === uid &&
+        s.operation === operation &&
+        s.variant === variant
+    );
+    if (scores.length === 0) return null;
+    const hasPassed = scores.some(s => s.passed === true || s.passed === 'true' || s.passed === 1 || s.passed === '1');
+    if (hasPassed) {
+        const passedScores = scores.filter(s =>
+            s.passed === true || s.passed === 'true' || s.passed === 1 || s.passed === '1'
+        );
+        const averageTimes = passedScores
+            .map(s => s.average_time)
+            .filter(t => t != null && !isNaN(t))
+            .map(t => parseFloat(t));
+        const minTime = averageTimes.length > 0 ? Math.min(...averageTimes) : null;
+        return { type: 'pass', minTime };
+    }
+    const failedScores = scores.filter(s =>
+        s.passed === false || s.passed === 'false' || s.passed === 0 || s.passed === '0'
+    );
+    return { type: 'fail', attemptCount: failedScores.length };
+}
+
+function formatActiveSessionStatusText(session) {
+    if (!session) return '—';
+    const q = session.last_question_no_completed != null ? String(session.last_question_no_completed) : '0';
+    return q;
+}
+
+function findActiveSessionForUser(activeSessions, userId) {
+    const uid = String(userId || '');
+    return (activeSessions || []).find(s => s && String(s.user_id || '') === uid) || null;
+}
+
+function paintVariantDataCell(cell, status) {
+    const baseClass = 'variant-column';
+    if (!cell) return;
+    const op = cell.dataset.operation;
+    const vr = cell.dataset.variant;
+    if (!status) {
+        cell.textContent = '';
+        cell.className = `${baseClass} status-empty`;
+    } else if (status.type === 'pass') {
+        cell.textContent = status.minTime != null ? `${status.minTime.toFixed(1)}s` : '✓';
+        cell.className = `${baseClass} status-pass`;
+    } else if (status.type === 'fail') {
+        const count = status.attemptCount || 0;
+        cell.textContent = count > 0 ? `${count}` : '✗';
+        cell.className = `${baseClass} status-fail`;
+    }
+    if (op && vr) {
+        cell.dataset.operation = op;
+        cell.dataset.variant = vr;
+        if (shouldHideVariant(op, vr)) cell.classList.add('hidden-column');
+        else cell.classList.remove('hidden-column');
+    }
+}
+
+function paintActiveVariantCell(cell, session) {
+    if (!cell || !session) return;
+    const baseClass = 'variant-column';
+    const op = cell.dataset.operation;
+    const vr = cell.dataset.variant;
+    const q = session.last_question_no_completed != null ? String(session.last_question_no_completed) : '0';
+    const isCorrect = session.last_question_correct_wrong;
+    cell.textContent = q;
+    cell.className = baseClass + ' ' + (isCorrect === true ? 'status-active-correct' :
+        isCorrect === false ? 'status-active-wrong' : 'status-active-unknown');
+    if (op && vr) {
+        cell.dataset.operation = op;
+        cell.dataset.variant = vr;
+        if (shouldHideVariant(op, vr)) cell.classList.add('hidden-column');
+        else cell.classList.remove('hidden-column');
+    }
+}
+
+function findVariantCellInRow(row, operation, variant) {
+    if (!row) return null;
+    return row.querySelector(`td.variant-column[data-operation="${operation}"][data-variant="${variant}"]`);
+}
+
+async function fetchAndMergeScoresForUserVariant(userId, operation, variant) {
+    if (!window.firebaseDb || !userId || !operation || !variant) return;
+    try {
+        const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
+        const scoresRef = collection(window.firebaseDb, 'user_scores');
+        const uid = String(userId);
+        const scoresQuery = query(scoresRef, where('user_id', '==', uid));
+        const snap = await getDocs(scoresQuery);
+        snap.forEach((docSnap) => {
+            const data = docSnap.data();
+            if (data.operation !== operation || data.variant !== variant) return;
+            const incoming = { id: docSnap.id, ...data };
+            const idx = studentScores.findIndex(s => s.id === docSnap.id);
+            if (idx >= 0) studentScores[idx] = incoming;
+            else studentScores.push(incoming);
+        });
+    } catch (e) {
+        console.warn('⚠️ fetchAndMergeScoresForUserVariant:', e);
+    }
+}
+
+async function fetchActiveSessionsForCurrentStudents() {
+    if (!window.firebaseDb || students.length === 0) {
+        window.activeSessions = [];
+        return [];
+    }
+    const studentUserIds = students
+        .map(s => s.user_id)
+        .filter(id => id != null && id !== '')
+        .map(id => String(id));
+    if (studentUserIds.length === 0) {
+        window.activeSessions = [];
+        return [];
+    }
+    const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
+    const activeSessions = [];
+    const batchSize = 10;
+    for (let i = 0; i < studentUserIds.length; i += batchSize) {
+        const batch = studentUserIds.slice(i, i + batchSize);
+        try {
+            const activeSessionsRef = collection(window.firebaseDb, 'active_sessions');
+            const activeSessionsQuery = query(activeSessionsRef, where('user_id', 'in', batch));
+            const activeSessionsSnapshot = await getDocs(activeSessionsQuery);
+            activeSessionsSnapshot.forEach((doc) => {
+                activeSessions.push(doc.data());
+            });
+        } catch (error) {
+            console.warn('⚠️ Error fetching active sessions batch:', error);
+        }
+    }
+    window.activeSessions = activeSessions;
+    return activeSessions;
+}
+
+async function runActiveSessionsPollTick() {
+    if (!window.firebaseDb || !teacherProfile || students.length === 0) return;
+    try {
+        const activeSessions = await fetchActiveSessionsForCurrentStudents();
+        const tableBody = document.getElementById('tableBody');
+        if (!tableBody) return;
+
+        for (const student of students) {
+            const uid = String(student.user_id || '');
+            if (!uid) continue;
+
+            const row = tableBody.querySelector(`tr[data-user-id="${uid}"]`);
+            const prior = teacherPriorCurrentByUserId.get(uid) || { variant: '', operation: '', statusText: '—' };
+
+            const lastVar = prior.variant ? prior.variant : '—';
+            const lastStat = prior.statusText || '—';
+
+            const sess = findActiveSessionForUser(activeSessions, uid);
+            const newVar = sess?.variant || '';
+            const newOp = sess?.operation || '';
+            const curVarDisp = newVar || '—';
+            const curStatDisp = sess ? formatActiveSessionStatusText(sess) : '—';
+
+            if (row && row.cells.length >= VARIANT_COLUMN_START_INDEX) {
+                row.cells[STUDENT_INFO_COLUMN_COUNT].textContent = lastVar;
+                row.cells[STUDENT_INFO_COLUMN_COUNT + 1].textContent = lastStat;
+                row.cells[STUDENT_INFO_COLUMN_COUNT + 2].textContent = curVarDisp;
+                row.cells[STUDENT_INFO_COLUMN_COUNT + 3].textContent = curStatDisp;
+            }
+
+            const prevV = prior.variant;
+            const prevOp = prior.operation;
+
+            if (row) {
+                if (!sess && prevV && prevOp) {
+                    await fetchAndMergeScoresForUserVariant(uid, prevOp, prevV);
+                    const cell = findVariantCellInRow(row, prevOp, prevV);
+                    if (cell) paintVariantDataCell(cell, getScoresOnlyVariantStatus(uid, prevOp, prevV));
+                } else if (sess && prevV && newVar && prevV !== newVar && prevOp) {
+                    await fetchAndMergeScoresForUserVariant(uid, prevOp, prevV);
+                    const oldCell = findVariantCellInRow(row, prevOp, prevV);
+                    if (oldCell) paintVariantDataCell(oldCell, getScoresOnlyVariantStatus(uid, prevOp, prevV));
+                    const newCell = findVariantCellInRow(row, newOp, newVar);
+                    if (newCell) paintActiveVariantCell(newCell, sess);
+                } else if (sess && newVar && newOp && (!prevV || prevV === newVar)) {
+                    const newCell = findVariantCellInRow(row, newOp, newVar);
+                    if (newCell) paintActiveVariantCell(newCell, sess);
+                }
+            }
+
+            teacherPriorCurrentByUserId.set(uid, {
+                variant: newVar,
+                operation: newOp,
+                statusText: curStatDisp
+            });
+        }
+    } catch (error) {
+        console.error('❌ runActiveSessionsPollTick:', error);
+    }
+}
+
+function toggleDebugActivityColumns() {
+    const table = document.getElementById('progressTable');
+    const btn = document.getElementById('toggleDebugActivityColsBtn');
+    if (!table) return;
+    table.classList.toggle('hide-debug-activity-columns');
+    const hidden = table.classList.contains('hide-debug-activity-columns');
+    if (btn) {
+        btn.textContent = hidden ? 'Show activity columns' : 'Hide activity columns';
+    }
+    applyStickyFixedColumnLayout();
+}
+
+window.toggleDebugActivityColumns = toggleDebugActivityColumns;
+
 // Export to Excel
 // CALLED BY: teacher-dashboard.html - <button onclick="exportToExcel()">Export to Excel</button>
 async function exportToExcel() {
@@ -1209,9 +1467,12 @@ async function exportToExcel() {
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Student Progress');
 
-        // Add header row
-        const headerRow = ['Student', 'Class', 'Roll No.', 'User Code', 'Date of Birth'];
-        allVariants.forEach(({ operation, variant }) => {
+        // Add header row (5 student cols + 4 activity debug + variants)
+        const headerRow = [
+            'Student', 'Class', 'Roll No.', 'User Code', 'Date of Birth',
+            'Last var', 'Last Δ', 'Curr var', 'Curr Δ'
+        ];
+        allVariants.forEach(({ variant }) => {
             headerRow.push(variant);
         });
         worksheet.addRow(headerRow);
@@ -1275,6 +1536,20 @@ async function exportToExcel() {
                 dobFormatted
             ];
 
+            const tableBodyEl = document.getElementById('tableBody');
+            const uid = String(student.user_id || '');
+            const tr = tableBodyEl && uid ? tableBodyEl.querySelector(`tr[data-user-id="${uid}"]`) : null;
+            if (tr && tr.cells.length >= VARIANT_COLUMN_START_INDEX) {
+                row.push(
+                    tr.cells[STUDENT_INFO_COLUMN_COUNT].textContent,
+                    tr.cells[STUDENT_INFO_COLUMN_COUNT + 1].textContent,
+                    tr.cells[STUDENT_INFO_COLUMN_COUNT + 2].textContent,
+                    tr.cells[STUDENT_INFO_COLUMN_COUNT + 3].textContent
+                );
+            } else {
+                row.push('—', '—', '—', '—');
+            }
+
             allVariants.forEach(({ operation, variant }) => {
                 const status = getVariantStatus(student.user_id, operation, variant);
                 if (status && typeof status === 'object' && status.type === 'active') {
@@ -1297,25 +1572,25 @@ async function exportToExcel() {
 
             const dataRow = worksheet.addRow(row);
 
-            // Style status cells
+            // Style variant columns (1-based: columns 10+)
+            const variantStartCol = STUDENT_INFO_COLUMN_COUNT + DEBUG_ACTIVITY_COLUMN_COUNT + 1;
             allVariants.forEach((_, index) => {
-                const cell = dataRow.getCell(6 + index); // Start after fixed columns (Student, Class, Roll No., User Code, Date of Birth)
+                const cell = dataRow.getCell(variantStartCol + index);
                 const status = getVariantStatus(student.user_id, allVariants[index].operation, allVariants[index].variant);
-                
+
                 if (status && typeof status === 'object' && status.type === 'active') {
-                    // Active session - green for correct, red for wrong
                     cell.fill = {
                         type: 'pattern',
                         pattern: 'solid',
                         fgColor: { argb: status.isCorrect === true ? 'FF90EE90' : 'FFFFB6C6' }
                     };
-                } else if (status === 'pass') {
+                } else if (status && typeof status === 'object' && status.type === 'pass') {
                     cell.fill = {
                         type: 'pattern',
                         pattern: 'solid',
                         fgColor: { argb: 'FF90EE90' }
                     };
-                } else if (status === 'fail') {
+                } else if (status && typeof status === 'object' && status.type === 'fail') {
                     cell.fill = {
                         type: 'pattern',
                         pattern: 'solid',
@@ -1339,15 +1614,19 @@ async function exportToExcel() {
         worksheet.getColumn(3).width = 12; // Roll No.
         worksheet.getColumn(4).width = 15; // User Code
         worksheet.getColumn(5).width = 15; // Date of Birth
-        for (let i = 6; i <= 5 + allVariants.length; i++) {
-            worksheet.getColumn(i).width = 8; // Variant columns
+        worksheet.getColumn(6).width = 10;
+        worksheet.getColumn(7).width = 8;
+        worksheet.getColumn(8).width = 10;
+        worksheet.getColumn(9).width = 8;
+        const variantStartCol = STUDENT_INFO_COLUMN_COUNT + DEBUG_ACTIVITY_COLUMN_COUNT + 1;
+        for (let i = 0; i < allVariants.length; i++) {
+            worksheet.getColumn(variantStartCol + i).width = 8;
         }
 
-        // Freeze header row and first 5 columns
         worksheet.views = [{
             state: 'frozen',
             ySplit: 1,
-            xSplit: 5
+            xSplit: FIXED_COLUMNS_COUNT
         }];
 
         // Generate Excel file and download
@@ -1418,193 +1697,48 @@ let activeSessionsPollInterval = null;
 
 function startActiveSessionsPolling() {
     if (window.debugLog) window.debugLog('startActiveSessionsPolling');
-    // Clear any existing interval
     if (activeSessionsPollInterval) {
         clearInterval(activeSessionsPollInterval);
     }
-    
-    // Poll every 5 seconds using Firestore (matches Supabase structure)
-    activeSessionsPollInterval = setInterval(async () => {
-        if (!window.firebaseDb || !teacherProfile || students.length === 0) return;
-        
-        try {
-            // Get student user IDs and normalize to strings
-            // Firestore queries are type-sensitive, so ensure all user_id values are strings
-            const studentUserIds = students
-                .map(s => s.user_id)
-                .filter(id => id != null && id !== '')
-                .map(id => String(id)); // Normalize to string
-            if (studentUserIds.length === 0) return;
-            
-            // Fetch active sessions from Firestore
-            // Firestore 'in' query has limit of 10, so batch if needed
-            const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
-            const activeSessions = [];
-            const batchSize = 10;
-            
-            for (let i = 0; i < studentUserIds.length; i += batchSize) {
-                const batch = studentUserIds.slice(i, i + batchSize);
-                try {
-                    const activeSessionsRef = collection(window.firebaseDb, 'active_sessions');
-                    const activeSessionsQuery = query(activeSessionsRef, where('user_id', 'in', batch));
-                    const activeSessionsSnapshot = await getDocs(activeSessionsQuery);
-                    
-                    activeSessionsSnapshot.forEach((doc) => {
-                        const sessionData = doc.data();
-                        // Debug logging commented out - uncomment if needed for troubleshooting
-                        // console.log('📊 Active session fetched:', {
-                        //     user_id: sessionData.user_id,
-                        //     operation: sessionData.operation,
-                        //     variant: sessionData.variant,
-                        //     last_question_no_completed: sessionData.last_question_no_completed,
-                        //     last_question_correct_wrong: sessionData.last_question_correct_wrong
-                        // });
-                        activeSessions.push(sessionData);
-                    });
-                } catch (error) {
-                    console.warn('⚠️ Error fetching active sessions batch:', error);
-                }
-            }
-            
-            // Update global active sessions
-            const oldActiveSessions = window.activeSessions || [];
-            window.activeSessions = activeSessions;
-            
-            // Check if sessions were added/removed (for score refresh when quizzes complete)
-            const oldSessionKeys = new Set(oldActiveSessions.map(s => `${s.user_id}_${s.operation}_${s.variant}`));
-            const newSessionKeys = new Set(activeSessions.map(s => `${s.user_id}_${s.operation}_${s.variant}`));
-            const sessionsAddedOrRemoved = oldSessionKeys.size !== newSessionKeys.size || 
-                                          [...oldSessionKeys].some(key => !newSessionKeys.has(key)) ||
-                                          [...newSessionKeys].some(key => !oldSessionKeys.has(key));
-            
-            // Always update cells to show updated question numbers
-            // This ensures question numbers update even if no sessions were added/removed
-            updateActiveSessionCells();
-            
-            // If sessions disappeared, refresh scores for those students
-            if (sessionsAddedOrRemoved) {
-                const disappearedSessions = oldActiveSessions.filter(s => {
-                    const key = `${s.user_id}_${s.operation}_${s.variant}`;
-                    return !newSessionKeys.has(key);
-                });
-                
-                if (disappearedSessions.length > 0) {
-                    const userIdsToRefresh = [...new Set(disappearedSessions.map(s => s.user_id))];
-                    console.log(`🔄 Active sessions disappeared for ${userIdsToRefresh.length} student(s), refreshing scores...`);
-                    await refreshScoresForStudents(userIdsToRefresh);
-                }
-            }
-        } catch (error) {
-            console.error('❌ Error in active sessions polling:', error);
-        }
-    }, 5000); // 5 seconds
+    // Immediate tick so grid + debug columns sync without waiting 5s
+    runActiveSessionsPollTick();
+    activeSessionsPollInterval = setInterval(() => {
+        runActiveSessionsPollTick();
+    }, 5000);
 }
 
-// Refresh scores for specific students (using Firestore)
-// CALLED BY: teacher-dashboard.js - startActiveSessionsPolling() (when active sessions disappear)
+// Merge fetched score docs into studentScores by document id (no wipe of other rows)
+// CALLED BY: optional manual refresh paths
 async function refreshScoresForStudents(userIds) {
     if (window.debugLog) window.debugLog('refreshScoresForStudents', `(${userIds.length} students)`);
     if (!window.firebaseDb || userIds.length === 0) return;
-    
+
     try {
         const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
         const scoresRef = collection(window.firebaseDb, 'user_scores');
-        
-        // Firestore 'in' query has limit of 10, so batch if needed
         const batchSize = 10;
         const newScores = [];
-        
+
         for (let i = 0; i < userIds.length; i += batchSize) {
             const batch = userIds.slice(i, i + batchSize);
             const scoresQuery = query(scoresRef, where('user_id', 'in', batch));
             const scoresSnapshot = await getDocs(scoresQuery);
-            
             scoresSnapshot.forEach((doc) => {
-                newScores.push({
-                    id: doc.id,
-                    ...doc.data()
-                });
+                newScores.push({ id: doc.id, ...doc.data() });
             });
         }
-        
-        // Update studentScores array: remove old scores for these students, add new ones
-        studentScores = studentScores.filter(s => !userIds.includes(s.user_id));
-        studentScores.push(...newScores);
-        
-        console.log(`✅ Refreshed scores for ${userIds.length} student(s), found ${newScores.length} new score records`);
-        
-        // Rebuild the grid to show updated scores
+
+        for (const ns of newScores) {
+            const idx = studentScores.findIndex(s => s.id === ns.id);
+            if (idx >= 0) studentScores[idx] = ns;
+            else studentScores.push(ns);
+        }
+
+        console.log(`✅ Merged ${newScores.length} score record(s) for ${userIds.length} student(s)`);
         buildDashboardGrid();
     } catch (error) {
         console.error('❌ Error refreshing scores:', error);
     }
-}
-
-// Update only cells that have active sessions (efficient DOM update)
-// CALLED BY: teacher-dashboard.js - startActiveSessionsPolling() (when active sessions change)
-function updateActiveSessionCells() {
-    if (window.debugLog) window.debugLog('updateActiveSessionCells');
-    const tableBody = document.getElementById('tableBody');
-    if (!tableBody) return;
-    
-    const rows = tableBody.querySelectorAll('tr');
-    const activeSessions = window.activeSessions || [];
-    
-    rows.forEach((row, rowIndex) => {
-        if (rowIndex >= students.length) return;
-        const student = students[rowIndex];
-        
-        // Get variant cells (skip first FIXED_COLUMNS_COUNT fixed columns: Student, Class, Roll No., User Code, Date of Birth)
-        const cells = row.querySelectorAll('td');
-        allVariants.forEach(({ operation, variant }, variantIndex) => {
-            const cellIndex = FIXED_COLUMNS_COUNT + variantIndex; // Skip fixed columns before variant columns
-            const cell = cells[cellIndex];
-            if (!cell) return;
-            
-            const status = getVariantStatus(student.user_id, operation, variant);
-            
-            // Update cell content and class (preserve variant-column class)
-            const baseClass = 'variant-column';
-            
-            // Skip if column is hidden
-            if (shouldHideVariant(operation, variant)) {
-                return;
-            }
-            if (status && typeof status === 'object' && status.type === 'active') {
-                cell.textContent = status.questionNo != null ? String(status.questionNo) : '0';
-                cell.className = baseClass + ' ' + (status.isCorrect === true ? 'status-active-correct' : 
-                                 status.isCorrect === false ? 'status-active-wrong' : 
-                                 'status-active-unknown');
-            } else if (status && typeof status === 'object' && status.type === 'pass') {
-                // Display minimum average_time for passed variants
-                if (status.minTime != null) {
-                    cell.textContent = `${status.minTime.toFixed(1)}s`;
-                } else {
-                    cell.textContent = '✓';
-                }
-                cell.className = baseClass + ' status-pass';
-            } else if (status && typeof status === 'object' && status.type === 'fail') {
-                // Display attempt count for failed variants
-                const count = status.attemptCount || 0;
-                cell.textContent = count > 0 ? `${count}` : '✗';
-                cell.className = baseClass + ' status-fail';
-            } else {
-                cell.textContent = '';
-                cell.className = baseClass + ' status-empty';
-            }
-            
-            // Ensure dataset attributes are set (operation and variant already declared in forEach)
-            cell.dataset.operation = operation;
-            cell.dataset.variant = variant;
-            
-            // Update visibility based on collapse state
-            if (shouldHideVariant(operation, variant)) {
-                cell.classList.add('hidden-column');
-            } else {
-                cell.classList.remove('hidden-column');
-            }
-        });
-    });
 }
 
 // Toggle operation group collapse/expand

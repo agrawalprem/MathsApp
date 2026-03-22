@@ -370,6 +370,19 @@ body {
     display: none !important;
 }
 
+/* Activity debug columns (last/current variant + status); toggled via toolbar */
+.progress-table th.debug-column,
+.progress-table td.debug-column {
+    font-size: 11px;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.progress-table.hide-debug-activity-columns th.debug-column,
+.progress-table.hide-debug-activity-columns td.debug-column {
+    display: none !important;
+}
+
 /* Scrollbar styling */
 /* CALLED BY: teacher-dashboard.html - <div class="grid-wrapper"> (custom scrollbar styling for webkit browsers) */
 .grid-wrapper::-webkit-scrollbar {
