@@ -198,6 +198,47 @@ body {
     color: #333;
 }
 
+.variant-state-filter {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    border: 1px solid #cfd7e6;
+    border-radius: 6px;
+    background: #f8fbff;
+    font-size: 12px;
+}
+
+.variant-state-filter .filter-label {
+    font-weight: 600;
+    color: #1e3a8a;
+}
+
+.variant-state-filter .state-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #334155;
+}
+
+.variant-state-filter .state-option input {
+    margin: 0;
+}
+
+.variant-state-filter .filter-clear-btn {
+    padding: 3px 8px;
+    border-radius: 5px;
+    border: 1px solid #cbd5e1;
+    background: white;
+    color: #334155;
+    cursor: pointer;
+    font-size: 11px;
+}
+
+.variant-state-filter .filter-clear-btn:hover {
+    background: #eef2ff;
+}
+
 /* CALLED BY: teacher-dashboard.html - <div id="dashboardGrid" class="dashboard-grid-container hidden">, teacher-dashboard.js - loadDashboard() (removes 'hidden' class) */
 .dashboard-grid-container {
     padding: 8px 10px 10px;
@@ -225,7 +266,7 @@ body {
     /* Sticky headers are unreliable with border-collapse: collapse in some browsers */
     border-collapse: separate;
     border-spacing: 0;
-    font-size: 12px;
+    font-size: 13px;
     min-width: 800px;
 }
 
@@ -252,6 +293,12 @@ body {
     background: #dbeafe;
     color: #1e3a8a;
     box-shadow: inset 0 -2px 0 #2563eb;
+}
+
+.progress-table th.variant-filter-partial {
+    background: #fff7ed;
+    color: #9a3412;
+    box-shadow: inset 0 -2px 0 #ea580c;
 }
 
 /* Small visual cue that variant headers support filtering */

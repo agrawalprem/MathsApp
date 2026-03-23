@@ -36,7 +36,14 @@ let teacherPriorCurrentByUserId = new Map();
 let selectedClass = null; // Currently selected class
 let selectedSection = null; // Currently selected section
 let stickyColumnsResizeHandlerBound = false;
-let activeVariantFilter = null; // { operation, variant } or null
+const FILTER_STATE_KEYS = ['pass', 'fail', 'working', 'not_started'];
+const FILTER_STATE_LABELS = {
+    pass: 'Pass',
+    fail: 'Fail',
+    working: 'Working',
+    not_started: 'Not started'
+};
+let activeVariantFilter = null; // { operation, variant, states: Set<string> } or null
 
 // Learning sequence for column ordering
 const learningSequence = {
@@ -914,6 +921,9 @@ function buildDashboardGrid() {
             activeVariantFilter.operation === operation &&
             activeVariantFilter.variant === variant) {
             th.classList.add('variant-filter-active');
+            if (activeVariantFilter.states && activeVariantFilter.states.size < FILTER_STATE_KEYS.length) {
+                th.classList.add('variant-filter-partial');
+            }
         }
         // Prevent focus-scroll jumps when clicking header cells in a horizontally scrolled grid.
         th.addEventListener('mousedown', (e) => e.preventDefault());
@@ -932,7 +942,7 @@ function buildDashboardGrid() {
     // Optional variant filter: only students with Active/Fail status for selected variant.
     const displayedStudents = activeVariantFilter
         ? students.filter((student) =>
-            shouldIncludeStudentForVariantFilter(student, activeVariantFilter.operation, activeVariantFilter.variant))
+            shouldIncludeStudentForVariantFilter(student, activeVariantFilter))
         : students;
 
     // Build data rows
@@ -1058,7 +1068,7 @@ function buildDashboardGrid() {
         emptyCell.style.textAlign = 'left';
         emptyCell.style.padding = '10px';
         emptyCell.textContent = activeVariantFilter
-            ? `No students are Active/Fail for ${activeVariantFilter.variant}. Click the highlighted header again to show all students.`
+            ? `No students match selected states for ${activeVariantFilter.variant}.`
             : 'No students found.';
         emptyRow.appendChild(emptyCell);
         tableBody.appendChild(emptyRow);
@@ -1070,6 +1080,8 @@ function buildDashboardGrid() {
             ? `${displayedStudents.length}/${students.length}`
             : `${students.length}`;
     }
+
+    renderVariantStateFilterPanel();
 
     // Compute and apply sticky offsets so fixed columns do not overlap while scrolling.
     applyStickyFixedColumnLayout();
@@ -1083,10 +1095,59 @@ function buildDashboardGrid() {
     }
 }
 
-function shouldIncludeStudentForVariantFilter(student, operation, variant) {
-    const status = getVariantStatus(student?.user_id, operation, variant);
-    if (!status || typeof status !== 'object') return false;
-    return status.type === 'active' || status.type === 'fail';
+function getStatusFilterKey(status) {
+    if (!status || typeof status !== 'object') return 'not_started';
+    if (status.type === 'active') return 'working';
+    if (status.type === 'pass') return 'pass';
+    if (status.type === 'fail') return 'fail';
+    return 'not_started';
+}
+
+function shouldIncludeStudentForVariantFilter(student, filter) {
+    if (!filter || !filter.states || filter.states.size === 0) return false;
+    const status = getVariantStatus(student?.user_id, filter.operation, filter.variant);
+    return filter.states.has(getStatusFilterKey(status));
+}
+
+function renderVariantStateFilterPanel() {
+    const panel = document.getElementById('variantStateFilterPanel');
+    if (!panel) return;
+    if (!activeVariantFilter) {
+        panel.classList.add('hidden');
+        panel.innerHTML = '';
+        return;
+    }
+
+    const activeLabel = `${activeVariantFilter.variant}`;
+    const optionsHtml = FILTER_STATE_KEYS.map((key) => {
+        const checked = activeVariantFilter.states.has(key) ? 'checked' : '';
+        return `<label class="state-option"><input type="checkbox" data-filter-state="${key}" ${checked}>${FILTER_STATE_LABELS[key]}</label>`;
+    }).join('');
+
+    panel.classList.remove('hidden');
+    panel.innerHTML = `
+        <span class="filter-label">Filter ${activeLabel}:</span>
+        ${optionsHtml}
+        <button type="button" class="filter-clear-btn" id="clearVariantStateFilterBtn">Clear</button>
+    `;
+
+    panel.querySelectorAll('input[data-filter-state]').forEach((input) => {
+        input.addEventListener('change', (event) => {
+            const stateKey = event.target.getAttribute('data-filter-state');
+            if (!stateKey || !activeVariantFilter) return;
+            if (event.target.checked) activeVariantFilter.states.add(stateKey);
+            else activeVariantFilter.states.delete(stateKey);
+            buildDashboardGrid();
+        });
+    });
+
+    const clearBtn = document.getElementById('clearVariantStateFilterBtn');
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            activeVariantFilter = null;
+            buildDashboardGrid();
+        });
+    }
 }
 
 function toggleVariantStudentFilter(operation, variant) {
@@ -1095,7 +1156,11 @@ function toggleVariantStudentFilter(operation, variant) {
         activeVariantFilter.variant === variant) {
         activeVariantFilter = null;
     } else {
-        activeVariantFilter = { operation, variant };
+        activeVariantFilter = {
+            operation,
+            variant,
+            states: new Set(FILTER_STATE_KEYS)
+        };
     }
     buildDashboardGrid();
     runActiveSessionsPollTick();
@@ -1446,6 +1511,9 @@ async function runActiveSessionsPollTick() {
                 operation: newOp,
                 statusText: curStatDisp
             });
+        }
+        if (activeVariantFilter) {
+            buildDashboardGrid();
         }
     } catch (error) {
         console.error('❌ runActiveSessionsPollTick:', error);
