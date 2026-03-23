@@ -1333,15 +1333,22 @@ function findVariantCellInRow(row, operation, variant) {
 async function fetchAndMergeScoresForUserVariant(userId, operation, variant) {
     if (!window.firebaseDb || !userId || !operation || !variant) return;
     try {
-        const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
+        const { collection, query, where, getDocsFromServer } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
         const scoresRef = collection(window.firebaseDb, 'user_scores');
         const uid = String(userId);
-        const scoresQuery = query(scoresRef, where('user_id', '==', uid));
-        const snap = await getDocs(scoresQuery);
+        const student = students.find(s => String(s.user_id || '') === uid);
+        const userCode = student && student.user_code != null ? String(student.user_code).trim() : '';
+        if (!userCode) {
+            console.warn(`⚠️ fetchAndMergeScoresForUserVariant: missing user_code for user_id=${uid}`);
+            return;
+        }
+        const scoresQuery = query(scoresRef, where('user_code', '==', userCode));
+        const snap = await getDocsFromServer(scoresQuery);
         snap.forEach((docSnap) => {
             const data = docSnap.data();
             if (data.operation !== operation || data.variant !== variant) return;
-            const incoming = { id: docSnap.id, ...data };
+            // Normalize identity to current student UID so grid lookups stay stable.
+            const incoming = { id: docSnap.id, ...data, user_id: uid };
             const idx = studentScores.findIndex(s => s.id === docSnap.id);
             if (idx >= 0) studentScores[idx] = incoming;
             else studentScores.push(incoming);

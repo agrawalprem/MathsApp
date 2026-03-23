@@ -562,7 +562,7 @@
         };
         
         // Fetch and update variant statuses: always load scores from Firestore server only (no cache, no sessionStorage).
-        // Every signed-in user (including anonymous) has an Auth uid; user_scores rows are queried by that uid only.
+        // Source of truth for student history is user_code; query user_scores by user_code only.
         async function fetchAndUpdateVariantStatuses() {
             if (!currentUser) {
                 console.warn('⚠️ No user authenticated, skipping variant status update');
@@ -570,11 +570,25 @@
             }
 
             try {
-                const uid = currentUser.uid;
-                console.log('📊 Fetching user_scores from server for uid:', uid);
+                const userCode = currentUserProfile?.user_code != null
+                    ? String(currentUserProfile.user_code).trim()
+                    : '';
+                if (!userCode) {
+                    console.error('❌ Missing user_code in profile. Logging out user for safety.');
+                    try {
+                        await signOut(auth);
+                    } catch (e) {
+                        console.warn('⚠️ signOut failed while handling missing user_code:', e);
+                    }
+                    sessionStorage.removeItem('currentUserProfile');
+                    sessionStorage.removeItem('quizUserProfile');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                console.log('📊 Fetching user_scores from server for user_code:', userCode);
 
                 const scoresRef = collection(db, 'user_scores');
-                const q = query(scoresRef, where('user_id', '==', uid));
+                const q = query(scoresRef, where('user_code', '==', userCode));
                 const querySnapshot = await getDocsFromServer(q);
 
                 const scores = [];
