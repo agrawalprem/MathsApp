@@ -54,6 +54,7 @@
             <h1>Dashboard - Student Progress</h1>
             <div class="user-info">
                 <button id="studentDashboardBtn" class="btn btn-secondary">Student Dashboard</button>
+                <button id="adminDashboardBtn" class="btn btn-secondary">Administrator Dashboard</button>
                 <button id="logoutBtn" class="btn btn-secondary">Log Out</button>
             </div>
         </header>
@@ -221,6 +222,10 @@
         // Handle student dashboard button
         document.getElementById('studentDashboardBtn').addEventListener('click', () => {
             window.location.href = 'student-dashboard.html';
+        });
+
+        document.getElementById('adminDashboardBtn').addEventListener('click', () => {
+            window.location.href = 'admin-dashboard.html';
         });
         
         // Monitor auth state and initialize dashboard

@@ -38,6 +38,7 @@
                 </div>
                 <div class="dashboard-buttons-grid">
                     <button id="teacherDashboardBtn" class="btn btn-auth hidden" onclick="window.location.href = 'teacher-dashboard.html'">Teacher Dashboard</button>
+                    <button id="adminDashboardBtn" class="btn btn-auth hidden" onclick="window.location.href = 'admin-dashboard.html'">Administrator Dashboard</button>
                     <button class="btn btn-auth" onclick="handleLogout()">Logout</button>
                 </div>
             </div>
@@ -710,13 +711,22 @@
                 // Update dashboard header
                 updateStudentDashboardHeader();
 
-                // Show teacher dashboard button if user is a teacher
+                // Show teacher/admin dashboard buttons if user is a teacher
+                const isTeacher = currentUserProfile && currentUserProfile.user_type === 'Teacher';
                 const teacherDashboardBtn = document.getElementById('teacherDashboardBtn');
                 if (teacherDashboardBtn) {
-                    if (currentUserProfile && currentUserProfile.user_type === 'Teacher') {
+                    if (isTeacher) {
                         teacherDashboardBtn.classList.remove('hidden');
                     } else {
                         teacherDashboardBtn.classList.add('hidden');
+                    }
+                }
+                const adminDashboardBtn = document.getElementById('adminDashboardBtn');
+                if (adminDashboardBtn) {
+                    if (isTeacher) {
+                        adminDashboardBtn.classList.remove('hidden');
+                    } else {
+                        adminDashboardBtn.classList.add('hidden');
                     }
                 }
 

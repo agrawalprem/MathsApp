@@ -101,13 +101,22 @@ async function updateAuthUI(skipPageSwitch = false) {
                 console.warn('Unable to cache user profile for quiz header', e);
             }
             
-            // Show/hide Teacher Dashboard button based on user type
+            // Show/hide Teacher and Administrator Dashboard buttons based on user type
+            const isTeacher = currentUserProfile && currentUserProfile.user_type === 'Teacher';
             const teacherDashboardBtn = document.getElementById('teacherDashboardBtn');
             if (teacherDashboardBtn) {
-                if (currentUserProfile && currentUserProfile.user_type === 'Teacher') {
+                if (isTeacher) {
                     teacherDashboardBtn.classList.remove('hidden');
                 } else {
                     teacherDashboardBtn.classList.add('hidden');
+                }
+            }
+            const adminDashboardBtn = document.getElementById('adminDashboardBtn');
+            if (adminDashboardBtn) {
+                if (isTeacher) {
+                    adminDashboardBtn.classList.remove('hidden');
+                } else {
+                    adminDashboardBtn.classList.add('hidden');
                 }
             }
             
@@ -131,10 +140,14 @@ async function updateAuthUI(skipPageSwitch = false) {
         // On other pages (index.html, etc.) - clear everything
         currentUserProfile = null;
         
-        // Hide Teacher Dashboard button when logged out
+        // Hide Teacher/Administrator Dashboard buttons when logged out
         const teacherDashboardBtn = document.getElementById('teacherDashboardBtn');
         if (teacherDashboardBtn) {
             teacherDashboardBtn.classList.add('hidden');
+        }
+        const adminDashboardBtn = document.getElementById('adminDashboardBtn');
+        if (adminDashboardBtn) {
+            adminDashboardBtn.classList.add('hidden');
         }
         
         // Clear all variant containers

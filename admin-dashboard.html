@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<!--
+    REQUIREMENTS:
+    - Administrator dashboard for monitoring class/school pass-fail attempt counts by date
+    - Rows = class + section; columns = daily and/or weekly totals
+    - Teacher-only access (user_type === 'Teacher')
+    - All schools and all classes visible (no role restriction)
+
+    REFERENCED BY:
+    - admin-dashboard.js
+    - admin-dashboard.css
+-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#156082">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Administrator Dashboard</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="stylesheet" href="admin-dashboard.css">
+    <script src="auth-utils.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for (var i = 0; i < registrations.length; i++) {
+                    registrations[i].unregister();
+                }
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>Administrator Dashboard</h1>
+            <div class="user-info">
+                <button id="teacherDashboardBtn" class="btn btn-secondary" type="button">Teacher Dashboard</button>
+                <button id="logoutBtn" class="btn btn-secondary" type="button">Log Out</button>
+            </div>
+        </header>
+
+        <div id="loadingMessage" class="loading-message">Loading...</div>
+        <div id="errorMessage" class="error-message hidden"></div>
+
+        <div id="controlsBar" class="controls-bar hidden">
+            <div class="selector-group">
+                <label class="selector-label" for="schoolSelector">Select School</label>
+                <select id="schoolSelector" class="selector-dropdown"></select>
+            </div>
+            <div class="selector-group">
+                <label class="selector-label" for="fromDate">From</label>
+                <input type="date" id="fromDate" class="selector-input">
+            </div>
+            <div class="selector-group">
+                <label class="selector-label" for="toDate">To</label>
+                <input type="date" id="toDate" class="selector-input">
+            </div>
+            <div class="selector-group selector-group-btn">
+                <button id="loadBtn" class="btn btn-primary" type="button">Load</button>
+            </div>
+        </div>
+
+        <div id="togglesBar" class="toggles-bar hidden">
+            <div class="toggle-group" role="group" aria-label="Metrics">
+                <span class="toggle-group-label">Show:</span>
+                <label class="toggle-option"><input type="checkbox" id="showPass" checked> Pass</label>
+                <label class="toggle-option"><input type="checkbox" id="showFail" checked> Fail</label>
+                <label class="toggle-option"><input type="checkbox" id="showTotal" checked> Total</label>
+            </div>
+            <div class="toggle-group" role="group" aria-label="View mode">
+                <span class="toggle-group-label">Columns:</span>
+                <label class="toggle-option"><input type="radio" name="viewMode" value="daily" checked> Daily</label>
+                <label class="toggle-option"><input type="radio" name="viewMode" value="weekly"> Weekly</label>
+                <label class="toggle-option"><input type="radio" name="viewMode" value="both"> Both</label>
+            </div>
+        </div>
+
+        <div id="dashboardGrid" class="dashboard-grid-container hidden">
+            <div class="grid-wrapper">
+                <table id="adminTable" class="admin-table">
+                    <thead id="tableHead"></thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-analytics.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+        import { getFirestore } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBqCWeT44wwh92OL_8O0-j4IBwLeOaGSmc",
+            authDomain: "maths-in-baby-steps.firebaseapp.com",
+            projectId: "maths-in-baby-steps",
+            storageBucket: "maths-in-baby-steps.firebasestorage.app",
+            messagingSenderId: "235467885199",
+            appId: "1:235467885199:web:dff119a28e6f897d1dfefa",
+            measurementId: "G-XKB7TT32RL"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        getAnalytics(app);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.firebaseSignOut = signOut;
+
+        document.getElementById('logoutBtn').addEventListener('click', async () => {
+            try {
+                if (typeof window.handleLogoutCommon === 'function') {
+                    await window.handleLogoutCommon({ auth, redirectTo: 'index.html' });
+                    return;
+                }
+                await signOut(auth);
+                sessionStorage.removeItem('currentUserProfile');
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error('Sign out error:', error);
+                alert('Error signing out: ' + error.message);
+            }
+        });
+
+        document.getElementById('teacherDashboardBtn').addEventListener('click', () => {
+            window.location.href = 'teacher-dashboard.html';
+        });
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            let userProfile = null;
+            try {
+                const profileStr = sessionStorage.getItem('currentUserProfile');
+                if (profileStr) userProfile = JSON.parse(profileStr);
+            } catch (e) {
+                userProfile = null;
+            }
+
+            if (!userProfile) {
+                try {
+                    const { collection, query, where, getDocs, doc, getDoc } = await import("https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js");
+                    const profilesRef = collection(db, 'user_profiles');
+                    let snap = await getDocs(query(profilesRef, where('user_id', '==', user.uid)));
+                    if (snap.empty && user.email) {
+                        snap = await getDocs(query(profilesRef, where('email', '==', user.email)));
+                    }
+                    if (!snap.empty) {
+                        userProfile = snap.docs[0].data();
+                    } else if (user.email) {
+                        const userCode = user.email.split('@')[0];
+                        const profileSnap = await getDoc(doc(db, 'user_profiles', userCode));
+                        if (profileSnap.exists()) userProfile = profileSnap.data();
+                    }
+                    if (userProfile) {
+                        sessionStorage.setItem('currentUserProfile', JSON.stringify(userProfile));
+                    }
+                } catch (error) {
+                    console.error('Error fetching user profile:', error);
+                }
+            }
+
+            if (!userProfile) {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            if (userProfile.user_type !== 'Teacher') {
+                window.location.href = 'student-dashboard.html';
+                return;
+            }
+
+            window.currentUser = user;
+            window.currentUserProfile = userProfile;
+
+            const tryInit = () => {
+                if (window.initAdminDashboard) {
+                    window.initAdminDashboard();
+                } else {
+                    setTimeout(tryInit, 100);
+                }
+            };
+            tryInit();
+        });
+    </script>
+    <script src="admin-dashboard.js"></script>
+</body>
+</html>
